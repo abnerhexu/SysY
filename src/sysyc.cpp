@@ -18,7 +18,7 @@ int main(int argc, char **argv) {
     cerr << "Failed to open file " << argv[1];
     return EXIT_FAILURE;
   }
-  ANTLRInputStream input("1,2,3",5);
+  ANTLRInputStream input(fin);
   SysYLexer lexer(&input);
   CommonTokenStream tokens(&lexer);
   SysYParser parser(&tokens);

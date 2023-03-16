@@ -6,23 +6,16 @@ grammar SysY;
 
 Comma: ',';
 
-IntLiteral: [0-9]+ | '0x' [0-9a-fA-F]+ | '0X' [0-9a-fA-F]+;
+fragment Decimal: [0-9];
+fragment Octal: [0-7];
+fragment Heximal: [0-9a-fA-F];
+fragment NonZeroDecimal: [1-9];
 
-fragment HexadecimalDigits:
-	'0x' [0-9a-fA-F]+
-	| '0X' [0-9a-fA-F]+;
+IntConst: NonZeroDecimal Decimal*
+        | '0' Octal+
+		| ('0x' | '0X') Heximal+;
 
-fragment ExponentPart: [eE] [+-] [0-9]+;
-
-fragment FractionPart: [0-9]* '.' [0-9]+ | [0-9]+ '.';
-
-FloatLiteral:
-	FractionPart (ExponentPart)?
-	| [0-9]+ ExponentPart
-	| (HexadecimalDigits)? '.' HexadecimalDigits
-	| HexadecimalDigits '.';
-
-STRING: '"' (ESC | .)*? '"';
+String: '"' (ESC | .)*? '"';
 
 fragment ESC: '\\"' | '\\\\';
 
@@ -35,8 +28,9 @@ COMMENT: '/*' .*? '*/' -> skip;
 /* Syntax rules                                    */
 /*===-------------------------------------------===*/
 
-funcRParams: funcRParam (Comma funcRParam)*;
+funcRParams: funcRParam (Comma funcRParam)* EOF;
 
-funcRParam: number # expAsRParam | STRING # stringAsRParam;
+funcRParam: number # expAsRParam | string # stringAsRParam;
 
-number: IntLiteral | FloatLiteral;
+number: IntConst;
+string: String;
