@@ -1,0 +1,8 @@
+Comma=1
+IntLiteral=2
+FloatLiteral=3
+STRING=4
+WS=5
+LINE_COMMENT=6
+COMMENT=7
+','=1
