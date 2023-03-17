@@ -12,7 +12,8 @@
 SysY编译器前端基于[ANTLR](https://www.antlr.org/index.html)工具实现，本仓库已经包含ANTLR 4.9.3版本的可执行程序与C++运行时库，但编译ANTLR运行时库存在一些依赖，需要提前安装。
 
 ```bash
-sudo apt install uuid-dev libutfcpp-dev pkg-config python3-pip make git
+sudo apt update
+sudo apt install -y uuid-dev libutfcpp-dev pkg-config python3-pip make git
 pip3 install cmake
 ```
 
