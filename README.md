@@ -13,8 +13,7 @@ SysY编译器前端基于[ANTLR](https://www.antlr.org/index.html)工具实现�
 
 ```bash
 sudo apt update
-sudo apt install -y uuid-dev libutfcpp-dev pkg-config python3-pip make git
-pip3 install cmake
+sudo apt install -y uuid-dev libutfcpp-dev pkg-config python3-pip make git cmake
 ```
 
 依赖安装完成后，可以开始构建SysY编译器（构建过程包含了ANTLR运行时库的构建）。
