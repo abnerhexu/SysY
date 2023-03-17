@@ -4,18 +4,17 @@ using namespace std;
 #include "ASTPrinter.h"
 #include "SysYParser.h"
 
-antlrcpp::Any ASTPrinter::visitNumber(SysYParser::NumberContext *ctx) {
+any ASTPrinter::visitNumber(SysYParser::NumberContext *ctx) {
   cout << ctx->IntConst()->getText();
   return nullptr;
 }
 
-antlrcpp::Any ASTPrinter::visitString(SysYParser::StringContext *ctx) {
+any ASTPrinter::visitString(SysYParser::StringContext *ctx) {
   cout << ctx->String()->getText();
   return nullptr;
 }
 
-antlrcpp::Any
-ASTPrinter::visitFuncRParams(SysYParser::FuncRParamsContext *ctx) {
+any ASTPrinter::visitFuncRParams(SysYParser::FuncRParamsContext *ctx) {
   if (ctx->funcRParam().empty())
     return nullptr;
   auto numParams = ctx->funcRParam().size();
