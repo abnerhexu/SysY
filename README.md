@@ -7,6 +7,7 @@
 建议使用Ubuntu 22.04系统，原生版本与WSL版本均可。
 
 [Ubuntu下载与安装说明](https://ubuntu.com/download/desktop)
+
 [WSL Ubuntu安装说明](https://learn.microsoft.com/en-us/windows/wsl/install)
 
 SysY编译器前端基于[ANTLR](https://www.antlr.org/index.html)工具实现，本仓库已经包含ANTLR 4.9.3版本的可执行程序与C++运行时库，但编译ANTLR运行时库存在一些依赖，需要提前安装。
@@ -37,7 +38,9 @@ cat /test/funcrparams.sysy
 ## Documentation
 
 [ANTLR手册](doc/The%20Definitive%20ANTLR%204%20Reference.pdf)
+
 [SysY语言规范](doc/sysy-2022-spec.pdf)
+
 [SysY运行时库](doc/sysy-2022-runtime.pdf)
 
 ## 实验1：用ANTLR实现SysY词法/语法分析器  
