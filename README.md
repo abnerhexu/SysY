@@ -4,7 +4,7 @@
 
 ## Getting Started
 
-建议使用Ubuntu系统，原生版本与WSL版本均可。
+建议使用Ubuntu 22.04系统，原生版本与WSL版本均可。
 
 [Ubuntu下载与安装说明](https://ubuntu.com/download/desktop)
 [WSL Ubuntu安装说明](https://learn.microsoft.com/en-us/windows/wsl/install)
@@ -13,7 +13,7 @@ SysY编译器前端基于[ANTLR](https://www.antlr.org/index.html)工具实现�
 
 ```bash
 sudo apt update
-sudo apt install -y uuid-dev libutfcpp-dev pkg-config make git cmake
+sudo apt install -y uuid-dev libutfcpp-dev pkg-config make git cmake openjdk-11-jre
 ```
 
 依赖安装完成后，可以开始构建SysY编译器（构建过程包含了ANTLR运行时库的构建）。
