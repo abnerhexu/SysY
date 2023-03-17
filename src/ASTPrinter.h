@@ -4,9 +4,9 @@
 
 class ASTPrinter : public SysYBaseVisitor {
 public:
-  antlrcpp::Any visitFuncRParams(SysYParser::FuncRParamsContext *ctx) override;
-//   antlrcpp::Any visitExpAsRParam(SysYParser::ExpAsRParamContext *ctx) override;
-//   antlrcpp::Any visitStringAsRParam(SysYParser::StringAsRParamContext *ctx) override;
-  antlrcpp::Any visitNumber(SysYParser::NumberContext *ctx) override;
-  antlrcpp::Any visitString(SysYParser::StringContext *ctx) override;
+  std::any visitFuncRParams(SysYParser::FuncRParamsContext *ctx) override;
+//   std::any visitExpAsRParam(SysYParser::ExpAsRParamContext *ctx) override;
+//   std::any visitStringAsRParam(SysYParser::StringAsRParamContext *ctx) override;
+  std::any visitNumber(SysYParser::NumberContext *ctx) override;
+  std::any visitString(SysYParser::StringContext *ctx) override;
 };

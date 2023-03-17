@@ -27,11 +27,11 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
 
 # ANTLR
-set(ANTLR_EXECUTABLE "${PROJECT_SOURCE_DIR}/antlr/antlr-4.9.3-complete.jar")
+set(ANTLR_EXECUTABLE "${PROJECT_SOURCE_DIR}/antlr/antlr-4.12.0-complete.jar")
 set(ANTLR_RUNTIME "${PROJECT_SOURCE_DIR}/antlr/antlr4-runtime")
 
 set(ANTLR4_INSTALL ON)
-# set(ANTLR_BUILD_CPP_TESTS OFF) # Only for ANTLR 4.10.0 and later versions
+set(ANTLR_BUILD_CPP_TESTS OFF) # Only for ANTLR 4.10.0 and later versions
 add_subdirectory(${ANTLR_RUNTIME})
 
 # Project source files
