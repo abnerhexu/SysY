@@ -29,7 +29,7 @@ cmake --build build
 构建完成后，可以运行一个小的测试用例。该测试将逗号分隔的整数或字符串列表进行格式化后重新输出，即将相邻参数之间的分隔统一调整为逗号外加一个空格。
 
 ```bash
-cat /test/funcrparams.sysy
+cat test/funcrparams.sysy
 # -> 1,0xa ,  011,	"hellow"
 ./build/bin/sysyc test/funcrparams.sy
 # -> 1, 0xa, 011, "hellow"
