@@ -2,29 +2,27 @@
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
-using namespace std;
-using namespace antlr4;
 #include "SysYLexer.h"
 #include "SysYParser.h"
 #include "ASTPrinter.h"
 
 int main(int argc, char **argv) {
   if (argc != 2) {
-    cerr << "Usage: " << argv[0] << "inputfile\n";
+    std::cerr << "Usage: " << argv[0] << "inputfile\n";
     return EXIT_FAILURE;
   }
-  ifstream fin(argv[1]);
+  std::ifstream fin(argv[1]);
   if (not fin) {
-    cerr << "Failed to open file " << argv[1];
+    std::cerr << "Failed to open file " << argv[1];
     return EXIT_FAILURE;
   }
-  ANTLRInputStream input(fin);
+  antlr4::ANTLRInputStream input(fin);
   SysYLexer lexer(&input);
-  CommonTokenStream tokens(&lexer);
+  antlr4::CommonTokenStream tokens(&lexer);
   SysYParser parser(&tokens);
-  SysYParser::FuncRParamsContext *params = parser.funcRParams();
+  SysYParser::CompUnitContext *compUnit = parser.compUnit();
   ASTPrinter printer;
-  printer.visitFuncRParams(params);
+  printer.visitCompUnit(compUnit);
 
   return EXIT_SUCCESS;
 }

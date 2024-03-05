@@ -33,3 +33,9 @@
 
 .cache
 .~
+
+# Build directory
+build/
+
+# VSCode directory
+.vscode/
