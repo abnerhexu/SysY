@@ -72,4 +72,4 @@ public:
 
 extern std::size_t indentLevel;
 
-void printIndent(std::size_t level);
+void printIndent(int level);

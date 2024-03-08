@@ -1,11 +1,11 @@
 #include "ASTPrinter.h"
 #include "SysYParser.h"
 
-extern std::size_t indentLevel;
+std::size_t indentLevel;
 
-void printIndent(){
-  for (std::size_t i = 0; i < indentLevel; ++i){
-    std::cout << "\t";
+void printIndent(int level){
+  for (auto i = 0; i < level; ++i){
+    for (int j = 0; j < 2; j++) std::cout << " ";
   }
 }
 
@@ -19,33 +19,27 @@ std::any ASTPrinter::visitNumber(SysYParser::NumberContext *ctx) {
   return nullptr;
 }
 
-std::any ASTPrinter::visitString(SysYParser::StringContext *ctx) {
-  std::cout << ctx->String()->getText();
-  return nullptr;
-}
+
+// std::any ASTPrinter::visitFuncRParams(SysYParser::FuncRParamsContext *ctx) {
+//   if (ctx->expr().empty())
+//     return nullptr;
+//   auto numParams = ctx->expr().size();
+//   ctx->expr(0)->accept(this);
+//   for (int i = 1; i < numParams; ++i) {
+//     std::cout << ", ";
+//     ctx->expr(i)->accept(this);
+//   }
+//   std::cout << '\n';
+//   return nullptr;
+// }
 
 std::any ASTPrinter::visitFuncRParams(SysYParser::FuncRParamsContext *ctx) {
-  if (ctx->expr().empty())
-    return nullptr;
-  auto numParams = ctx->expr().size();
-  ctx->expr(0)->accept(this);
-  for (int i = 1; i < numParams; ++i) {
-    std::cout << ", ";
-    ctx->expr(i)->accept(this);
-  }
-  std::cout << '\n';
-  return nullptr;
-}
-
-std::any ASTPrinter::visitFuncType(SysYParser::FuncTypeContext *ctx) {
-  if (ctx->Void()){
-    std::cout << ctx->Void()->getText();
-  }
-  else if (ctx->Int()){
-    std::cout << ctx->Int()->getText();
-  }
-  else if (ctx->Float()){
-    std::cout << ctx->Float()->getText();
+  auto numExpr = ctx->expr().size();
+  for (int i = 0; i < numExpr; i++) {
+    visitExpr(ctx->expr(i));
+    if (i < numExpr - 1 && numExpr > 1){
+      std::cout << ", ";
+    }
   }
   return nullptr;
 }
@@ -54,8 +48,8 @@ std::any ASTPrinter::visitCompUnit(SysYParser::CompUnitContext *ctx) {
   if (ctx->decl().empty() && ctx->funcDef().empty()){
     return nullptr;
   }
-  std::size_t numDecls = ctx->decl().size();
-  std::size_t numFuncDefs = ctx->funcDef().size();
+  auto numDecls = ctx->decl().size();
+  auto numFuncDefs = ctx->funcDef().size();
   for (int i = 0; i < numDecls; i++) {
     visitDecl(ctx->decl(i));
     std::cout << std::endl;
@@ -63,7 +57,6 @@ std::any ASTPrinter::visitCompUnit(SysYParser::CompUnitContext *ctx) {
   std::cout << std::endl;
   for (int i = 0; i < numFuncDefs; i++) {
     visitFuncDef(ctx->funcDef(i));
-    std::cout << std::endl;
     std::cout << std::endl;
   }
   return nullptr;
@@ -79,7 +72,7 @@ std::any ASTPrinter::visitDataType(SysYParser::DataTypeContext *ctx){
   return nullptr;
 }
 
-std::any visitDecl(SysYParser::DeclContext *ctx) {
+std::any ASTPrinter::visitDecl(SysYParser::DeclContext *ctx) {
   antlr4::tree::ParseTree * child = ctx->children[0];
   auto * constChild = dynamic_cast<SysYParser::ConstDeclContext*>(child);
   auto * varChild = dynamic_cast<SysYParser::VarDeclContext*>(child);
@@ -90,13 +83,14 @@ std::any visitDecl(SysYParser::DeclContext *ctx) {
   else if (varChild) {
     visitVarDecl(ctx->varDecl());
   }
+  return nullptr;
 }
 
-std::any visitConstDecl(SysYParser::ConstDeclContext*ctx) {
+std::any ASTPrinter::visitConstDecl(SysYParser::ConstDeclContext*ctx) {
   std::cout << ctx->Const()->getText() << " ";
   visitDataType(ctx->dataType());
   std::cout << " ";
-  std::size_t numConstDefs = ctx->constDef().size();
+  auto numConstDefs = ctx->constDef().size();
   for (int i = 0; i < numConstDefs; i++) {
     visitConstDef(ctx->constDef(i));
     if (numConstDefs > 1 && i < numConstDefs - 1) {
@@ -106,13 +100,13 @@ std::any visitConstDecl(SysYParser::ConstDeclContext*ctx) {
     }
   }
   // std::cout << ctx->Semi()->getText();
-  std::cout << ";" << std::endl;
+  std::cout << ";";
   return nullptr;
 }
-std::any visitConstDef(SysYParser::ConstDefContext*ctx) {
-  std::cout << ctx->Identifier()->getText() << " ";
-  std::size_t numConstExpr = ctx->constExpr().size();
-  for (std::size_t i = 0; i < numConstExpr; i++) {
+std::any ASTPrinter::visitConstDef(SysYParser::ConstDefContext*ctx) {
+  std::cout << ctx->Identifier()->getText();
+  auto numConstExpr = ctx->constExpr().size();
+  for (auto i = 0; i < numConstExpr; i++) {
     std::cout << "[";
     visitConstExpr(ctx->constExpr(i));
     std::cout << "]";
@@ -121,7 +115,7 @@ std::any visitConstDef(SysYParser::ConstDefContext*ctx) {
   visitConstInitVal(ctx->constInitVal());
   return nullptr;
 }
-std::any visitConstInitVal(SysYParser::ConstInitValContext *ctx) {
+std::any ASTPrinter::visitConstInitVal(SysYParser::ConstInitValContext *ctx) {
   auto* child = ctx->children[0];
   auto* expChild = dynamic_cast<SysYParser::ConstExprContext*>(child);
   if (expChild) {
@@ -129,7 +123,7 @@ std::any visitConstInitVal(SysYParser::ConstInitValContext *ctx) {
   } 
   else if (ctx->LEFT_BRACE()){
     std::cout << "{";
-    std::size_t numConstInitVal = ctx->constInitVal().size();
+    auto numConstInitVal = ctx->constInitVal().size();
     for (int i = 0; i < numConstInitVal; i++) {
       visitConstInitVal(ctx->constInitVal(i));
       if (numConstInitVal > 1 && i < numConstInitVal - 1) {
@@ -142,11 +136,11 @@ std::any visitConstInitVal(SysYParser::ConstInitValContext *ctx) {
   }
   return nullptr;
 }
-std::any visitVarDecl(SysYParser::VarDeclContext*ctx) {
+std::any ASTPrinter::visitVarDecl(SysYParser::VarDeclContext*ctx) {
   visitDataType(ctx->dataType());
   std::cout << " ";
-  std::size_t numVarDef = ctx->varDef().size();
-  for (std::size_t i = 0; i < numVarDef; i++) {
+  auto numVarDef = ctx->varDef().size();
+  for (auto i = 0; i < numVarDef; i++) {
     visitVarDef(ctx->varDef(i));
     if (numVarDef > 1 && i < numVarDef - 1) {
       std::cout << ", ";
@@ -155,10 +149,10 @@ std::any visitVarDecl(SysYParser::VarDeclContext*ctx) {
   std::cout << ";";
   return nullptr;
 }
-std::any visitVarDef(SysYParser::VarDefContext *ctx) {
-  std::cout << ctx->Identifier()->getText() << " ";
-  std::size_t numConstExpr = ctx->constExpr().size();
-  for (std::size_t i = 0; i < numConstExpr; i++) {
+std::any ASTPrinter::visitVarDef(SysYParser::VarDefContext *ctx) {
+  std::cout << ctx->Identifier()->getText();
+  auto numConstExpr = ctx->constExpr().size();
+  for (auto i = 0; i < numConstExpr; i++) {
     std::cout << "[";
     visitConstExpr(ctx->constExpr(i));
     std::cout << "]";
@@ -169,7 +163,7 @@ std::any visitVarDef(SysYParser::VarDefContext *ctx) {
   }
   return nullptr;
 }
-std::any visitInitVal(SysYParser::InitValContext*ctx) {
+std::any ASTPrinter::visitInitVal(SysYParser::InitValContext*ctx) {
   auto* child = ctx->children[0];
   auto exprChild = dynamic_cast<SysYParser::ExprContext*>(child);
   if (exprChild) {
@@ -177,8 +171,8 @@ std::any visitInitVal(SysYParser::InitValContext*ctx) {
   }
   else if (ctx->LEFT_BRACE()){
     std::cout << "{";
-    std::size_t numInitVal = ctx->initVal().size();
-    for (std::size_t i = 0; i < numInitVal; i++) {
+    auto numInitVal = ctx->initVal().size();
+    for (auto i = 0; i < numInitVal; i++) {
       visitInitVal(ctx->initVal(i));
       if (numInitVal > 1 && i < numInitVal - 1) {
         std::cout << ", ";
@@ -188,7 +182,7 @@ std::any visitInitVal(SysYParser::InitValContext*ctx) {
   }
   return nullptr;
 }
-std::any visitFuncDef(SysYParser::FuncDefContext*ctx) {
+std::any ASTPrinter::visitFuncDef(SysYParser::FuncDefContext*ctx) {
   visitFuncType(ctx->funcType());
   std::cout << " ";
   std::cout << ctx->Identifier()->getText() << "(";
@@ -202,7 +196,7 @@ std::any visitFuncDef(SysYParser::FuncDefContext*ctx) {
   return nullptr;
 }
 
-std::any visitFuncType(SysYParser::FuncTypeContext*ctx) {
+std::any ASTPrinter::visitFuncType(SysYParser::FuncTypeContext*ctx) {
   if (ctx->Void()){
     std::cout << ctx->Void()->getText();
   }
@@ -214,21 +208,27 @@ std::any visitFuncType(SysYParser::FuncTypeContext*ctx) {
   }
   return nullptr;
 }
-std::any visitFuncFParams(SysYParser::FuncFParamsContext *ctx) {
-  std::size_t numFuncFParam = ctx->funcFParam().size();
-  for (std::size_t i = 0; i < numFuncFParam; i++) {
+std::any ASTPrinter::visitFuncFParams(SysYParser::FuncFParamsContext *ctx) {
+  if (ctx->funcFParam().empty()) {
+    return nullptr;
+  }
+  auto numFuncFParam = ctx->funcFParam().size();
+  for (auto i = 0; i < numFuncFParam; i++) {
     visitFuncFParam(ctx->funcFParam(i));
     if (numFuncFParam > 1 && i < numFuncFParam - 1) {
-      std::cout << " ";
+      std::cout << ", ";
     }
   }
   return nullptr;
 }
-std::any visitFuncFParam(SysYParser::FuncFParamContext *ctx) {
+std::any ASTPrinter::visitFuncFParam(SysYParser::FuncFParamContext *ctx) {
   visitDataType(ctx->dataType());
   std::cout << " ";
   std::cout << ctx->Identifier()->getText();
-  std::size_t numBracket = ctx->LEFT_BRACKET().size();
+  if (ctx->LEFT_BRACKET().empty()) {
+    return nullptr;
+  }
+  auto numBracket = ctx->LEFT_BRACKET().size();
   if (numBracket == 1){
     std::cout << ctx->LEFT_BRACKET(0)->getText();
     std::cout << ctx->RIGHT_BRACKET(0)->getText();
@@ -236,7 +236,7 @@ std::any visitFuncFParam(SysYParser::FuncFParamContext *ctx) {
   else {
     std::cout << ctx->LEFT_BRACKET(0)->getText();
     std::cout << ctx->RIGHT_BRACKET(0)->getText();
-    for (std::size_t i = 1; i < numBracket; i++) {
+    for (auto i = 1; i < numBracket; i++) {
       std::cout << ctx->LEFT_BRACKET(i)->getText();
       visitExpr(ctx->expr(i));
       std::cout << ctx->RIGHT_BRACKET(i)->getText();
@@ -244,23 +244,26 @@ std::any visitFuncFParam(SysYParser::FuncFParamContext *ctx) {
   }
   return nullptr;
 }
-std::any visitBlockStmt(SysYParser::BlockStmtContext*ctx) {
+std::any ASTPrinter::visitBlockStmt(SysYParser::BlockStmtContext*ctx) {
   std::cout << "{" << std::endl;
-  printIndent();
-  std::size_t numBlockItem = ctx->blockItem().size();
-  for (std::size_t i = 0; i < numBlockItem; i++) {
+  printIndent(indentLevel);
+  if (ctx->blockItem().empty()) {
+    return nullptr;
+  }
+  auto numBlockItem = ctx->blockItem().size();
+  for (auto i = 0; i < numBlockItem; i++) {
     visitBlockItem(ctx->blockItem(i));
     if (i < numBlockItem - 1 && numBlockItem > 1) {
       std::cout << std::endl;
-      printIndent();
+      printIndent(indentLevel);
     }
   }
   std::cout << std::endl;
-  printIndent();
-  std::cout << "}" << std::endl;
+  printIndent(indentLevel-1);
+  std::cout << "}";
   return nullptr;
 }
-std::any visitBlockItem(SysYParser::BlockItemContext*ctx) {
+std::any ASTPrinter::visitBlockItem(SysYParser::BlockItemContext*ctx) {
   auto* child = ctx->children[0];
   auto* declChild = dynamic_cast<SysYParser::DeclContext*>(child);
   auto* stmtChild = dynamic_cast<SysYParser::StmtContext*>(child);
@@ -272,7 +275,7 @@ std::any visitBlockItem(SysYParser::BlockItemContext*ctx) {
   }
   return nullptr;
 }
-std::any visitStmt(SysYParser::StmtContext *ctx) {
+std::any ASTPrinter::visitStmt(SysYParser::StmtContext *ctx) {
   auto * child = ctx->children[0];
   auto* lhsValChild = dynamic_cast<SysYParser::LhsValContext*>(child);
   auto* blockStmtChild = dynamic_cast<SysYParser::BlockStmtContext*>(child);
@@ -281,7 +284,11 @@ std::any visitStmt(SysYParser::StmtContext *ctx) {
     visitLhsVal(ctx->lhsVal());
     std::cout << " = ";
     visitExpr(ctx->expr());
-    std::cout << ";" << std::endl;
+    std::cout << ";";
+  }
+  else if (exprChild){
+    visitExpr(ctx->expr());
+    std::cout << ";";
   }
   else if (blockStmtChild) {
     indentLevel++;
@@ -299,18 +306,19 @@ std::any visitStmt(SysYParser::StmtContext *ctx) {
     if (terminalStmt || subExprChild || subLhsChild) {
       std::cout << "{" << std::endl;
       indentLevel++;
-      printIndent();
-      visitStmt(ctx->stmt(0));
-      printIndent();
+      printIndent(indentLevel);
+      visit(ctx->stmt(0));
+      std::cout << std::endl;
+      printIndent(indentLevel-1);
       std::cout << "}";
       indentLevel--;
     }
     else {
-      std::cout << ";" << std::endl; // TODO(abner) bug fix needed
+      visitStmt(ctx->stmt(0)); // TODO(abner) bug fix needed
     }
     if (ctx->Else()){
       std::cout << std::endl;
-      printIndent();
+      printIndent(indentLevel);
       std::cout << "else";
       tmpStmt = ctx->stmt(1)->children[0];
       terminalStmt = dynamic_cast<antlr4::tree::TerminalNode*>(tmpStmt);
@@ -319,14 +327,14 @@ std::any visitStmt(SysYParser::StmtContext *ctx) {
       if (terminalStmt || subExprChild || subLhsChild) {
         std::cout << "{" << std::endl;
         indentLevel++;
-        printIndent();
-        visitStmt(ctx->stmt(0));
-        printIndent();
+        printIndent(indentLevel);
+        visit(ctx->stmt(0));
+        printIndent(indentLevel-1);
         std::cout << "}";
         indentLevel--;
       }
       else {
-        std::cout << ";" << std::endl; // TODO(abner) bug fix needed
+        visitStmt(ctx->stmt(1)); // TODO(abner) bug fix needed
       }
     }
   }
@@ -341,10 +349,10 @@ std::any visitStmt(SysYParser::StmtContext *ctx) {
     if (terminalStmt || subExprChild || subLhsChild) {
       std::cout << "{" << std::endl;
       indentLevel++;
-      printIndent();
-      visitStmt(ctx->stmt(0));
+      printIndent(indentLevel);
+      visit(ctx->stmt(0));
       std::cout << std::endl;
-      printIndent();
+      printIndent(indentLevel-1);
       std::cout << "}";
       indentLevel--;
     }
@@ -363,56 +371,108 @@ std::any visitStmt(SysYParser::StmtContext *ctx) {
     if (ctx->expr()){
       visitExpr(ctx->expr());
     }
-    std::cout << ";" << std::endl;
+    std::cout << ctx->Semi()->getText();
   }
   else {
     std::cout << ctx->Semi()->getText();
   }
   return nullptr;
 }
-std::any visitExpr(SysYParser::ExprContext *ctx) {
+
+std::any ASTPrinter::visitExpr(SysYParser::ExprContext *ctx) {
   visitAddExpr(ctx->addExpr());
   return nullptr;
 }
-std::any visitCond(SysYParser::CondContext *ctx) {
 
+std::any ASTPrinter::visitCond(SysYParser::CondContext *ctx) {
+  visitLOrExpr(ctx->lOrExpr());
+  return nullptr;
 }
-std::any visitLhsVal(SysYParser::LhsValContext *ctx);
-std::any visitPrimaryExp(SysYParser::PrimaryExprContext *ctx);
-std::any visitNumber(SysYParser::NumberContext *ctx);
-std::any visitString(SysYParser::StringContext *ctx);
-std::any visitUnaryExpr(SysYParser::UnaryExprContext*ctx) {
+std::any ASTPrinter::visitLhsVal(SysYParser::LhsValContext *ctx) {
+  std::cout << ctx->Identifier()->getText();
+  if (ctx->expr().empty()){
+    return nullptr;
+  }
+  int numExpr = ctx->expr().size();
+  for (int i = 0; i < numExpr; i++) {
+    std::cout << "[";
+    visitExpr(ctx->expr(i));
+    std::cout << "]";
+  }
+  return nullptr;
+}
+
+std::any ASTPrinter::visitPrimaryExpr(SysYParser::PrimaryExprContext *ctx) {
   auto* child = ctx->children[0];
-  auto* primaryExpr = dynamic_cast<SysYParser::PrimaryExprContext*>(child);
-  auto* unaryExpr = dynamic_cast<SysYParser::UnaryExprContext*>(child);
-  if (primaryExpr){
-    visitPrimaryExp(primaryExpr);
+  auto* lhsChild = dynamic_cast<SysYParser::LhsValContext*>(child);
+  auto* numberChild = dynamic_cast<SysYParser::NumberContext*>(child);
+  if (ctx->LEFT_PAREN()){
+    std::cout << ctx->LEFT_PAREN()->getText();
+    visitExpr(ctx->expr());
+    std::cout << ctx->RIGHT_PAREN()->getText(); // << std::endl;
+  }
+  else if (lhsChild){
+    visitLhsVal(ctx->lhsVal());
+  }
+  else if (numberChild) {
+    visitNumber(ctx->number());
+  }
+  return nullptr;
+}
+
+std::any ASTPrinter::visitString(SysYParser::StringContext *ctx) {
+  std::cout << ctx->String()->getText();
+  return nullptr;
+}
+
+std::any ASTPrinter::visitUnaryExpr(SysYParser::UnaryExprContext*ctx) {
+  auto* child = ctx->children[0];
+  auto* primaryExprChild = dynamic_cast<SysYParser::PrimaryExprContext*>(child);
+  auto* unaryExprChild = dynamic_cast<SysYParser::UnaryExprContext*>(child);
+  if (primaryExprChild){
+    visitPrimaryExpr(primaryExprChild);
   }
   else if (ctx->Identifier()){
-    std::cout << ctx->Identifier()->getText() << std::endl;
-    std::cout << ctx->LEFT_PAREN()->getText() << std::endl;
+    std::cout << ctx->Identifier()->getText();
+    std::cout << ctx->LEFT_PAREN()->getText();
     if (ctx->funcRParams()){
       visitFuncRParams(ctx->funcRParams());
     }
-    
+    std::cout << ctx->RIGHT_PAREN()->getText();
   }
+  else if (unaryExprChild) {
+    visitUnaryOp(ctx->unaryOp());
+    visitUnaryExpr(ctx->unaryExpr());
+  }
+  return nullptr;
 }
-std::any visitUnaryOp(SysYParser::UnaryOpContext*ctx);
-std::any visitFuncRParam(SysYParser::FuncRParamsContext *ctx);
-std::any visitMulExpr(SysYParser::MulExprContext*ctx) {
+std::any ASTPrinter::visitUnaryOp(SysYParser::UnaryOpContext*ctx) {
+  if (ctx->Add()) {
+    std::cout << ctx->Add()->getText();
+  }
+  else if (ctx->Sub()) {
+    std::cout << ctx->Sub()->getText();
+  }
+  else if (ctx->Not()) {
+    std::cout << ctx->Not()->getText();
+  }
+  return nullptr;
+}
+
+std::any ASTPrinter::visitMulExpr(SysYParser::MulExprContext*ctx) {
   auto* child = ctx->children[0];
   auto* mulChild = dynamic_cast<SysYParser::MulExprContext*>(child);
   auto* unaryChild = dynamic_cast<SysYParser::UnaryExprContext*>(child);
   if (mulChild) {
     visitMulExpr(ctx->mulExpr());
     if (ctx->Mul()){
-      std::cout << ctx->Mul()->getText() << " ";
+      std::cout << " " << ctx->Mul()->getText() << " ";
     }
     else if (ctx->Div()){
-      std::cout << ctx->Div()->getText() << " ";
+      std::cout << " " << ctx->Div()->getText() << " ";
     }
     else if (ctx->Mod()){
-      std::cout << ctx->Mod()->getText() << " ";
+      std::cout << " " << ctx->Mod()->getText() << " ";
     }
     visitUnaryExpr(ctx->unaryExpr());
   }
@@ -421,17 +481,17 @@ std::any visitMulExpr(SysYParser::MulExprContext*ctx) {
   }
   return nullptr;
 }
-std::any visitAddExpr(SysYParser::AddExprContext*ctx) {
+std::any ASTPrinter::visitAddExpr(SysYParser::AddExprContext*ctx) {
   auto* child = ctx->children[0];
   auto* addChild = dynamic_cast<SysYParser::AddExprContext*>(child);
   auto mulChild = dynamic_cast<SysYParser::MulExprContext*>(child);
   if (addChild) {
     visitAddExpr(ctx->addExpr());
     if (ctx->Add()){
-      std::cout << ctx->Add()->getText() << " ";
+      std::cout << " " << ctx->Add()->getText() << " ";
     }
     else if (ctx->Sub()){
-      std::cout << ctx->Sub()->getText() << " ";
+      std::cout << " " << ctx->Sub()->getText() << " ";
     }
     visitMulExpr(ctx->mulExpr());
   }
@@ -440,8 +500,80 @@ std::any visitAddExpr(SysYParser::AddExprContext*ctx) {
   }
   return nullptr;
 }
-std::any visitRelExpr(SysYParser::RelExprContext*ctx);
-std::any visitEqExpr(SysYParser::EqExprContext *ctx);
-std::any visitLAndExpr(SysYParser::LAndExprContext*ctx);
-std::any visitLOrExpr(SysYParser::LOrExprContext*ctx);
-std::any visitConstExpr(SysYParser::ConstExprContext*ctx);
+std::any ASTPrinter::visitRelExpr(SysYParser::RelExprContext*ctx) {
+  auto* child = ctx->children[0];
+  auto* relChild = dynamic_cast<SysYParser::RelExprContext*>(child);
+  auto* addChild = dynamic_cast<SysYParser::AddExprContext*>(child);
+  if (relChild) {
+    visitRelExpr(ctx->relExpr());
+    if (ctx->Lt()){
+      std::cout << " " << ctx->Lt()->getText() << " ";
+    }
+    else if (ctx->Le()){
+      std::cout << " " << ctx->Le()->getText() << " ";
+    }
+    else if (ctx->Gt()){
+      std::cout << " " << ctx->Gt()->getText() << " ";
+    }
+    else if (ctx->Ge()){
+      std::cout << " " << ctx->Ge()->getText() << " ";
+    }
+    visitAddExpr(ctx->addExpr());
+  }
+  else if (addChild){
+    visitAddExpr(ctx->addExpr());
+  }
+  return nullptr;
+}
+std::any ASTPrinter::visitEqExpr(SysYParser::EqExprContext *ctx) {
+  auto* child = ctx->children[0];
+  auto* relChild = dynamic_cast<SysYParser::RelExprContext*>(child);
+  auto* eqChild = dynamic_cast<SysYParser::EqExprContext*>(child);
+  if (eqChild) {
+    visitEqExpr(ctx->eqExpr());
+    if (ctx->Eq()){
+      std::cout << " " << ctx->Eq()->getText() << " ";
+    }
+    else if (ctx->Ne()){
+      std::cout << " " << ctx->Ne()->getText() << " ";
+    }
+    visitRelExpr(ctx->relExpr());
+  }
+  else if (relChild) {
+    visitRelExpr(ctx->relExpr());
+  }
+  return nullptr;
+}
+std::any ASTPrinter::visitLAndExpr(SysYParser::LAndExprContext*ctx) {
+  auto* child = ctx->children[0];
+  auto* eqChild = dynamic_cast<SysYParser::EqExprContext*>(child);
+  auto* andChild = dynamic_cast<SysYParser::LAndExprContext*>(child);
+  if (andChild) {
+    visitLAndExpr(ctx->lAndExpr());
+    std::cout << " " << ctx->And()->getText() << " ";
+    visitEqExpr(ctx->eqExpr());
+  }
+  else if (eqChild) {
+    visitEqExpr(ctx->eqExpr());
+  }
+  return nullptr;
+}
+std::any ASTPrinter::visitLOrExpr(SysYParser::LOrExprContext*ctx) {
+  auto* child = ctx->children[0];
+  auto* andChild = dynamic_cast<SysYParser::LAndExprContext*>(child);
+  auto* orChild = dynamic_cast<SysYParser::LOrExprContext*>(child);
+  if (orChild) {
+    visitLOrExpr(ctx->lOrExpr());
+    std::cout << ctx->Or()->getText() << " ";
+    visitLAndExpr(ctx->lAndExpr());
+  }
+  else if (andChild){
+    visitLAndExpr(ctx->lAndExpr());
+  }
+  return nullptr;
+}
+
+std::any ASTPrinter::visitConstExpr(SysYParser::ConstExprContext*ctx) {
+  visitAddExpr(ctx->addExpr());
+  return nullptr;
+}
