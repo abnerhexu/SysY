@@ -1,75 +1,181 @@
 #pragma once
-#include <algorithm>
-#include <iostream>
-#include "SysYBaseVisitor.h"
 
-class ASTPrinter : public SysYBaseVisitor {
+#include "SysYBaseListener.h"
+#include <ostream>
+
+class SysYASTPrinter : public SysYBaseListener {
+  std::ostream &os;
+  int indent;
+
 public:
-  std::any visitCompUnit(SysYParser::CompUnitContext *ctx) override;
+  SysYASTPrinter(std::ostream &os = std::cout) : os(os), indent(0) {}
 
-  std::any visitDataType(SysYParser::DataTypeContext *ctx) override;
+protected:
+  void enter(const std::string &name) {
+    os << std::string(indent, ' ') << name << '\n';
+    indent += 2;
+  }
+  void exit() { indent -= 2; }
 
-  std::any visitDecl(SysYParser::DeclContext *ctx) override;
+public:
+  virtual void enterModule(SysYParser::ModuleContext * /*ctx*/) override {
+    enter("module");
+  }
 
-  std::any visitConstDecl(SysYParser::ConstDeclContext *ctx) override;
+  virtual void enterDecl(SysYParser::DeclContext * /*ctx*/) override {
+    enter("decl");
+  }
 
-  std::any visitConstDef(SysYParser::ConstDefContext *ctx) override;
+  virtual void enterBtype(SysYParser::BtypeContext * /*ctx*/) override {
+    enter("btype");
+  }
 
-  std::any visitConstInitVal(SysYParser::ConstInitValContext *ctx) override;
+  // virtual void
+  // enterConstValue(SysYParser::ConstValueContext * /*ctx*/) override {
+  //   enter("constValue");
+  // }
 
-  std::any visitVarDecl(SysYParser::VarDeclContext *ctx) override;
+  virtual void enterVarDef(SysYParser::VarDefContext *ctx) override {
+    enter("varDef");
+  }
 
-  std::any visitVarDef(SysYParser::VarDefContext *ctx) override;
+  virtual void enterFunc(SysYParser::FuncContext * /*ctx*/) override {
+    enter("func");
+  }
 
-  std::any visitInitVal(SysYParser::InitValContext *ctx) override;
+  virtual void enterFuncType(SysYParser::FuncTypeContext * /*ctx*/) override {
+    enter("funcType");
+  }
 
-  std::any visitFuncDef(SysYParser::FuncDefContext *ctx) override;
+  virtual void
+  enterFuncFParams(SysYParser::FuncFParamsContext * /*ctx*/) override {
+    enter("funcFParams");
+  }
 
-  std::any visitFuncType(SysYParser::FuncTypeContext *ctx) override;
+  virtual void
+  enterFuncFParam(SysYParser::FuncFParamContext * /*ctx*/) override {
+    enter("funcFParam");
+  }
 
-  std::any visitFuncFParams(SysYParser::FuncFParamsContext *ctx) override;
+  virtual void enterBlockStmt(SysYParser::BlockStmtContext * /*ctx*/) override {
+    enter("blockStmt");
+  }
 
-  std::any visitFuncFParam(SysYParser::FuncFParamContext *ctx) override;
+  virtual void enterBlockItem(SysYParser::BlockItemContext * /*ctx*/) override {
+    enter("blockIterm");
+  }
 
-  std::any visitBlockStmt(SysYParser::BlockStmtContext *ctx) override;
+  virtual void enterStmt(SysYParser::StmtContext * /*ctx*/) override {
+    enter("stmt");
+  }
 
-  std::any visitBlockItem(SysYParser::BlockItemContext *ctx) override;
+  virtual void
+  enterAssignStmt(SysYParser::AssignStmtContext * /*ctx*/) override {
+    enter("assignStmt");
+  }
 
-  std::any visitStmt(SysYParser::StmtContext *ctx) override;
+  virtual void enterExpStmt(SysYParser::ExpStmtContext * /*ctx*/) override {
+    enter("expStmt");
+  }
 
-  std::any visitExpr(SysYParser::ExprContext *ctx) override;
+  virtual void enterIfStmt(SysYParser::IfStmtContext *ctx) override {
+    enter("ifStmt " + ctx->getText());
+  }
 
-  std::any visitCond(SysYParser::CondContext *ctx) override;
+  virtual void enterWhileStmt(SysYParser::WhileStmtContext * /*ctx*/) override {
+    enter("whileStmt");
+  }
 
-  std::any visitLhsVal(SysYParser::LhsValContext *ctx) override;
+  virtual void enterBreakStmt(SysYParser::BreakStmtContext * /*ctx*/) override {
+    enter("break");
+  }
 
-  std::any visitPrimaryExpr(SysYParser::PrimaryExprContext *ctx) override;
+  virtual void
+  enterContinueStmt(SysYParser::ContinueStmtContext * /*ctx*/) override {
+    enter("continueStmt");
+  }
 
-  std::any visitNumber(SysYParser::NumberContext *ctx) override;
+  virtual void
+  enterReturnStmt(SysYParser::ReturnStmtContext * /*ctx*/) override {
+    enter("returnStmt");
+  }
 
-  std::any visitString(SysYParser::StringContext *ctx) override;
+  virtual void enterEmptyStmt(SysYParser::EmptyStmtContext * /*ctx*/) override {
+    enter("emptyStmt");
+  }
 
-  std::any visitUnaryExpr(SysYParser::UnaryExprContext *ctx) override;
+  virtual void enterRelationExp(SysYParser::RelationExpContext *ctx) override {
+    enter(std::string("relationExp: ") + ctx->getText());
+  }
 
-  std::any visitUnaryOp(SysYParser::UnaryOpContext *ctx) override;
+  virtual void
+  enterMultiplicativeExp(SysYParser::MultiplicativeExpContext *ctx) override {
+    enter(std::string("multiplicativeExp: ") + ctx->getText());
+  }
 
-  std::any visitFuncRParams(SysYParser::FuncRParamsContext *ctx) override;
+  virtual void enterCallExp(SysYParser::CallExpContext * ctx) override {
+    enter("callExp " + ctx->getText());
+  }
+  virtual void enterLValueExp(SysYParser::LValueExpContext * /*ctx*/) override {
+    enter("lValueExp");
+  }
 
-  std::any visitMulExpr(SysYParser::MulExprContext *ctx) override;
+  virtual void enterNumberExp(SysYParser::NumberExpContext * /*ctx*/) override {
+    enter("numberExp");
+  }
 
-  std::any visitAddExpr(SysYParser::AddExprContext *ctx) override;
+  virtual void enterAndExp(SysYParser::AndExpContext * /*ctx*/) override {
+    enter("andExp");
+  }
 
-  std::any visitRelExpr(SysYParser::RelExprContext *ctx) override;
+  virtual void enterUnaryExp(SysYParser::UnaryExpContext *ctx) override {
+    enter(std::string("multiplicativeExp: ") + ctx->getText());
+  }
 
-  std::any visitEqExpr(SysYParser::EqExprContext *ctx) override;
+  virtual void enterParenExp(SysYParser::ParenExpContext * /*ctx*/) override {
+    enter("parenExp");
+  }
 
-  std::any visitLAndExpr(SysYParser::LAndExprContext *ctx) override;
+  virtual void enterStringExp(SysYParser::StringExpContext * /*ctx*/) override {
+    enter("stringExp");
+  }
 
-  std::any visitLOrExpr(SysYParser::LOrExprContext *ctx) override;
+  virtual void enterOrExp(SysYParser::OrExpContext * /*ctx*/) override {
+    enter("orExp");
+  }
 
-  std::any visitConstExpr(SysYParser::ConstExprContext *ctx) override;
+  virtual void enterAdditiveExp(SysYParser::AdditiveExpContext *ctx) override {
+    enter(std::string("additiveExp: ") + ctx->getText());
+  }
+
+  virtual void enterEqualExp(SysYParser::EqualExpContext *ctx) override {
+    enter(std::string("equalExp: ") + ctx->getText());
+  }
+
+  virtual void enterLValue(SysYParser::LValueContext * /*ctx*/) override {
+    enter("lValue");
+  }
+
+  virtual void enterNumber(SysYParser::NumberContext * /*ctx*/) override {
+    enter("number");
+  }
+
+  virtual void enterString(SysYParser::StringContext * /*ctx*/) override {
+    enter("string");
+  }
+
+  virtual void
+  enterFuncRParams(SysYParser::FuncRParamsContext * /*ctx*/) override {
+    enter("funcRparams");
+  }
+
+  virtual void enterEveryRule(antlr4::ParserRuleContext *ctx) override {
+    // os << ctx->getText();
+    // enter("");
+  }
+  virtual void exitEveryRule(antlr4::ParserRuleContext * /*ctx*/) override {
+    exit();
+  }
+  virtual void visitTerminal(antlr4::tree::TerminalNode * /*node*/) override {}
+  virtual void visitErrorNode(antlr4::tree::ErrorNode * /*node*/) override {}
 };
-
-extern std::size_t indentLevel;
-
-void printIndent(int level);

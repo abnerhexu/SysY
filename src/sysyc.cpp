@@ -1,10 +1,12 @@
-#include "ASTPrinter.h"
+// #include "ASTPrinter.h"
+#include "tree/ParseTreeWalker.h"
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include "SysYLexer.h"
 #include "SysYParser.h"
-#include "ASTPrinter.h"
+#include "SysYFormatter.h"
+#include "SysYIRGenerator.h"
 
 int main(int argc, char **argv) {
   if (argc != 2) {
@@ -20,9 +22,10 @@ int main(int argc, char **argv) {
   SysYLexer lexer(&input);
   antlr4::CommonTokenStream tokens(&lexer);
   SysYParser parser(&tokens);
-  SysYParser::CompUnitContext *compUnit = parser.compUnit();
-  ASTPrinter printer;
-  printer.visitCompUnit(compUnit);
+  auto module = parser.module();
+
+  sysy::SysYIRGenerator generator;
+  generator.visitModule(module);
 
   return EXIT_SUCCESS;
 }

@@ -39,3 +39,7 @@ build/
 
 # VSCode directory
 .vscode/
+
+out.log
+autotest.sh
+functional/
