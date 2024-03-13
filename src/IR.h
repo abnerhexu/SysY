@@ -7,7 +7,6 @@
 #include <list>
 #include <map>
 #include <memory>
-#include <ostream>
 #include <string>
 #include <type_traits>
 #include <vector>
@@ -42,7 +41,6 @@ public:
     kLabel,
     kPointer,
     kFunction,
-    kInitArray,
   };
   Kind kind;
 
@@ -58,7 +56,6 @@ public:
   static Type *getPointerType(Type *baseType);
   static Type *getFunctionType(Type *returnType,
                                const std::vector<Type *> &paramTypes = {});
-  static Type *getInitArrayType();
 
 public:
   Kind getKind() const { return kind; }
@@ -68,7 +65,6 @@ public:
   bool isLabel() const { return kind == kLabel; }
   bool isPointer() const { return kind == kPointer; }
   bool isFunction() const { return kind == kFunction; }
-  bool isInitArray() const { return kind == kInitArray; }
   int getSize() const;
   template <typename T>
   std::enable_if_t<std::is_base_of_v<Type, T>, T *> as() const {
@@ -175,10 +171,9 @@ public:
 
 //! The base class of all value types
 class Value {
-public:
-  std::string name;
 protected:
   Type *type;
+  std::string name;
   std::list<Use *> uses;
 
 protected:
@@ -187,13 +182,10 @@ protected:
   virtual ~Value() {}
 
 public:
-  std::string getName() const {return name; }
   Type *getType() const { return type; }
   bool isInt() const { return type->isInt(); }
   bool isFloat() const { return type->isFloat(); }
   bool isPointer() const { return type->isPointer(); }
-  bool isFunction() const { return type->isFunction(); }
-  bool isInitArray() const { return type->isInitArray(); }
   const std::list<Use *> &getUses() { return uses; }
   void addUse(Use *use) { uses.push_back(use); }
   void replaceAllUsesWith(Value *value);
@@ -267,7 +259,6 @@ class Function;
  */
 class BasicBlock : public Value {
   friend class Function;
-  friend class IRBuilder; // 全局变量的声明不在任何一个function中，因此首先通过IRBuilder创建第0个基本块
 
 public:
   using inst_list = std::list<std::unique_ptr<Instruction>>;
@@ -304,9 +295,6 @@ public:
     arguments.emplace_back(type, this, arguments.size(), name);
     return &arguments.back();
   };
-
-public:
-  void generateCode(std::ostream &out) const; // 生成代码
 }; // class BasicBlock
 
 //! User is the abstract base type of `Value` types which use other `Value` as
@@ -362,8 +350,6 @@ public:
     kMul = 0x1UL << 2,
     kDiv = 0x1UL << 3,
     kRem = 0x1UL << 4,
-    kAnd = 0x1UL << 39,
-    kOr = 0x1UL << 40,
     kICmpEQ = 0x1UL << 5,
     kICmpNE = 0x1UL << 6,
     kICmpLT = 0x1UL << 7,
@@ -382,13 +368,11 @@ public:
     kFCmpLE = 0x1UL << 23,
     kFCmpGE = 0x1UL << 24,
     // Unary
-    kPos = 0x1UL << 37,
     kNeg = 0x1UL << 25,
-    kNot = 0x1UL << 27,
-    kFPos = 0x1UL << 38,
+    kNot = 0x1UL << 26,
     kFNeg = 0x1UL << 26,
     kFtoI = 0x1UL << 28,
-    kItoF = 0x1UL << 29,
+    kIToF = 0x1UL << 29,
     // call
     kCall = 0x1UL << 30,
     // terminator
@@ -399,7 +383,8 @@ public:
     kAlloca = 0x1UL << 34,
     kLoad = 0x1UL << 35,
     kStore = 0x1UL << 36,
-    // constant // kConstant = 0x1UL << 37,
+    // constant
+    // kConstant = 0x1UL << 37,
   };
 
 protected:
@@ -419,14 +404,13 @@ public:
   bool isBinary() const {
     static constexpr uint64_t BinaryOpMask =
         (kAdd | kSub | kMul | kDiv | kRem) |
-        (kAnd) | (kOr) |
         (kICmpEQ | kICmpNE | kICmpLT | kICmpGT | kICmpLE | kICmpGE) |
         (kFAdd | kFSub | kFMul | kFDiv | kFRem) |
         (kFCmpEQ | kFCmpNE | kFCmpLT | kFCmpGT | kFCmpLE | kFCmpGE);
     return kind & BinaryOpMask;
   }
   bool isUnary() const {
-    static constexpr uint64_t UnaryOpMask = kNeg | kNot | kFNeg | kFtoI | kItoF;
+    static constexpr uint64_t UnaryOpMask = kNeg | kNot | kFNeg | kFtoI | kIToF;
     return kind & UnaryOpMask;
   }
   bool isMemory() const {
@@ -454,11 +438,6 @@ public:
   }
   bool isUnconditional() const { return kind == kBr; }
   bool isConditional() const { return kind == kCondBr; }
-
-public:
-  virtual void generateCode(std::ostream &out) const {
-    return ;
-  }
 }; // class Instruction
 
 class Function;
@@ -471,13 +450,10 @@ protected:
            BasicBlock *parent = nullptr, const std::string &name = "");
 
 public:
-  Function *getCallee() const;
-  auto getArguments() const {
+  Function *getCallee();
+  auto getArguments() {
     return make_range(std::next(operand_begin()), operand_end());
   }
-
-public:
-  void generateCode(std::ostream &out) const override;
 }; // class CallInst
 
 //! Unary instruction, includes '!', '-' and type conversion.
@@ -493,9 +469,6 @@ protected:
 
 public:
   Value *getOperand() const { return User::getOperand(0); }
-
-public:
-  void generateCode(std::ostream &out) const override;
 }; // class UnaryInst
 
 //! Binary instruction, e.g., arithmatic, relation, logic, etc.
@@ -513,9 +486,6 @@ protected:
 public:
   Value *getLhs() const { return getOperand(0); }
   Value *getRhs() const { return getOperand(1); }
-
-public:
-  void generateCode(std::ostream &out) const override;
 }; // class BinaryInst
 
 //! The return statement
@@ -534,9 +504,6 @@ public:
   Value *getReturnValue() const {
     return hasReturnValue() ? getOperand(0) : nullptr;
   }
-
-public:
-  void generateCode(std::ostream &out) const override;
 }; // class ReturnInst
 
 //! Unconditional branch
@@ -559,9 +526,6 @@ public:
   auto getArguments() const {
     return make_range(std::next(operands.begin()), operands.end());
   }
-
-public:
-  void generateCode(std::ostream &out) const override;
 }; // class UncondBrInst
 
 //! Conditional branch
@@ -599,12 +563,6 @@ public:
     auto end = operands.end();
     return make_range(begin, end);
   }
-  auto getCondition() const {
-    return getOperand(0);
-  }
-
-public:
-  void generateCode(std::ostream &out) const override;
 }; // class CondBrInst
 
 //! Allocate memory for stack variables, used for non-global variable declartion
@@ -622,9 +580,6 @@ public:
   int getNumDims() const { return getNumOperands(); }
   auto getDims() const { return getOperands(); }
   Value *getDim(int index) { return getOperand(index); }
-
-public:
-  void generateCode(std::ostream &out) const override;
 }; // class AllocaInst
 
 //! Load a value from memory address specified by a pointer value
@@ -636,7 +591,6 @@ protected:
            BasicBlock *parent = nullptr, const std::string &name = "")
       : Instruction(kLoad, pointer->getType()->as<PointerType>()->getBaseType(),
                     parent, name) {
-    addOperand(pointer);
     addOperands(indices);
   }
 
@@ -647,9 +601,6 @@ public:
     return make_range(std::next(operand_begin()), operand_end());
   }
   Value *getIndex(int index) const { return getOperand(index + 1); }
-
-public:
-  void generateCode(std::ostream &out) const override;
 }; // class LoadInst
 
 //! Store a value to memory address specified by a pointer value
@@ -674,9 +625,6 @@ public:
     return make_range(operand_begin() + 2, operand_end());
   }
   Value *getIndex(int index) const { return getOperand(index + 2); }
-
-public:
-  void generateCode(std::ostream &out) const override;
 }; // class StoreInst
 
 class Module;
@@ -687,7 +635,7 @@ class Function : public Value {
 protected:
   Function(Module *parent, Type *type, const std::string &name)
       : Value(type, name), parent(parent), blocks() {
-    blocks.emplace_back(new BasicBlock(this, name));
+    blocks.emplace_back(new BasicBlock(this, "entry"));
   }
 
 public:
@@ -715,9 +663,6 @@ public:
       return block == b.get();
     });
   }
-
-public:
-  void generateCode(std::ostream &out) const;
 }; // class Function
 
 //! Global value declared at file scope
@@ -744,48 +689,16 @@ public:
   Value *getDim(int index) { return getOperand(index); }
 }; // class GlobalValue
 
-// class InitArray
-class InitArray: public User {
-  friend class Module;
-
-protected:
-  Module * parent;
-
-protected:
-  InitArray(Module* module, const std::string &name = ""):
-    User(Type::getInitArrayType(), name), parent(module) {}
-
-public:
-  Value *getElement(const std::vector<int> &indices);
-}; // class InitArray
-
 //! IR unit for representing a SysY compile unit
 class Module {
 protected:
   std::map<std::string, std::unique_ptr<Function>> functions;
   std::map<std::string, std::unique_ptr<GlobalValue>> globals;
-  std::map<std::string, int> integers;
-  std::map<std::string, float> floats;
-  std::map<std::string, std::unique_ptr<InitArray>> initArrays;
 
 public:
   Module() = default;
 
 public:
-  int* createInteger(const std::string &name, int value) {
-    auto result = integers.try_emplace(name, value);
-    if (not result.second) {
-      return nullptr;
-    }
-    return &result.first->second;
-  };
-  float* createFloat(const std::string &name, float value) {
-    auto result = floats.try_emplace(name, value);
-    if (not result.second) {
-      return nullptr;
-    }
-    return &result.first->second;
-  };
   Function *createFunction(const std::string &name, Type *type) {
     auto result = functions.try_emplace(name, new Function(this, type, name));
     if (not result.second)
@@ -800,32 +713,11 @@ public:
       return nullptr;
     return result.first->second.get();
   }
-  InitArray * createInitArray(const std::string &name) {
-    auto result = initArrays.try_emplace(name, new InitArray(this, name));
-    if (not result.second) {
-      return nullptr;
-    }
-    return result.first->second.get();
-  }
   Function *getFunction(const std::string &name) const {
     auto result = functions.find(name);
     if (result == functions.end())
       return nullptr;
     return result->second.get();
-  }
-  const int* getInteger(const std::string &name) const {
-    auto result = integers.find(name);
-    if (result == integers.end()) {
-      return nullptr;
-    }
-    return &result->second;
-  }
-  const float* getFloat(const std::string &name) const {
-    auto result = floats.find(name);
-    if (result == floats.end()) {
-      return nullptr;
-    }
-    return &result->second;
   }
   GlobalValue *getGlobalValue(const std::string &name) const {
     auto result = globals.find(name);
@@ -833,15 +725,6 @@ public:
       return nullptr;
     return result->second.get();
   }
-
-public:
-  void generateCode(std::ostream &out) const;
-
-public:
-  void print(std::ostream &out) const;
-
-public:
-  std::map // TODO
 }; // class Module
 
 /*!
