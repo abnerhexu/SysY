@@ -34,6 +34,7 @@ class SymbolTable {
 class ArrayEntry {
   public:
     Value* base;
+    
 };
 
 }
