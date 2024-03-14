@@ -3,6 +3,7 @@
 #include <cassert>
 #include <cstddef>
 #include <iterator>
+#include <iostream>
 #include <map>
 #include <memory>
 #include <set>
@@ -10,6 +11,34 @@
 
 namespace sysy {
 
+template <typename T>
+std::ostream &interleave(std::ostream &os, const T &container, const std::string sep = ", ") {
+  if (!container.empty()) {
+    for (auto it = container.begin(); it != container.end(); it = std::next(it)) {
+      os << *it << (next(it) == container.end() ? "" : sep);
+    }
+    return os;
+  }
+  return os;
+}
+
+static inline std::ostream &printVarName(std::ostream &os, const Value *var) {
+  return os << (dynamicCast<GlobalValue>(var) ? '@' : '%') << var->getName();
+}
+static inline std::ostream &printBlockName(std::ostream &os, const BasicBlock *block) {
+  return os << '^' << block->getName();
+}
+static inline std::ostream &printFunctionName(std::ostream &os, const Function *func) {
+  return os << '@' << func->getName();
+}
+static inline std::ostream &printOperand(std::ostream &os, const Value *value) {
+  auto constant = dynamicCast<ConstantValue>(value);
+  if (constant) {
+    constant->print(os);
+    return os;
+  }
+  return printVarName(os, value);
+}
 //===----------------------------------------------------------------------===//
 // Types
 //===----------------------------------------------------------------------===//
@@ -60,6 +89,35 @@ int Type::getSize() const {
   return 0;
 }
 
+void Type::print(std::ostream &os) const {
+  auto kind = getKind();
+  switch (kind) {
+  case kInt:
+    os << "int";
+    break;
+  case kFloat:
+    os << "float";
+    break;
+  case kVoid:
+    os << "void";
+    break;
+  case kPointer:
+    static_cast<const PointerType *>(this)->getBaseType()->print(os);
+    os << "*";
+    break;
+  case kFunction:
+    static_cast<const FunctionType *>(this)->getReturnType()->print(os);
+    os << "(";
+    interleave(os, static_cast<const FunctionType*>(this)->getParamTypes());
+    os << ")";
+    break;
+  case kLabel:
+  default:
+    std::cerr << "Unexpected type!" << std::endl;
+    break;
+  }
+}
+
 PointerType *PointerType::get(Type *baseType) {
   static std::map<Type *, std::unique_ptr<PointerType>> pointerTypes;
   auto iter = pointerTypes.find(baseType);
@@ -97,6 +155,13 @@ void Value::replaceAllUsesWith(Value *value) {
   uses.clear();
 }
 
+bool Value::isConstant() const {
+  if (dynamicCast<GlobalValue>(this) or dynamicCast<Function>(this) or dynamicCast<ConstantValue>(this)) {
+    return true;
+  }
+  return false;
+}
+
 ConstantValue *ConstantValue::get(int value, const std::string &name) {
   static std::map<int, std::unique_ptr<ConstantValue>> intConstants;
   auto iter = intConstants.find(value);
@@ -119,9 +184,60 @@ ConstantValue *ConstantValue::get(float value, const std::string &name) {
   return result.first->second.get();
 }
 
+void ConstantValue::print(std::ostream &os) const {
+  if (isInt()) {
+    os << getInt();
+  }
+  else {
+    os << getFloat();
+  }
+}
+
+// see IR.h Argument class
+// Argument::Argument(Type *type, BasicBlock *block, int index, const std::string &name) : Value(kArgument, type, name), block(block), index(index) {
+//   if (not hasName()) {
+//     setName(std::to_string(block->getParent()->allocateVariableID()));
+//   }
+// }
+
+void Argument::print(std::ostream &os) const {
+  assert(hasName());
+  printVarName(os, this) << ": " << this->getType(); //TODO
+}
+
 void User::setOperand(int index, Value *value) {
   assert(index < getNumOperands());
   operands[index].setValue(value);
+}
+
+// basic block construct function: see IR.h, line 360
+
+void BasicBlock::print(std::ostream &os) {
+  assert(hasName());
+  os << "  ";
+  printBlockName(os, this);
+  arg_list args = this->getArguments();
+  if (not args.empty()) {
+    os << "(";
+    for (auto arg = args.begin(); arg != args.end(); arg = std::next(arg)) {
+      printVarName(os, (Value*)&arg) << ": " << arg->getType();
+      os << (std::next(arg) == args.end()? "": ", ");
+    }
+    os << ")";
+  }
+  os << std::endl;
+  for (auto &inst: this->instructions) {
+    os << "    " << inst.get() << std::endl;
+  }
+}
+
+// Instruction construct function: see IR.h, line 495
+
+void CallInst::print(std::ostream &os) const {
+  if (not this->getType()->isVoid()) {
+    printVarName(os, this) << " = call ";
+  }
+  printFunctionName(os, getCallee()) << "(";
 }
 
 void User::replaceOperand(int index, Value *value) {
@@ -139,8 +255,8 @@ CallInst::CallInst(Function *callee, const std::vector<Value *> args,
     addOperand(arg);
 }
 
-Function *CallInst::getCallee() {
-  return dynamic_cast<Function *>(getOperand(0));
+Function *CallInst::getCallee() const {
+  return dynamicCast<Function>(getOperand(0));
 }
 
 } // namespace sysy

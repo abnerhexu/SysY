@@ -70,6 +70,7 @@ public:
   std::enable_if_t<std::is_base_of_v<Type, T>, T *> as() const {
     return dynamic_cast<T *>(const_cast<Type *>(this));
   }
+  void print(std::ostream &os) const;
 }; // class Type
 
 //! Pointer type
@@ -169,180 +170,28 @@ public:
   void setValue(Value *value) { value = value; }
 }; // class Use
 
+template <typename T>
+inline std::enable_if_t<std::is_base_of_v<Value, T>, bool>
+isa(const Value *value) {
+  return T::classof(value);
+}
+
+template <typename T>
+inline std::enable_if_t<std::is_base_of_v<Value, T>, T *>
+dynamicCast(Value *value) {
+  return isa<T>(value) ? static_cast<T *>(value) : nullptr;
+}
+
+template <typename T>
+inline std::enable_if_t<std::is_base_of_v<Value, T>, const T *>
+dynamicCast(const Value *value) {
+  return isa<T>(value) ? static_cast<const T *>(value) : nullptr;
+}
+
 //! The base class of all value types
 class Value {
-protected:
-  Type *type;
-  std::string name;
-  std::list<Use *> uses;
-
-protected:
-  Value(Type *type, const std::string &name = "")
-      : type(type), name(name), uses() {}
-  virtual ~Value() {}
-
 public:
-  Type *getType() const { return type; }
-  bool isInt() const { return type->isInt(); }
-  bool isFloat() const { return type->isFloat(); }
-  bool isPointer() const { return type->isPointer(); }
-  const std::list<Use *> &getUses() { return uses; }
-  void addUse(Use *use) { uses.push_back(use); }
-  void replaceAllUsesWith(Value *value);
-  void removeUse(Use *use) { uses.remove(use); }
-}; // class Value
-
-/*!
- * Static constants known at compile time.
- *
- * `ConstantValue`s are not defined by instructions, and do not use any other
- * `Value`s. It's type is either `int` or `float`.
- */
-class ConstantValue : public Value {
-protected:
-  union {
-    int iScalar;
-    float fScalar;
-  };
-
-protected:
-  ConstantValue(int value, const std::string &name = "")
-      : Value(Type::getIntType(), name), iScalar(value) {}
-  ConstantValue(float value, const std::string &name = "")
-      : Value(Type::getFloatType(), name), fScalar(value) {}
-
-public:
-  static ConstantValue *get(int value, const std::string &name = "");
-  static ConstantValue *get(float value, const std::string &name = "");
-
-public:
-  int getInt() const {
-    assert(isInt());
-    return iScalar;
-  }
-  float getFloat() const {
-    assert(isFloat());
-    return fScalar;
-  }
-}; // class ConstantValue
-
-class BasicBlock;
-/*!
- * Arguments of `BasicBlock`s.
- *
- * SysY IR is an SSA language, however, it does not use PHI instructions as in
- * LLVM IR. `Value`s from different predecessor blocks are passed explicitly as
- * block arguments. This is also the approach used by MLIR.
- * NOTE that `Function` does not own `Argument`s, function arguments are
- * implemented as its entry block's arguments.
- */
-
-class Argument : public Value {
-protected:
-  BasicBlock *block;
-  int index;
-
-public:
-  Argument(Type *type, BasicBlock *block, int index,
-           const std::string &name = "")
-      : Value(type, name), block(block), index(index) {}
-};
-
-class Instruction;
-class Function;
-/*!
- * The container for `Instruction` sequence.
- *
- * `BasicBlock` maintains a list of `Instruction`s, with the last one being
- * a terminator (branch or return). Besides, `BasicBlock` stores its arguments
- * and records its predecessor and successor `BasicBlock`s.
- */
-class BasicBlock : public Value {
-  friend class Function;
-
-public:
-  using inst_list = std::list<std::unique_ptr<Instruction>>;
-  using iterator = inst_list::iterator;
-  using arg_list = std::vector<Argument>;
-  using block_list = std::vector<BasicBlock *>;
-
-protected:
-  Function *parent;
-  inst_list instructions;
-  arg_list arguments;
-  block_list successors;
-  block_list predecessors;
-
-protected:
-  explicit BasicBlock(Function *parent, const std::string &name = "")
-      : Value(Type::getLabelType(), name), parent(parent), instructions(),
-        arguments(), successors(), predecessors() {}
-
-public:
-  int getNumInstructions() const { return instructions.size(); }
-  int getNumArguments() const { return arguments.size(); }
-  int getNumPredecessors() const { return predecessors.size(); }
-  int getNumSuccessors() const { return successors.size(); }
-  Function *getParent() const { return parent; }
-  inst_list &getInstructions() { return instructions; }
-  arg_list &getArguments() { return arguments; }
-  block_list &getPredecessors() { return predecessors; }
-  block_list &getSuccessors() { return successors; }
-  iterator begin() { return instructions.begin(); }
-  iterator end() { return instructions.end(); }
-  iterator terminator() { return std::prev(end()); }
-  Argument *createArgument(Type *type, const std::string &name = "") {
-    arguments.emplace_back(type, this, arguments.size(), name);
-    return &arguments.back();
-  };
-}; // class BasicBlock
-
-//! User is the abstract base type of `Value` types which use other `Value` as
-//! operands. Currently, there are two kinds of `User`s, `Instruction` and
-//! `GlobalValue`.
-class User : public Value {
-protected:
-  std::vector<Use> operands;
-
-protected:
-  User(Type *type, const std::string &name = "")
-      : Value(type, name), operands() {}
-
-public:
-  struct operand_iterator : std::vector<Use>::iterator {
-    using Base = std::vector<Use>::iterator;
-    using Base::Base;
-    using value_type = Value *;
-    value_type operator->() { return operator*().getValue(); }
-  };
-
-public:
-  int getNumOperands() const { return operands.size(); }
-  auto operand_begin() const { return operands.begin(); }
-  auto operand_end() const { return operands.end(); }
-  auto getOperands() const {
-    return make_range(operand_begin(), operand_end());
-  }
-  Value *getOperand(int index) const { return operands[index].getValue(); }
-  void addOperand(Value *value) {
-    operands.emplace_back(operands.size(), this, value);
-    value->addUse(&operands.back());
-  }
-  template <typename ContainerT> void addOperands(const ContainerT &operands) {
-    for (auto value : operands)
-      addOperand(value);
-  }
-  void replaceOperand(int index, Value *value);
-  void setOperand(int index, Value *value);
-  const std::string &getName() const { return name; }
-}; // class User
-
-/*!
- * Base of all concrete instruction types.
- */
-class Instruction : public User {
-public:
-  enum Kind : uint64_t {
+enum Kind : uint64_t {
     kInvalid = 0x0UL,
     // Binary
     kAdd = 0x1UL << 0,
@@ -383,9 +232,276 @@ public:
     kAlloca = 0x1UL << 34,
     kLoad = 0x1UL << 35,
     kStore = 0x1UL << 36,
+    kFirstInst = kAdd,
+    kLastInst = kStore,
     // constant
     // kConstant = 0x1UL << 37,
+    kArgument = 0x1UL << 37,
+    kBasicBlock = 0x1UL << 38,
+    kFunction = 0x1UL << 39,
+    kConstant = 0x1UL << 40,
+    kGlobal = 0x1UL << 41,
   };
+  
+protected:
+  Kind kind;
+  Type *type;
+  std::string name;
+  std::list<Use *> uses;
+
+protected:
+  Value(Kind kind, Type *type, const std::string &name = "")
+      : type(type), name(name), uses() {}
+  virtual ~Value() {}
+
+public:
+  Kind getKind() const { return kind; }
+  static bool classof(const Value *) { return true; }
+
+public:
+  Type *getType() const { return type; }
+  const std::string &getName() const {return name; }
+  bool setName(const std::string &n) {name = n; }
+  bool hasName() const { return not name.empty(); }
+  bool isInt() const { return type->isInt(); }
+  bool isFloat() const { return type->isFloat(); }
+  bool isPointer() const { return type->isPointer(); }
+  const std::list<Use *> &getUses() { return uses; }
+  void addUse(Use *use) { uses.push_back(use); }
+  void replaceAllUsesWith(Value *value);
+  void removeUse(Use *use) { uses.remove(use); }
+  bool isConstant() const;
+}; // class Value
+
+/*!
+ * Static constants known at compile time.
+ *
+ * `ConstantValue`s are not defined by instructions, and do not use any other
+ * `Value`s. It's type is either `int` or `float`.
+ */
+class ConstantValue : public Value {
+protected:
+  union {
+    int iScalar;
+    float fScalar;
+  };
+
+protected:
+  ConstantValue(int value, const std::string &name = "")
+      : Value(kConstant, Type::getIntType(), name), iScalar(value) {}
+  ConstantValue(float value, const std::string &name = "")
+      : Value(kConstant, Type::getFloatType(), name), fScalar(value) {}
+
+public:
+  static ConstantValue *get(int value, const std::string &name = "");
+  static ConstantValue *get(float value, const std::string &name = "");
+
+public:
+  static bool classof(const Value *value) {
+    return value->getKind() == kConstant;
+  }
+
+public:
+  int getInt() const {
+    assert(isInt());
+    return iScalar;
+  }
+  float getFloat() const {
+    assert(isFloat());
+    return fScalar;
+  }
+
+public:
+  void print(std::ostream &os) const;
+}; // class ConstantValue
+
+class BasicBlock;
+/*!
+ * Arguments of `BasicBlock`s.
+ *
+ * SysY IR is an SSA language, however, it does not use PHI instructions as in
+ * LLVM IR. `Value`s from different predecessor blocks are passed explicitly as
+ * block arguments. This is also the approach used by MLIR.
+ * NOTE that `Function` does not own `Argument`s, function arguments are
+ * implemented as its entry block's arguments.
+ */
+
+class Argument : public Value {
+protected:
+  BasicBlock *block;
+  int index;
+
+public:
+  Argument(Type *type, BasicBlock *block, int index, const std::string &name = "") : Value(kArgument, type, name), block(block), index(index) {
+    if (not hasName()) {
+      setName(std::to_string(block->getParent()->allocateVariableID()));
+    }
+  }
+
+public:
+  static bool classof(const Value *value) {
+    return value->getKind() == kConstant;
+  }
+
+public:
+  BasicBlock *getParent() const { return block; }
+  int getIndex() const { return index; }
+
+public:
+  void print(std::ostream &os) const;
+};
+
+class Instruction;
+class Function;
+/*!
+ * The container for `Instruction` sequence.
+ *
+ * `BasicBlock` maintains a list of `Instruction`s, with the last one being
+ * a terminator (branch or return). Besides, `BasicBlock` stores its arguments
+ * and records its predecessor and successor `BasicBlock`s.
+ */
+class BasicBlock : public Value {
+  friend class Function;
+
+public:
+  using inst_list = std::list<std::unique_ptr<Instruction>>;
+  using iterator = inst_list::iterator;
+  using arg_list = std::vector<Argument>;
+  using block_list = std::vector<BasicBlock *>;
+
+protected:
+  Function *parent;
+  inst_list instructions;
+  arg_list arguments;
+  block_list successors;
+  block_list predecessors;
+
+protected:
+  explicit BasicBlock(Function *parent, const std::string &name = "") : Value(kBasicBlock, Type::getLabelType(), name), parent(parent),
+      instructions(), arguments(), successors(), predecessors() {
+  if (not hasName())
+    setName("bb" + std::to_string(getParent()->allocateblockID()));
+}
+
+public:
+  int getNumInstructions() const { return instructions.size(); }
+  int getNumArguments() const { return arguments.size(); }
+  int getNumPredecessors() const { return predecessors.size(); }
+  int getNumSuccessors() const { return successors.size(); }
+  Function *getParent() const { return parent; }
+  inst_list &getInstructions() { return instructions; }
+  arg_list &getArguments() { return arguments; }
+  block_list &getPredecessors() { return predecessors; }
+  block_list &getSuccessors() { return successors; }
+  iterator begin() { return instructions.begin(); }
+  iterator end() { return instructions.end(); }
+  iterator terminator() { return std::prev(end()); }
+  Argument *createArgument(Type *type, const std::string &name = "") {
+    arguments.emplace_back(type, this, arguments.size(), name);
+    return &arguments.back();
+  };
+
+public:
+  void print(std::ostream &os);
+}; // class BasicBlock
+
+//! User is the abstract base type of `Value` types which use other `Value` as
+//! operands. Currently, there are two kinds of `User`s, `Instruction` and
+//! `GlobalValue`.
+class User : public Value {
+protected:
+  std::vector<Use> operands;
+
+protected:
+  User(Kind kind, Type *type, const std::string &name = "")
+      : Value(kind, type, name), operands() {}
+
+public:
+  struct operand_iterator : std::vector<Use>::iterator {
+    using Base = std::vector<Use>::iterator;
+    using Base::Base;
+    using value_type = Value *;
+    value_type operator->() { return Base::operator*().getValue(); }
+    value_type operator*() { return Base::operator*().getValue(); }
+  };
+
+public:
+  int getNumOperands() const { return operands.size(); }
+  auto operand_begin() const { return operands.begin(); }
+  auto operand_end() const { return operands.end(); }
+  auto getOperands() const {
+    return make_range(operand_begin(), operand_end());
+  }
+  Value *getOperand(int index) const { return operands[index].getValue(); }
+  void addOperand(Value *value) {
+    operands.emplace_back(operands.size(), this, value);
+    value->addUse(&operands.back());
+  }
+  template <typename ContainerT> void addOperands(const ContainerT &operands) {
+    for (auto value : operands)
+      addOperand(value);
+  }
+  void replaceOperand(int index, Value *value);
+  void setOperand(int index, Value *value);
+  const std::string &getName() const { return name; }
+}; // class User
+
+/*!
+ * Base of all concrete instruction types.
+ */
+class Instruction : public User {
+// public:
+  // enum Kind : uint64_t {
+  //   kInvalid = 0x0UL,
+  //   // Binary
+  //   kAdd = 0x1UL << 0,
+  //   kSub = 0x1UL << 1,
+  //   kMul = 0x1UL << 2,
+  //   kDiv = 0x1UL << 3,
+  //   kRem = 0x1UL << 4,
+  //   kICmpEQ = 0x1UL << 5,
+  //   kICmpNE = 0x1UL << 6,
+  //   kICmpLT = 0x1UL << 7,
+  //   kICmpGT = 0x1UL << 8,
+  //   kICmpLE = 0x1UL << 9,
+  //   kICmpGE = 0x1UL << 10,
+  //   kFAdd = 0x1UL << 14,
+  //   kFSub = 0x1UL << 15,
+  //   kFMul = 0x1UL << 16,
+  //   kFDiv = 0x1UL << 17,
+  //   kFRem = 0x1UL << 18,
+  //   kFCmpEQ = 0x1UL << 19,
+  //   kFCmpNE = 0x1UL << 20,
+  //   kFCmpLT = 0x1UL << 21,
+  //   kFCmpGT = 0x1UL << 22,
+  //   kFCmpLE = 0x1UL << 23,
+  //   kFCmpGE = 0x1UL << 24,
+  //   // Unary
+  //   kNeg = 0x1UL << 25,
+  //   kNot = 0x1UL << 26,
+  //   kFNeg = 0x1UL << 26,
+  //   kFtoI = 0x1UL << 28,
+  //   kIToF = 0x1UL << 29,
+  //   // call
+  //   kCall = 0x1UL << 30,
+  //   // terminator
+  //   kCondBr = 0x1UL << 31,
+  //   kBr = 0x1UL << 32,
+  //   kReturn = 0x1UL << 33,
+  //   // mem op
+  //   kAlloca = 0x1UL << 34,
+  //   kLoad = 0x1UL << 35,
+  //   kStore = 0x1UL << 36,
+  //   kFirstInst = kAdd,
+  //   kLastInst = kStore,
+  //   // constant
+  //   // kConstant = 0x1UL << 37,
+  //   kArgument = 0x1UL << 37,
+  //   kBasicBlock = 0x1UL << 38,
+  //   kFunction = 0x1UL << 39,
+  //   kConstant = 0x1UL << 40,
+  //   kGlobal = 0x1UL << 41,
+  // };
 
 protected:
   Kind kind;
@@ -393,12 +509,20 @@ protected:
 
 protected:
   Instruction(Kind kind, Type *type, BasicBlock *parent = nullptr,
-              const std::string &name = "")
-      : User(type, name), kind(kind), parent(parent) {}
+              const std::string &name = ""): User(kind, type, name), kind(kind), parent(parent) {
+  if (not type->isVoid() and not hasName())
+    setName(std::to_string(getFunction()->allocateVariableID()));
+}
+
+public:
+  static bool classof(const Value *value) {
+    return value->getKind() >= kFirstInst and value->getKind() <= kLastInst;
+  }
 
 public:
   Kind getKind() const { return kind; }
   BasicBlock *getParent() const { return parent; }
+  Function *getFunction() const { return parent->getParent(); }
   void setParent(BasicBlock *bb) { parent = bb; }
 
   bool isBinary() const {
@@ -442,6 +566,7 @@ public:
 
 class Function;
 //! Function call.
+
 class CallInst : public Instruction {
   friend class IRBuilder;
 
@@ -450,10 +575,16 @@ protected:
            BasicBlock *parent = nullptr, const std::string &name = "");
 
 public:
-  Function *getCallee();
+  static bool classof(const Value *value) { return value->getKind() == kCall; }
+
+public:
+  Function *getCallee() const;
   auto getArguments() {
     return make_range(std::next(operand_begin()), operand_end());
   }
+
+public:
+  void print(std::ostream &os) const;
 }; // class CallInst
 
 //! Unary instruction, includes '!', '-' and type conversion.
@@ -468,7 +599,16 @@ protected:
   }
 
 public:
+  static bool classof(const Value *value) {
+    return Instruction::classof(value) and
+           static_cast<const Instruction *>(value)->isUnary();
+  }
+
+public:
   Value *getOperand() const { return User::getOperand(0); }
+
+public:
+  void print(std::ostream &os) const;
 }; // class UnaryInst
 
 //! Binary instruction, e.g., arithmatic, relation, logic, etc.
@@ -481,6 +621,12 @@ protected:
       : Instruction(kind, type, parent, name) {
     addOperand(lhs);
     addOperand(rhs);
+  }
+
+public:
+  static bool classof(const Value *value) {
+    return Instruction::classof(value) and
+           static_cast<const Instruction *>(value)->isBinary();
   }
 
 public:
@@ -497,6 +643,11 @@ protected:
       : Instruction(kReturn, Type::getVoidType(), parent, "") {
     if (value)
       addOperand(value);
+  }
+
+public:
+  static bool classof(const Value *value) {
+    return value->getKind() == kReturn;
   }
 
 public:
@@ -520,12 +671,18 @@ protected:
   }
 
 public:
+  static bool classof(const Value *value) { return value->getKind() == kBr; }
+
+public:
   BasicBlock *getBlock() const {
     return dynamic_cast<BasicBlock *>(getOperand(0));
   }
   auto getArguments() const {
     return make_range(std::next(operands.begin()), operands.end());
   }
+
+public:
+  void print(std::ostream &os) const;
 }; // class UncondBrInst
 
 //! Conditional branch
@@ -544,6 +701,11 @@ protected:
     addOperand(elseBlock);
     addOperands(thenArgs);
     addOperands(elseArgs);
+  }
+
+public:
+  static bool classof(const Value *value) {
+    return value->getKind() == kCondBr;
   }
 
 public:
@@ -577,6 +739,11 @@ protected:
   }
 
 public:
+  static bool classof(const Value *value) {
+    return value->getKind() == kAlloca;
+  }
+
+public:
   int getNumDims() const { return getNumOperands(); }
   auto getDims() const { return getOperands(); }
   Value *getDim(int index) { return getOperand(index); }
@@ -593,6 +760,10 @@ protected:
                     parent, name) {
     addOperands(indices);
   }
+
+public:
+  static bool classof(const Value *value) { return value->getKind() == kLoad; }
+
 
 public:
   int getNumIndices() const { return getNumOperands() - 1; }
@@ -618,6 +789,9 @@ protected:
   }
 
 public:
+  static bool classof(const Value *value) { return value->getKind() == kStore; }
+
+public:
   int getNumIndices() const { return getNumOperands() - 2; }
   Value *getValue() const { return getOperand(0); }
   Value *getPointer() const { return getOperand(1); }
@@ -634,8 +808,13 @@ class Function : public Value {
 
 protected:
   Function(Module *parent, Type *type, const std::string &name)
-      : Value(type, name), parent(parent), blocks() {
+      : Value(kFunction, type, name), parent(parent), blocks() {
     blocks.emplace_back(new BasicBlock(this, "entry"));
+  }
+
+public:
+  static bool classof(const Value *value) {
+    return value->getKind() == kFunction;
   }
 
 public:
@@ -643,6 +822,8 @@ public:
 
 protected:
   Module *parent;
+  int variableID;
+  int blockID;
   block_list blocks;
 
 public:
@@ -663,6 +844,11 @@ public:
       return block == b.get();
     });
   }
+  int allocateVariableID() { return variableID++; }
+  int allocateblockID() { return blockID++; }
+
+public:
+  void print(std::ostream &os) const;
 }; // class Function
 
 //! Global value declared at file scope
@@ -672,15 +858,21 @@ class GlobalValue : public User {
 protected:
   Module *parent;
   bool hasInit;
+  bool isConst;
 
 protected:
   GlobalValue(Module *parent, Type *type, const std::string &name,
               const std::vector<Value *> &dims = {}, Value *init = nullptr)
-      : User(type, name), parent(parent), hasInit(init) {
+      : User(kGlobal, type, name), parent(parent), hasInit(init) {
     assert(type->isPointer());
     addOperands(dims);
     if (init)
       addOperand(init);
+  }
+
+public:
+  static bool classof(const Value *value) {
+    return value->getKind() == kGlobal;
   }
 
 public:
