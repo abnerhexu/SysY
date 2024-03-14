@@ -52,7 +52,7 @@ public:
                            name);
   }
   UnaryInst *createIToFInst(Value *operand, const std::string &name = "") {
-    return createUnaryInst(Instruction::kIToF, Type::getFloatType(), operand,
+    return createUnaryInst(Instruction::kItoF, Type::getFloatType(), operand,
                            name);
   }
   BinaryInst *createBinaryInst(Instruction::Kind kind, Type *type, Value *lhs,
