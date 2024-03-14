@@ -216,18 +216,18 @@ void BasicBlock::print(std::ostream &os) {
   assert(hasName());
   os << "  ";
   printBlockName(os, this);
-  arg_list args = this->getArguments();
+  auto args = this->getArguments();
   if (not args.empty()) {
     os << "(";
     for (auto arg = args.begin(); arg != args.end(); arg = std::next(arg)) {
-      printVarName(os, (Value*)&arg) << ": " << arg->getType();
+      printVarName(os, arg->get()) << ": " << arg->get()->getType();
       os << (std::next(arg) == args.end()? "": ", ");
     }
     os << ")";
   }
   os << std::endl;
   for (auto &inst: this->instructions) {
-    os << "    " << inst.get() << std::endl;
+    os << "    " << *inst << std::endl;
   }
 }
 
@@ -238,8 +238,147 @@ void CallInst::print(std::ostream &os) const {
     printVarName(os, this) << " = call ";
   }
   printFunctionName(os, getCallee()) << "(";
+  auto args = getArguments();
+  if (not args.empty()) {
+    for (auto arg = args.begin(); arg != args.end(); arg = std::next(arg)) {
+      printOperand(os, arg->getValue());
+      os << (std::next(arg) == args.end()? "": ", ");
+    }
+  }
+  os << ") : " << *getType();
 }
 
+void UnaryInst::print(std::ostream &os) const {
+  printVarName(os, this) << " = ";
+  std::vector<std::string> ops = {"neg", "not", "fneg", "ftoi", "itof"};
+  auto kind = this->getKind();
+  if (kind < kNeg or kind > kItoF){
+    assert(false);
+  }
+  else {
+    os << ops[kind - kNeg];
+  }
+  printOperand(os, getOperand()) << " : " << this->getType();
+}
+
+void BinaryInst::print(std::ostream &os) const {
+  printVarName(os, this) << " = ";
+  auto kind = this->getKind();
+  std::vector<std::string> ops = {"add", "sub", "mul", "div", "rem", "icmpeq", "icmpne", "icmplt", "icmpgt", "icmple", "icmpge", "fadd", "fsub", "fmul", "fdiv", "frem", "fcmpeq", "fcmpne", "fcmplt", "fcmpgt", "fcmple", "fcmpge"};
+  if (kind < kAdd or kind > kFCmpGE) {
+    assert(false);
+  }
+  else {
+    os << ops[kind - kAdd];
+  }
+  printOperand(os, this->getLhs()) << ", ";
+  printOperand(os, this->getRhs()) << " : " << this->getType();
+}
+
+void ReturnInst::print(std::ostream &os) const {
+  os << "return";
+  auto rvalue = this->getReturnValue();
+  if (rvalue != nullptr) {
+    os << " ";
+    printOperand(os, rvalue) << " : " << rvalue->getType();
+  }
+}
+
+void UncondBrInst::print(std::ostream &os) const {
+  os << "br ";
+  printBlockName(os, this->getBlock());
+  auto args = this->getArguments();
+  if (!args.empty()) {
+    os << "(";
+    for (auto arg = args.begin(); arg != args.end(); arg = std::next(arg)) {
+      printOperand(os, arg->getValue());
+      if (std::next(arg) != args.end()) {
+        os << ", ";
+      }
+    }
+    os << ")";
+  }
+}
+
+void CondBrInst::print(std::ostream &os) const {
+  os << "condbr ";
+  printOperand(os, this->getCondition()) << ", ";
+  printBlockName(os, this->getThenBlock());
+  // then block
+  auto args = this->getThenArguments();
+  if (not args.empty()) {
+    os << "(";
+    for (auto arg = args.begin(); arg != args.end(); arg = std::next(arg)) {
+      printOperand(os, arg->getValue());
+      if (std::next(arg) != args.end()) {
+        os << ", ";
+      }
+    }
+    os << ")";
+  }
+  printBlockName(os, this->getElseBlock());
+  // else block
+  auto args = getElseArguments();
+  if (not args.empty()) {
+    os << "(";
+    for (auto arg = args.begin(); arg != args.end(); arg = std::next(arg)) {
+      printOperand(os, arg->getValue());
+      if (std::next(arg) != args.end()) {
+        os << ", ";
+      }
+    }
+    os << ")";
+  }
+}
+
+void AllocaInst::print(std::ostream &os) const {
+  if (getNumDims()) {
+    std::cerr << "do not support arrays!" << std::endl;
+  }
+  printVarName(os, this) << " = ";
+  os << "alloca " << *static_cast<const PointerType *>(getType())->getBaseType() << " : " << *getType();
+}
+
+void LoadInst::print(std::ostream &os) const {
+  if (getNumIndices()) {
+    std::cerr << "do not support arrays!" << std::endl;
+  }
+  printVarName(os, this) << " = ";
+  os << "load ";
+  printOperand(os, getPointer()) << " : " << *getType();
+}
+
+void StoreInst::print(std::ostream &os) const {
+  if (getNumIndices()) {
+    std::cerr << "do not support arrays!" << std::endl;
+  }
+  printOperand(os, getValue()) << ", ";
+  printOperand(os, getPointer()) << " : " << *getValue()->getType();
+}
+
+void Function::print(std::ostream &os) const {
+  auto returnType = getReturnType();
+  auto paramTypes = getParamTypes();
+  os << *returnType << " ";
+  printFunctionName(os, this) << "(";
+  for (auto paramType = paramTypes.begin(); paramType != paramTypes.end(); paramType = std::next(paramType)) {
+    os << *paramType;
+    if (std::next(paramType) != paramTypes.end()) {
+      os << ", ";
+    }
+  }
+  os << ") {" << std::endl;
+
+  for (auto &bb: getBasicBlocks()) {
+    os << *bb << std::endl;
+  }
+}
+
+void Module::print(std::ostream &os) const {
+  for(auto &value: this->children) {
+    os << *value << std::endl;
+  }
+}
 void User::replaceOperand(int index, Value *value) {
   assert(index < getNumOperands());
   auto &use = operands[index];

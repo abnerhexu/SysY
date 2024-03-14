@@ -46,7 +46,7 @@ public:
 
 protected:
   Type(Kind kind) : kind(kind) {}
-  virtual ~Type() {}
+  virtual ~Type() = default;
 
 public:
   static Type *getIntType();
@@ -65,6 +65,7 @@ public:
   bool isLabel() const { return kind == kLabel; }
   bool isPointer() const { return kind == kPointer; }
   bool isFunction() const { return kind == kFunction; }
+  bool isIntOrFloat() const { return kind == kInt or kind == kFloat; }
   int getSize() const;
   template <typename T>
   std::enable_if_t<std::is_base_of_v<Type, T>, T *> as() const {
@@ -194,53 +195,53 @@ public:
 enum Kind : uint64_t {
     kInvalid = 0x0UL,
     // Binary
-    kAdd = 0x1UL << 0,
-    kSub = 0x1UL << 1,
-    kMul = 0x1UL << 2,
-    kDiv = 0x1UL << 3,
-    kRem = 0x1UL << 4,
-    kICmpEQ = 0x1UL << 5,
-    kICmpNE = 0x1UL << 6,
-    kICmpLT = 0x1UL << 7,
-    kICmpGT = 0x1UL << 8,
-    kICmpLE = 0x1UL << 9,
-    kICmpGE = 0x1UL << 10,
-    kFAdd = 0x1UL << 14,
-    kFSub = 0x1UL << 15,
-    kFMul = 0x1UL << 16,
-    kFDiv = 0x1UL << 17,
-    kFRem = 0x1UL << 18,
-    kFCmpEQ = 0x1UL << 19,
-    kFCmpNE = 0x1UL << 20,
-    kFCmpLT = 0x1UL << 21,
-    kFCmpGT = 0x1UL << 22,
-    kFCmpLE = 0x1UL << 23,
-    kFCmpGE = 0x1UL << 24,
+    kAdd = 0,
+    kSub = 1,
+    kMul = 2,
+    kDiv = 3,
+    kRem = 4,
+    kICmpEQ = 5,
+    kICmpNE = 6,
+    kICmpLT = 7,
+    kICmpGT = 8,
+    kICmpLE = 9,
+    kICmpGE = 10,
+    kFAdd = 14,
+    kFSub = 15,
+    kFMul = 16,
+    kFDiv = 17,
+    kFRem = 18,
+    kFCmpEQ = 19,
+    kFCmpNE = 20,
+    kFCmpLT = 21,
+    kFCmpGT = 22,
+    kFCmpLE = 23,
+    kFCmpGE = 24,
     // Unary
-    kNeg = 0x1UL << 25,
-    kNot = 0x1UL << 26,
-    kFNeg = 0x1UL << 26,
-    kFtoI = 0x1UL << 28,
-    kIToF = 0x1UL << 29,
+    kNeg = 25,
+    kNot = 26,
+    kFNeg = 27,
+    kFtoI = 28,
+    kItoF = 29,
     // call
-    kCall = 0x1UL << 30,
+    kCall = 30,
     // terminator
-    kCondBr = 0x1UL << 31,
-    kBr = 0x1UL << 32,
-    kReturn = 0x1UL << 33,
+    kCondBr = 31,
+    kBr = 32,
+    kReturn = 33,
     // mem op
-    kAlloca = 0x1UL << 34,
-    kLoad = 0x1UL << 35,
-    kStore = 0x1UL << 36,
+    kAlloca = 34,
+    kLoad = 35,
+    kStore = 36,
     kFirstInst = kAdd,
     kLastInst = kStore,
     // constant
-    // kConstant = 0x1UL << 37,
-    kArgument = 0x1UL << 37,
-    kBasicBlock = 0x1UL << 38,
-    kFunction = 0x1UL << 39,
-    kConstant = 0x1UL << 40,
-    kGlobal = 0x1UL << 41,
+    // kConstant = 37,
+    kArgument = 37,
+    kBasicBlock = 38,
+    kFunction = 39,
+    kConstant = 40,
+    kGlobal = 41,
   };
   
 protected:
@@ -271,6 +272,9 @@ public:
   void replaceAllUsesWith(Value *value);
   void removeUse(Use *use) { uses.remove(use); }
   bool isConstant() const;
+
+public:
+  virtual void print(std::ostream &os) const {};
 }; // class Value
 
 /*!
@@ -366,7 +370,7 @@ class BasicBlock : public Value {
 public:
   using inst_list = std::list<std::unique_ptr<Instruction>>;
   using iterator = inst_list::iterator;
-  using arg_list = std::vector<Argument>;
+  using arg_list = std::vector<std::unique_ptr<Argument>>;
   using block_list = std::vector<BasicBlock *>;
 
 protected:
@@ -390,15 +394,17 @@ public:
   int getNumSuccessors() const { return successors.size(); }
   Function *getParent() const { return parent; }
   inst_list &getInstructions() { return instructions; }
-  arg_list &getArguments() { return arguments; }
+  auto getArguments() { return make_range(arguments); }
   block_list &getPredecessors() { return predecessors; }
   block_list &getSuccessors() { return successors; }
   iterator begin() { return instructions.begin(); }
   iterator end() { return instructions.end(); }
   iterator terminator() { return std::prev(end()); }
   Argument *createArgument(Type *type, const std::string &name = "") {
-    arguments.emplace_back(type, this, arguments.size(), name);
-    return &arguments.back();
+    auto arg = new Argument(type, this, arguments.size(), name);
+    assert(arg);
+    arguments.emplace_back(arg);
+    return arguments.back().get();
   };
 
 public:
@@ -534,7 +540,7 @@ public:
     return kind & BinaryOpMask;
   }
   bool isUnary() const {
-    static constexpr uint64_t UnaryOpMask = kNeg | kNot | kFNeg | kFtoI | kIToF;
+    static constexpr uint64_t UnaryOpMask = kNeg | kNot | kFNeg | kFtoI | kItoF;
     return kind & UnaryOpMask;
   }
   bool isMemory() const {
@@ -579,7 +585,7 @@ public:
 
 public:
   Function *getCallee() const;
-  auto getArguments() {
+  auto getArguments() const {
     return make_range(std::next(operand_begin()), operand_end());
   }
 
@@ -632,6 +638,9 @@ public:
 public:
   Value *getLhs() const { return getOperand(0); }
   Value *getRhs() const { return getOperand(1); }
+
+public:
+  void print(std::ostream &os) const;
 }; // class BinaryInst
 
 //! The return statement
@@ -655,6 +664,9 @@ public:
   Value *getReturnValue() const {
     return hasReturnValue() ? getOperand(0) : nullptr;
   }
+
+public:
+  void print(std::ostream &os) const;
 }; // class ReturnInst
 
 //! Unconditional branch
@@ -709,6 +721,7 @@ public:
   }
 
 public:
+  Value *getCondition() const {return getOperand(0); }
   BasicBlock *getThenBlock() const {
     return dynamic_cast<BasicBlock *>(getOperand(0));
   }
@@ -725,6 +738,9 @@ public:
     auto end = operands.end();
     return make_range(begin, end);
   }
+
+public:
+  void print(std::ostream &os) const;
 }; // class CondBrInst
 
 //! Allocate memory for stack variables, used for non-global variable declartion
@@ -747,6 +763,9 @@ public:
   int getNumDims() const { return getNumOperands(); }
   auto getDims() const { return getOperands(); }
   Value *getDim(int index) { return getOperand(index); }
+
+public:
+  void print(std::ostream &os) const;
 }; // class AllocaInst
 
 //! Load a value from memory address specified by a pointer value
@@ -758,6 +777,7 @@ protected:
            BasicBlock *parent = nullptr, const std::string &name = "")
       : Instruction(kLoad, pointer->getType()->as<PointerType>()->getBaseType(),
                     parent, name) {
+    addOperands(pointer);
     addOperands(indices);
   }
 
@@ -772,6 +792,9 @@ public:
     return make_range(std::next(operand_begin()), operand_end());
   }
   Value *getIndex(int index) const { return getOperand(index + 1); }
+
+public:
+  void print(std::ostream &os) const;
 }; // class LoadInst
 
 //! Store a value to memory address specified by a pointer value
@@ -799,6 +822,9 @@ public:
     return make_range(operand_begin() + 2, operand_end());
   }
   Value *getIndex(int index) const { return getOperand(index + 2); }
+
+public:
+  void print(std::ostream &os) const;
 }; // class StoreInst
 
 class Module;
@@ -833,7 +859,7 @@ public:
   auto getParamTypes() const {
     return getType()->as<FunctionType>()->getParamTypes();
   }
-  auto getBasicBlocks() { return make_range(blocks); }
+  auto getBasicBlocks() const { return make_range(blocks); }
   BasicBlock *getEntryBlock() { return blocks.front().get(); }
   BasicBlock *addBasicBlock(const std::string &name = "") {
     blocks.emplace_back(new BasicBlock(this, name));
@@ -884,42 +910,68 @@ public:
 //! IR unit for representing a SysY compile unit
 class Module {
 protected:
-  std::map<std::string, std::unique_ptr<Function>> functions;
-  std::map<std::string, std::unique_ptr<GlobalValue>> globals;
+  std::vector<std::unique_ptr<Value>> children;
+  std::map<std::string, Function*> functions;
+  std::map<std::string, GlobalValue*> globals;
 
 public:
   Module() = default;
 
 public:
   Function *createFunction(const std::string &name, Type *type) {
-    auto result = functions.try_emplace(name, new Function(this, type, name));
-    if (not result.second)
+    if (functions.count(name)) {
       return nullptr;
-    return result.first->second.get();
+    }
+    auto func = new Function(this, type, name);
+    assert(func);
+    this->children.emplace_back(func);
+    functions.emplace(name, func);
+    return func;
   };
   GlobalValue *createGlobalValue(const std::string &name, Type *type,
-                                 const std::vector<Value *> &dims = {}) {
-    auto result =
-        globals.try_emplace(name, new GlobalValue(this, type, name, dims));
-    if (not result.second)
+                                 const std::vector<Value *> &dims = {}, Value *init = nullptr) {
+    if (globals.count(name)) {
       return nullptr;
-    return result.first->second.get();
+    }
+    auto global = new GlobalValue(this, type, name, dims, init);
+    assert(global);
+    this->children.emplace_back(global);
+    this->functions.emplace(name, global);
+    return global;
   }
   Function *getFunction(const std::string &name) const {
     auto result = functions.find(name);
     if (result == functions.end())
       return nullptr;
-    return result->second.get();
+    return result->second;
   }
   GlobalValue *getGlobalValue(const std::string &name) const {
     auto result = globals.find(name);
     if (result == globals.end())
       return nullptr;
-    return result->second.get();
+    return result->second;
   }
+
+public:
+  void print(std::ostream &os) const;
+
+public:
+  std::map<std::string, Function*> *getFunctions() { return &functions; }
+  std::map<std::string, GlobalValue*> *getGlobalValues() { return &globals; }
 }; // class Module
 
 /*!
  * @}
  */
+
+/* for automatic print */
+inline std::ostream &operator<<(std::ostream &os, const Type &type) {
+  type.print(os);
+  return os;
+}
+
+inline std::ostream &operator<<(std::ostream &os, const Value &value) {
+  value.print(os);
+  return os;
+}
 } // namespace sysy
