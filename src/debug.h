@@ -27,4 +27,5 @@ inline std::string colorize(const std::string& str, Color color) {
   }
 }
 
+bool gdebug = true;
 } // namespace debug
