@@ -15,7 +15,7 @@ template <typename T>
 std::ostream &interleave(std::ostream &os, const T &container, const std::string sep = ", ") {
   if (!container.empty()) {
     for (auto it = container.begin(); it != container.end(); it = std::next(it)) {
-      os << *it << (next(it) == container.end() ? "" : sep);
+      os << *it << (std::next(it) == container.end() ? "" : sep);
     }
     return os;
   }
@@ -200,6 +200,12 @@ void ConstantValue::print(std::ostream &os) const {
 //   }
 // }
 
+Argument::Argument(Type *type, BasicBlock *block, int index, const std::string &name) : Value(kArgument, type, name), block(block), index(index) {
+    if (not hasName()) {
+      setName(std::to_string(block->getParent()->allocateVariableID()));
+    }
+}
+
 void Argument::print(std::ostream &os) const {
   assert(hasName());
   printVarName(os, this) << ": " << this->getType(); //TODO
@@ -211,6 +217,12 @@ void User::setOperand(int index, Value *value) {
 }
 
 // basic block construct function: see IR.h, line 360
+
+BasicBlock::BasicBlock(Function *parent, const std::string &name) : Value(kBasicBlock, Type::getLabelType(), name), parent(parent),
+      instructions(), arguments(), successors(), predecessors() {
+  if (not hasName())
+    setName("bb" + std::to_string(getParent()->allocateblockID()));
+}
 
 void BasicBlock::print(std::ostream &os) {
   assert(hasName());
@@ -232,6 +244,12 @@ void BasicBlock::print(std::ostream &os) {
 }
 
 // Instruction construct function: see IR.h, line 495
+
+Instruction::Instruction(Kind kind, Type *type, BasicBlock *parent,
+              const std::string &name): User(kind, type, name), kind(kind), parent(parent) {
+  if (not type->isVoid() and not hasName())
+    setName(std::to_string(getFunction()->allocateVariableID()));
+}
 
 void CallInst::print(std::ostream &os) const {
   if (not this->getType()->isVoid()) {
@@ -318,12 +336,12 @@ void CondBrInst::print(std::ostream &os) const {
   }
   printBlockName(os, this->getElseBlock());
   // else block
-  auto args = getElseArguments();
-  if (not args.empty()) {
+  auto eargs = getElseArguments();
+  if (not eargs.empty()) {
     os << "(";
-    for (auto arg = args.begin(); arg != args.end(); arg = std::next(arg)) {
-      printOperand(os, arg->getValue());
-      if (std::next(arg) != args.end()) {
+    for (auto earg = eargs.begin(); earg != eargs.end(); earg = std::next(earg)) {
+      printOperand(os, earg->getValue());
+      if (std::next(earg) != eargs.end()) {
         os << ", ";
       }
     }

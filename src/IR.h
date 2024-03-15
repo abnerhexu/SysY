@@ -253,7 +253,9 @@ protected:
 protected:
   Value(Kind kind, Type *type, const std::string &name = "")
       : type(type), name(name), uses() {}
-  virtual ~Value() {}
+
+public:
+  virtual ~Value() = default;
 
 public:
   Kind getKind() const { return kind; }
@@ -262,7 +264,7 @@ public:
 public:
   Type *getType() const { return type; }
   const std::string &getName() const {return name; }
-  bool setName(const std::string &n) {name = n; }
+  void setName(const std::string &n) {name = n; }
   bool hasName() const { return not name.empty(); }
   bool isInt() const { return type->isInt(); }
   bool isFloat() const { return type->isFloat(); }
@@ -336,11 +338,12 @@ protected:
   int index;
 
 public:
-  Argument(Type *type, BasicBlock *block, int index, const std::string &name = "") : Value(kArgument, type, name), block(block), index(index) {
-    if (not hasName()) {
-      setName(std::to_string(block->getParent()->allocateVariableID()));
-    }
-  }
+  Argument(Type *type, BasicBlock *block, int index, const std::string &name = "");
+  // : Value(kArgument, type, name), block(block), index(index) {
+  //   if (not hasName()) {
+  //     setName(std::to_string(block->getParent()->allocateVariableID()));
+  //   }
+  // }
 
 public:
   static bool classof(const Value *value) {
@@ -381,11 +384,12 @@ protected:
   block_list predecessors;
 
 protected:
-  explicit BasicBlock(Function *parent, const std::string &name = "") : Value(kBasicBlock, Type::getLabelType(), name), parent(parent),
-      instructions(), arguments(), successors(), predecessors() {
-  if (not hasName())
-    setName("bb" + std::to_string(getParent()->allocateblockID()));
-}
+  explicit BasicBlock(Function *parent, const std::string &name = "");
+//   : Value(kBasicBlock, Type::getLabelType(), name), parent(parent),
+//       instructions(), arguments(), successors(), predecessors() {
+//   if (not hasName())
+//     setName("bb" + std::to_string(getParent()->allocateblockID()));
+// }
 
 public:
   int getNumInstructions() const { return instructions.size(); }
@@ -456,58 +460,6 @@ public:
  * Base of all concrete instruction types.
  */
 class Instruction : public User {
-// public:
-  // enum Kind : uint64_t {
-  //   kInvalid = 0x0UL,
-  //   // Binary
-  //   kAdd = 0x1UL << 0,
-  //   kSub = 0x1UL << 1,
-  //   kMul = 0x1UL << 2,
-  //   kDiv = 0x1UL << 3,
-  //   kRem = 0x1UL << 4,
-  //   kICmpEQ = 0x1UL << 5,
-  //   kICmpNE = 0x1UL << 6,
-  //   kICmpLT = 0x1UL << 7,
-  //   kICmpGT = 0x1UL << 8,
-  //   kICmpLE = 0x1UL << 9,
-  //   kICmpGE = 0x1UL << 10,
-  //   kFAdd = 0x1UL << 14,
-  //   kFSub = 0x1UL << 15,
-  //   kFMul = 0x1UL << 16,
-  //   kFDiv = 0x1UL << 17,
-  //   kFRem = 0x1UL << 18,
-  //   kFCmpEQ = 0x1UL << 19,
-  //   kFCmpNE = 0x1UL << 20,
-  //   kFCmpLT = 0x1UL << 21,
-  //   kFCmpGT = 0x1UL << 22,
-  //   kFCmpLE = 0x1UL << 23,
-  //   kFCmpGE = 0x1UL << 24,
-  //   // Unary
-  //   kNeg = 0x1UL << 25,
-  //   kNot = 0x1UL << 26,
-  //   kFNeg = 0x1UL << 26,
-  //   kFtoI = 0x1UL << 28,
-  //   kIToF = 0x1UL << 29,
-  //   // call
-  //   kCall = 0x1UL << 30,
-  //   // terminator
-  //   kCondBr = 0x1UL << 31,
-  //   kBr = 0x1UL << 32,
-  //   kReturn = 0x1UL << 33,
-  //   // mem op
-  //   kAlloca = 0x1UL << 34,
-  //   kLoad = 0x1UL << 35,
-  //   kStore = 0x1UL << 36,
-  //   kFirstInst = kAdd,
-  //   kLastInst = kStore,
-  //   // constant
-  //   // kConstant = 0x1UL << 37,
-  //   kArgument = 0x1UL << 37,
-  //   kBasicBlock = 0x1UL << 38,
-  //   kFunction = 0x1UL << 39,
-  //   kConstant = 0x1UL << 40,
-  //   kGlobal = 0x1UL << 41,
-  // };
 
 protected:
   Kind kind;
@@ -515,10 +467,11 @@ protected:
 
 protected:
   Instruction(Kind kind, Type *type, BasicBlock *parent = nullptr,
-              const std::string &name = ""): User(kind, type, name), kind(kind), parent(parent) {
-  if (not type->isVoid() and not hasName())
-    setName(std::to_string(getFunction()->allocateVariableID()));
-}
+              const std::string &name = "");
+//               :User(kind, type, name), kind(kind), parent(parent) {
+//   if (not type->isVoid() and not hasName())
+//     setName(std::to_string(getFunction()->allocateVariableID()));
+// }
 
 public:
   static bool classof(const Value *value) {
@@ -777,7 +730,7 @@ protected:
            BasicBlock *parent = nullptr, const std::string &name = "")
       : Instruction(kLoad, pointer->getType()->as<PointerType>()->getBaseType(),
                     parent, name) {
-    addOperands(pointer);
+    addOperand(pointer);
     addOperands(indices);
   }
 
@@ -936,7 +889,7 @@ public:
     auto global = new GlobalValue(this, type, name, dims, init);
     assert(global);
     this->children.emplace_back(global);
-    this->functions.emplace(name, global);
+    this->globals.emplace(name, global);
     return global;
   }
   Function *getFunction(const std::string &name) const {

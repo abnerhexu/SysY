@@ -34,6 +34,8 @@ public:
   explicit range(iterator b, iterator e) : b(b), e(e) {}
   iterator begin() { return b; }
   iterator end() { return e; }
+  iterator begin() const { return b; }
+  iterator end() const { return e; }
   auto size() const { return std::distance(b, e); }
   auto empty() const { return b == e; }
 };

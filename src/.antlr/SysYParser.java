@@ -126,6 +126,14 @@ public class SysYParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_module; }
+		@Override
+		public void enterRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).enterModule(this);
+		}
+		@Override
+		public void exitRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).exitModule(this);
+		}
 	}
 
 	public final ModuleContext module() throws RecognitionException {
@@ -195,6 +203,14 @@ public class SysYParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_decl; }
+		@Override
+		public void enterRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).enterDecl(this);
+		}
+		@Override
+		public void exitRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).exitDecl(this);
+		}
 	}
 
 	public final DeclContext decl() throws RecognitionException {
@@ -257,6 +273,14 @@ public class SysYParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_btype; }
+		@Override
+		public void enterRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).enterBtype(this);
+		}
+		@Override
+		public void exitRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).exitBtype(this);
+		}
 	}
 
 	public final BtypeContext btype() throws RecognitionException {
@@ -302,6 +326,14 @@ public class SysYParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_varDef; }
+		@Override
+		public void enterRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).enterVarDef(this);
+		}
+		@Override
+		public void exitRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).exitVarDef(this);
+		}
 	}
 
 	public final VarDefContext varDef() throws RecognitionException {
@@ -364,6 +396,14 @@ public class SysYParser extends Parser {
 			return getToken(SysYParser.COMMA, i);
 		}
 		public ArrayInitValueContext(InitValueContext ctx) { copyFrom(ctx); }
+		@Override
+		public void enterRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).enterArrayInitValue(this);
+		}
+		@Override
+		public void exitRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).exitArrayInitValue(this);
+		}
 	}
 	@SuppressWarnings("CheckReturnValue")
 	public static class ScalarInitValueContext extends InitValueContext {
@@ -371,6 +411,14 @@ public class SysYParser extends Parser {
 			return getRuleContext(ExpContext.class,0);
 		}
 		public ScalarInitValueContext(InitValueContext ctx) { copyFrom(ctx); }
+		@Override
+		public void enterRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).enterScalarInitValue(this);
+		}
+		@Override
+		public void exitRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).exitScalarInitValue(this);
+		}
 	}
 
 	public final InitValueContext initValue() throws RecognitionException {
@@ -466,6 +514,14 @@ public class SysYParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_func; }
+		@Override
+		public void enterRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).enterFunc(this);
+		}
+		@Override
+		public void exitRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).exitFunc(this);
+		}
 	}
 
 	public final FuncContext func() throws RecognitionException {
@@ -517,6 +573,14 @@ public class SysYParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_funcType; }
+		@Override
+		public void enterRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).enterFuncType(this);
+		}
+		@Override
+		public void exitRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).exitFuncType(this);
+		}
 	}
 
 	public final FuncTypeContext funcType() throws RecognitionException {
@@ -565,6 +629,14 @@ public class SysYParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_funcFParams; }
+		@Override
+		public void enterRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).enterFuncFParams(this);
+		}
+		@Override
+		public void exitRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).exitFuncFParams(this);
+		}
 	}
 
 	public final FuncFParamsContext funcFParams() throws RecognitionException {
@@ -629,6 +701,14 @@ public class SysYParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_funcFParam; }
+		@Override
+		public void enterRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).enterFuncFParam(this);
+		}
+		@Override
+		public void exitRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).exitFuncFParam(this);
+		}
 	}
 
 	public final FuncFParamContext funcFParam() throws RecognitionException {
@@ -699,6 +779,14 @@ public class SysYParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_blockStmt; }
+		@Override
+		public void enterRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).enterBlockStmt(this);
+		}
+		@Override
+		public void exitRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).exitBlockStmt(this);
+		}
 	}
 
 	public final BlockStmtContext blockStmt() throws RecognitionException {
@@ -751,6 +839,14 @@ public class SysYParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_blockItem; }
+		@Override
+		public void enterRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).enterBlockItem(this);
+		}
+		@Override
+		public void exitRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).exitBlockItem(this);
+		}
 	}
 
 	public final BlockItemContext blockItem() throws RecognitionException {
@@ -838,6 +934,14 @@ public class SysYParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_stmt; }
+		@Override
+		public void enterRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).enterStmt(this);
+		}
+		@Override
+		public void exitRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).exitStmt(this);
+		}
 	}
 
 	public final StmtContext stmt() throws RecognitionException {
@@ -937,6 +1041,14 @@ public class SysYParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_assignStmt; }
+		@Override
+		public void enterRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).enterAssignStmt(this);
+		}
+		@Override
+		public void exitRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).exitAssignStmt(this);
+		}
 	}
 
 	public final AssignStmtContext assignStmt() throws RecognitionException {
@@ -976,6 +1088,14 @@ public class SysYParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_expStmt; }
+		@Override
+		public void enterRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).enterExpStmt(this);
+		}
+		@Override
+		public void exitRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).exitExpStmt(this);
+		}
 	}
 
 	public final ExpStmtContext expStmt() throws RecognitionException {
@@ -1020,6 +1140,14 @@ public class SysYParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_ifStmt; }
+		@Override
+		public void enterRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).enterIfStmt(this);
+		}
+		@Override
+		public void exitRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).exitIfStmt(this);
+		}
 	}
 
 	public final IfStmtContext ifStmt() throws RecognitionException {
@@ -1078,6 +1206,14 @@ public class SysYParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_whileStmt; }
+		@Override
+		public void enterRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).enterWhileStmt(this);
+		}
+		@Override
+		public void exitRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).exitWhileStmt(this);
+		}
 	}
 
 	public final WhileStmtContext whileStmt() throws RecognitionException {
@@ -1117,6 +1253,14 @@ public class SysYParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_breakStmt; }
+		@Override
+		public void enterRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).enterBreakStmt(this);
+		}
+		@Override
+		public void exitRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).exitBreakStmt(this);
+		}
 	}
 
 	public final BreakStmtContext breakStmt() throws RecognitionException {
@@ -1150,6 +1294,14 @@ public class SysYParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_continueStmt; }
+		@Override
+		public void enterRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).enterContinueStmt(this);
+		}
+		@Override
+		public void exitRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).exitContinueStmt(this);
+		}
 	}
 
 	public final ContinueStmtContext continueStmt() throws RecognitionException {
@@ -1186,6 +1338,14 @@ public class SysYParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_returnStmt; }
+		@Override
+		public void enterRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).enterReturnStmt(this);
+		}
+		@Override
+		public void exitRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).exitReturnStmt(this);
+		}
 	}
 
 	public final ReturnStmtContext returnStmt() throws RecognitionException {
@@ -1229,6 +1389,14 @@ public class SysYParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_emptyStmt; }
+		@Override
+		public void enterRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).enterEmptyStmt(this);
+		}
+		@Override
+		public void exitRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).exitEmptyStmt(this);
+		}
 	}
 
 	public final EmptyStmtContext emptyStmt() throws RecognitionException {
@@ -1277,6 +1445,14 @@ public class SysYParser extends Parser {
 		public TerminalNode LE() { return getToken(SysYParser.LE, 0); }
 		public TerminalNode GE() { return getToken(SysYParser.GE, 0); }
 		public RelationExpContext(ExpContext ctx) { copyFrom(ctx); }
+		@Override
+		public void enterRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).enterRelationExp(this);
+		}
+		@Override
+		public void exitRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).exitRelationExp(this);
+		}
 	}
 	@SuppressWarnings("CheckReturnValue")
 	public static class MultiplicativeExpContext extends ExpContext {
@@ -1290,6 +1466,14 @@ public class SysYParser extends Parser {
 		public TerminalNode DIV() { return getToken(SysYParser.DIV, 0); }
 		public TerminalNode MODULO() { return getToken(SysYParser.MODULO, 0); }
 		public MultiplicativeExpContext(ExpContext ctx) { copyFrom(ctx); }
+		@Override
+		public void enterRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).enterMultiplicativeExp(this);
+		}
+		@Override
+		public void exitRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).exitMultiplicativeExp(this);
+		}
 	}
 	@SuppressWarnings("CheckReturnValue")
 	public static class LValueExpContext extends ExpContext {
@@ -1297,6 +1481,14 @@ public class SysYParser extends Parser {
 			return getRuleContext(LValueContext.class,0);
 		}
 		public LValueExpContext(ExpContext ctx) { copyFrom(ctx); }
+		@Override
+		public void enterRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).enterLValueExp(this);
+		}
+		@Override
+		public void exitRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).exitLValueExp(this);
+		}
 	}
 	@SuppressWarnings("CheckReturnValue")
 	public static class NumberExpContext extends ExpContext {
@@ -1304,6 +1496,14 @@ public class SysYParser extends Parser {
 			return getRuleContext(NumberContext.class,0);
 		}
 		public NumberExpContext(ExpContext ctx) { copyFrom(ctx); }
+		@Override
+		public void enterRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).enterNumberExp(this);
+		}
+		@Override
+		public void exitRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).exitNumberExp(this);
+		}
 	}
 	@SuppressWarnings("CheckReturnValue")
 	public static class AndExpContext extends ExpContext {
@@ -1315,6 +1515,14 @@ public class SysYParser extends Parser {
 		}
 		public TerminalNode AND() { return getToken(SysYParser.AND, 0); }
 		public AndExpContext(ExpContext ctx) { copyFrom(ctx); }
+		@Override
+		public void enterRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).enterAndExp(this);
+		}
+		@Override
+		public void exitRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).exitAndExp(this);
+		}
 	}
 	@SuppressWarnings("CheckReturnValue")
 	public static class UnaryExpContext extends ExpContext {
@@ -1325,6 +1533,14 @@ public class SysYParser extends Parser {
 		public TerminalNode SUB() { return getToken(SysYParser.SUB, 0); }
 		public TerminalNode NOT() { return getToken(SysYParser.NOT, 0); }
 		public UnaryExpContext(ExpContext ctx) { copyFrom(ctx); }
+		@Override
+		public void enterRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).enterUnaryExp(this);
+		}
+		@Override
+		public void exitRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).exitUnaryExp(this);
+		}
 	}
 	@SuppressWarnings("CheckReturnValue")
 	public static class ParenExpContext extends ExpContext {
@@ -1334,6 +1550,14 @@ public class SysYParser extends Parser {
 		}
 		public TerminalNode RPAREN() { return getToken(SysYParser.RPAREN, 0); }
 		public ParenExpContext(ExpContext ctx) { copyFrom(ctx); }
+		@Override
+		public void enterRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).enterParenExp(this);
+		}
+		@Override
+		public void exitRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).exitParenExp(this);
+		}
 	}
 	@SuppressWarnings("CheckReturnValue")
 	public static class StringExpContext extends ExpContext {
@@ -1341,6 +1565,14 @@ public class SysYParser extends Parser {
 			return getRuleContext(StringContext.class,0);
 		}
 		public StringExpContext(ExpContext ctx) { copyFrom(ctx); }
+		@Override
+		public void enterRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).enterStringExp(this);
+		}
+		@Override
+		public void exitRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).exitStringExp(this);
+		}
 	}
 	@SuppressWarnings("CheckReturnValue")
 	public static class OrExpContext extends ExpContext {
@@ -1352,6 +1584,14 @@ public class SysYParser extends Parser {
 		}
 		public TerminalNode OR() { return getToken(SysYParser.OR, 0); }
 		public OrExpContext(ExpContext ctx) { copyFrom(ctx); }
+		@Override
+		public void enterRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).enterOrExp(this);
+		}
+		@Override
+		public void exitRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).exitOrExp(this);
+		}
 	}
 	@SuppressWarnings("CheckReturnValue")
 	public static class CallExpContext extends ExpContext {
@@ -1359,6 +1599,14 @@ public class SysYParser extends Parser {
 			return getRuleContext(CallContext.class,0);
 		}
 		public CallExpContext(ExpContext ctx) { copyFrom(ctx); }
+		@Override
+		public void enterRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).enterCallExp(this);
+		}
+		@Override
+		public void exitRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).exitCallExp(this);
+		}
 	}
 	@SuppressWarnings("CheckReturnValue")
 	public static class AdditiveExpContext extends ExpContext {
@@ -1371,6 +1619,14 @@ public class SysYParser extends Parser {
 		public TerminalNode ADD() { return getToken(SysYParser.ADD, 0); }
 		public TerminalNode SUB() { return getToken(SysYParser.SUB, 0); }
 		public AdditiveExpContext(ExpContext ctx) { copyFrom(ctx); }
+		@Override
+		public void enterRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).enterAdditiveExp(this);
+		}
+		@Override
+		public void exitRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).exitAdditiveExp(this);
+		}
 	}
 	@SuppressWarnings("CheckReturnValue")
 	public static class EqualExpContext extends ExpContext {
@@ -1383,6 +1639,14 @@ public class SysYParser extends Parser {
 		public TerminalNode EQ() { return getToken(SysYParser.EQ, 0); }
 		public TerminalNode NE() { return getToken(SysYParser.NE, 0); }
 		public EqualExpContext(ExpContext ctx) { copyFrom(ctx); }
+		@Override
+		public void enterRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).enterEqualExp(this);
+		}
+		@Override
+		public void exitRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).exitEqualExp(this);
+		}
 	}
 
 	public final ExpContext exp() throws RecognitionException {
@@ -1622,6 +1886,14 @@ public class SysYParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_call; }
+		@Override
+		public void enterRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).enterCall(this);
+		}
+		@Override
+		public void exitRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).exitCall(this);
+		}
 	}
 
 	public final CallContext call() throws RecognitionException {
@@ -1681,6 +1953,14 @@ public class SysYParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_lValue; }
+		@Override
+		public void enterRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).enterLValue(this);
+		}
+		@Override
+		public void exitRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).exitLValue(this);
+		}
 	}
 
 	public final LValueContext lValue() throws RecognitionException {
@@ -1733,6 +2013,14 @@ public class SysYParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_number; }
+		@Override
+		public void enterRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).enterNumber(this);
+		}
+		@Override
+		public void exitRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).exitNumber(this);
+		}
 	}
 
 	public final NumberContext number() throws RecognitionException {
@@ -1772,6 +2060,14 @@ public class SysYParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_string; }
+		@Override
+		public void enterRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).enterString(this);
+		}
+		@Override
+		public void exitRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).exitString(this);
+		}
 	}
 
 	public final StringContext string() throws RecognitionException {
@@ -1811,6 +2107,14 @@ public class SysYParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_funcRParams; }
+		@Override
+		public void enterRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).enterFuncRParams(this);
+		}
+		@Override
+		public void exitRule(ParseTreeListener listener) {
+			if ( listener instanceof SysYListener ) ((SysYListener)listener).exitFuncRParams(this);
+		}
 	}
 
 	public final FuncRParamsContext funcRParams() throws RecognitionException {
