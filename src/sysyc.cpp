@@ -6,6 +6,7 @@
 #include "SysYParser.h"
 #include "SysYFormatter.h"
 #include "SysYIRGenerator.h"
+#include "debug.h"
 
 int main(int argc, char **argv) {
   if (argc != 2) {

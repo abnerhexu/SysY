@@ -27,6 +27,14 @@ public:
   void setPosition(BasicBlock::iterator position) { this->position = position; }
 
 public:
+  CallInst *createCallInst(Function *callee,
+                           const std::vector<Value *> &args = {},
+                           const std::string &name = "") {
+    auto inst = new CallInst(callee, args, block, name);
+    assert(inst);
+    block->getInstructions().emplace(position, inst);
+    return inst;
+  }
   UnaryInst *createUnaryInst(Instruction::Kind kind, Type *type, Value *operand,
                              const std::string &name = "") {
 

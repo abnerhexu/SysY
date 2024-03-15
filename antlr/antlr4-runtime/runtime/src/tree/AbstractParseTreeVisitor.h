@@ -43,7 +43,6 @@ namespace tree {
         std::any childResult = node->children[i]->accept(this);
         result = aggregateResult(std::move(result), std::move(childResult));
       }
-
       return result;
     }
 

@@ -15,6 +15,10 @@ set(CMAKE_CXX_STANDARD 17 CACHE STRING "C++ standard to conform to")
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# for debug use
+# set(CMAKE_CXX_FLAGS "-Og")
+set(CMAKE_BUILD_TYPE "Debug")
+
 if(NOT CMAKE_BUILD_TYPE)
   message(STATUS "Build type not set, falling back to Debug mode.")
   set(CMAKE_BUILD_TYPE "Release" CACHE STRING

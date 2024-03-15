@@ -1,4 +1,5 @@
 #include <string>
+#include <iostream>
 
 namespace debug {
 
@@ -28,4 +29,9 @@ inline std::string colorize(const std::string& str, Color color) {
 }
 
 bool gdebug = true;
+
+void debug_info(const int line, std::string filename){
+  std::cout << "at line " << line << " in file " << filename  << "debug info" << std::endl;
+}
+
 } // namespace debug
