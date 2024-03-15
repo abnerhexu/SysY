@@ -1,0 +1,12 @@
+int main() {
+  const int a = 1;
+  const int b = 2;
+  int c;
+  
+  if ( a == b)
+    c = a + b;
+  else
+    c = a * b;
+  
+  return c;
+}
