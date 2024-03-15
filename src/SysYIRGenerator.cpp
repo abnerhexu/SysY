@@ -117,10 +117,6 @@ std::any SysYIRGenerator::visitNumberExp(SysYParser::NumberExpContext *ctx) {
   return result;
 }
 
-std::any SysYIRGenerator::visitBlockItem(SysYParser::BlockItemContext *ctx) {
-  return ctx->decl() ? visitDecl(ctx->decl()) : visitStmt(ctx->stmt());
-}
-
 std::any SysYIRGenerator::visitLValueExp(SysYParser::LValueExpContext *ctx) {
   auto name = ctx->lValue()->ID()->getText();
   Value *value = symbols.lookup(name);
