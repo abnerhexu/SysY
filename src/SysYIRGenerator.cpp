@@ -55,24 +55,32 @@ std::any SysYIRGenerator::visitLocalDecl(SysYParser::DeclContext *ctx) {
 }
 
 std::any SysYIRGenerator::visitFunc(SysYParser::FuncContext *ctx) {
+  // obtain function name and type signature
   auto name = ctx->ID()->getText();
-  auto params = ctx->funcFParams()->funcFParam();
   std::vector<Type *> paramTypes;
   std::vector<std::string> paramNames;
-  for (auto param : params) {
-    paramTypes.push_back(std::any_cast<Type *>(visitBtype(param->btype())));
-    paramNames.push_back(param->ID()->getText());
+  if (ctx->funcFParams()) {
+    auto params = ctx->funcFParams()->funcFParam();
+    for (auto param : params) {
+      paramTypes.push_back(std::any_cast<Type *>(visitBtype(param->btype())));
+      paramNames.push_back(param->ID()->getText());
+    }
   }
   Type *returnType = std::any_cast<Type *>(visitFuncType(ctx->funcType()));
   auto funcType = Type::getFunctionType(returnType, paramTypes);
   auto function = module->createFunction(name, funcType);
+  symbols.insert(name, function);
+  SymbolTable::FunctionScope scope(symbols);
   auto entry = function->getEntryBlock();
-  for (auto i = 0; i < paramTypes.size(); ++i)
-    entry->createArgument(paramTypes[i], paramNames[i]);
+  for (auto i = 0; i < paramTypes.size(); ++i) {
+    auto arg = entry->createArgument(paramTypes[i], paramNames[i]);
+    symbols.insert(paramNames[i], arg);
+  }
   builder.setPosition(entry, entry->end());
   visitBlockStmt(ctx->blockStmt());
   return function;
 }
+
 std::any SysYIRGenerator::visitBtype(SysYParser::BtypeContext *ctx) {
   return ctx->INT() ? Type::getIntType() : Type::getFloatType();
 }
