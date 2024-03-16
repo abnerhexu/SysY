@@ -46,8 +46,14 @@ std::any SysYIRGenerator::visitLocalDecl(SysYParser::DeclContext *ctx) {
     auto alloca = builder.createAllocaInst(type, {}, name);
     symbols.insert(name, alloca);
     if (varDef->ASSIGN()) {
-      auto value = std::any_cast<Value *>(visitArrayInitValue(dynamic_cast<SysYParser::ArrayInitValueContext *>(varDef->initValue())));
+      auto p = dynamic_cast<SysYParser::ScalarInitValueContext *>(varDef->initValue());
+      if (p->exp()) {
+        visitChildren(p->exp());
+      }
+      auto value = std::any_cast<Value *>(visitScalarInitValue(p));
+      // value->setKind(Value::Kind::kConstant); //TODO possible bug
       auto store = builder.createStoreInst(value, alloca);
+      // std::cout << "any casted value kind: " << value->getKind() << std::endl;
     }
     values.push_back(alloca);
   }
@@ -92,8 +98,12 @@ std::any SysYIRGenerator::visitFuncType(SysYParser::FuncTypeContext *ctx) {
 }
 
 std::any SysYIRGenerator::visitBlockStmt(SysYParser::BlockStmtContext *ctx) {
-  for (auto item : ctx->blockItem())
+  for (auto item : ctx->blockItem()) {
+    // if (1) {
+    //   std::cout << (item->decl()? "decl": "no decl") << (item->stmt()? "stmt": "no stmt") << std::endl;
+    // }
     visitBlockItem(item);
+  }
   return builder.getBasicBlock();
 }
 
@@ -142,6 +152,19 @@ std::any SysYIRGenerator::visitAdditiveExp(SysYParser::AdditiveExpContext *ctx) 
   else
     result = type->isInt() ? builder.createSubInst(lhs, rhs)
                            : builder.createFSubInst(lhs, rhs);
+  return result;
+}
+
+std::any SysYIRGenerator::visitUnaryExp(SysYParser::UnaryExpContext *ctx) {
+  auto v = std::any_cast<Value *>(ctx->exp()->accept(this));
+  auto type = v->getType();
+  Value* result = nullptr;
+  if (ctx->SUB()) {
+    result = type->isInt() ? builder.createNegInst(v) : builder.createFNegInst(v);
+  }
+  else if (ctx->NOT()) {
+    result = builder.createNotInst(v);
+  }
   return result;
 }
 

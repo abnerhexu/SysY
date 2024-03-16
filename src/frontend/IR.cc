@@ -90,31 +90,23 @@ int Type::getSize() const {
 }
 
 void Type::print(std::ostream &os) const {
-  auto kind = getKind();
-  switch (kind) {
-  case kInt:
-    os << "int";
-    break;
-  case kFloat:
-    os << "float";
-    break;
-  case kVoid:
-    os << "void";
-    break;
-  case kPointer:
+  auto kind = this->getKind();
+  std::vector<std::string> typs = {"int", "float", "void"};
+  if (kInt <= kind && kind <= kVoid) {
+    os << typs[kind];
+  }
+  else if (kind == kPointer) {
     static_cast<const PointerType *>(this)->getBaseType()->print(os);
     os << "*";
-    break;
-  case kFunction:
+  }
+  else if (kind == kFunction) {
     static_cast<const FunctionType *>(this)->getReturnType()->print(os);
     os << "(";
     interleave(os, static_cast<const FunctionType*>(this)->getParamTypes());
     os << ")";
-    break;
-  case kLabel:
-  default:
-    std::cerr << "Unexpected type!" << std::endl;
-    break;
+  }
+  else {
+    os << "Unsupported type!" << std::endl;
   }
 }
 
@@ -211,11 +203,6 @@ void Argument::print(std::ostream &os) const {
   printVarName(os, this) << ": " << this->getType(); //TODO
 }
 
-void User::setOperand(int index, Value *value) {
-  assert(index < getNumOperands());
-  operands[index].setValue(value);
-}
-
 // basic block construct function: see IR.h, line 360
 
 BasicBlock::BasicBlock(Function *parent, const std::string &name) : Value(kBasicBlock, Type::getLabelType(), name), parent(parent),
@@ -274,9 +261,10 @@ void UnaryInst::print(std::ostream &os) const {
     assert(false);
   }
   else {
-    os << ops[kind - kNeg];
+    os << ops[kind - kNeg] << " ";
   }
-  printOperand(os, getOperand()) << " : " << this->getType();
+  printOperand(os, getOperand()) << " : ";
+  this->getType()->print(os);
 }
 
 void BinaryInst::print(std::ostream &os) const {
@@ -287,10 +275,11 @@ void BinaryInst::print(std::ostream &os) const {
     assert(false);
   }
   else {
-    os << ops[kind - kAdd];
+    os << ops[kind - kAdd] << " ";
   }
   printOperand(os, this->getLhs()) << ", ";
-  printOperand(os, this->getRhs()) << " : " << this->getType();
+  printOperand(os, this->getRhs()) << " : ";
+  this->getType()->print(os);
 }
 
 void ReturnInst::print(std::ostream &os) const {
@@ -298,7 +287,8 @@ void ReturnInst::print(std::ostream &os) const {
   auto rvalue = this->getReturnValue();
   if (rvalue != nullptr) {
     os << " ";
-    printOperand(os, rvalue) << " : " << rvalue->getType();
+    printOperand(os, rvalue) << " : ";
+    rvalue->getType()->print(os);
   }
 }
 
@@ -370,6 +360,7 @@ void StoreInst::print(std::ostream &os) const {
   if (getNumIndices()) {
     std::cerr << "do not support arrays!" << std::endl;
   }
+  os << "store ";
   printOperand(os, getValue()) << ", ";
   printOperand(os, getPointer()) << " : " << *getValue()->getType();
 }
@@ -387,16 +378,25 @@ void Function::print(std::ostream &os) const {
   }
   os << ") {" << std::endl;
 
-  for (auto &bb: getBasicBlocks()) {
-    os << *bb << std::endl;
+  for (auto &bb: this->getBasicBlocks()) {
+    bb->print(os);
+    os << std::endl;
   }
+  os << "}";
 }
 
 void Module::print(std::ostream &os) const {
+  // std::cout << "module length" << this->children.size() << std::endl;
   for(auto &value: this->children) {
     os << *value << std::endl;
   }
 }
+
+void User::setOperand(int index, Value* value) {
+  assert(index < this->getNumOperands());
+  this->operands[index].setValue(value);
+}
+
 void User::replaceOperand(int index, Value *value) {
   assert(index < getNumOperands());
   auto &use = operands[index];

@@ -1,10 +1,10 @@
+#pragma once
 #include <cassert>
 #include <iostream>
 #include <map>
 #include <forward_list>
 #include <string>
 #include <vector>
-
 #include "IR.h"
 
 namespace sysy {
@@ -50,13 +50,27 @@ public:
   bool isBlockScope() const { return symbols.front().first == kBlock;}
 
 public:
-  Value *lookup(const std::string &name) const;
+  Value *lookup(const std::string &name) const {
+    for (auto &scope: this->symbols) {
+      auto it = scope.second.find(name);
+      if (it != scope.second.end()) {
+        return it->second;
+      }
+    }
+    return nullptr;
+  }
 
 public:
-  auto insert(const std::string &name, Value *value);
+  auto insert(const std::string &name, Value *value) {
+    assert(not symbols.empty());
+    return symbols.front().second.emplace(name, value);
+  }
 
 private:
-  void enter(Kind kind);
+  void enter(Kind kind) {
+    symbols.emplace_front();
+    symbols.front().first = kind;
+  }
   void leave() { symbols.pop_front(); }
 }; // class SymbolTable
 

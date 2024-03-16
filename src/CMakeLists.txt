@@ -12,9 +12,9 @@ target_include_directories(SysYParser PUBLIC ${ANTLR_RUNTIME}/runtime/src)
 target_link_libraries(SysYParser PUBLIC antlr4_shared)
 
 add_executable(sysyc
-  sysyc.cpp
-  IR.cpp
-  SysYIRGenerator.cpp
+  sysyc.cc
+  frontend/IR.cc
+  frontend/SysYIRGenerator.cc
 )
 target_include_directories(sysyc PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(sysyc PRIVATE SysYParser)

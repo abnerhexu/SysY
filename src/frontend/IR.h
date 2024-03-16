@@ -35,12 +35,12 @@ namespace sysy {
 class Type {
 public:
   enum Kind {
-    kInt,
-    kFloat,
-    kVoid,
-    kLabel,
-    kPointer,
-    kFunction,
+    kInt = 0,
+    kFloat = 1,
+    kVoid = 2,
+    kLabel = 3,
+    kPointer = 4,
+    kFunction = 5,
   };
   Kind kind;
 
@@ -193,55 +193,55 @@ dynamicCast(const Value *value) {
 class Value {
 public:
 enum Kind : uint64_t {
-    kInvalid = 0x0UL,
+    kInvalid = 0,
     // Binary
-    kAdd = 0,
-    kSub = 1,
-    kMul = 2,
-    kDiv = 3,
-    kRem = 4,
-    kICmpEQ = 5,
-    kICmpNE = 6,
-    kICmpLT = 7,
-    kICmpGT = 8,
-    kICmpLE = 9,
-    kICmpGE = 10,
-    kFAdd = 14,
-    kFSub = 15,
-    kFMul = 16,
-    kFDiv = 17,
-    kFRem = 18,
-    kFCmpEQ = 19,
-    kFCmpNE = 20,
-    kFCmpLT = 21,
-    kFCmpGT = 22,
-    kFCmpLE = 23,
-    kFCmpGE = 24,
+    kAdd = 1,
+    kSub = 2,
+    kMul = 3,
+    kDiv = 4,
+    kRem = 5,
+    kICmpEQ = 6,
+    kICmpNE = 7,
+    kICmpLT = 8,
+    kICmpGT = 9,
+    kICmpLE = 10,
+    kICmpGE = 11,
+    kFAdd = 12,
+    kFSub = 13,
+    kFMul = 14,
+    kFDiv = 15,
+    kFRem = 16,
+    kFCmpEQ = 17,
+    kFCmpNE = 18,
+    kFCmpLT = 19,
+    kFCmpGT = 20,
+    kFCmpLE = 21,
+    kFCmpGE = 22,
     // Unary
-    kNeg = 25,
-    kNot = 26,
-    kFNeg = 27,
-    kFtoI = 28,
-    kItoF = 29,
+    kNeg = 23,
+    kNot = 24,
+    kFNeg = 25,
+    kFtoI = 26,
+    kItoF = 27,
     // call
-    kCall = 30,
+    kCall = 28,
     // terminator
-    kCondBr = 31,
-    kBr = 32,
-    kReturn = 33,
+    kCondBr = 29,
+    kBr = 30,
+    kReturn = 31,
     // mem op
-    kAlloca = 34,
-    kLoad = 35,
-    kStore = 36,
+    kAlloca = 32,
+    kLoad = 33,
+    kStore = 34,
     kFirstInst = kAdd,
     kLastInst = kStore,
     // constant
     // kConstant = 37,
-    kArgument = 37,
-    kBasicBlock = 38,
-    kFunction = 39,
-    kConstant = 40,
-    kGlobal = 41,
+    kArgument = 35,
+    kBasicBlock = 36,
+    kFunction = 37,
+    kConstant = 38,
+    kGlobal = 39,
   };
   
 protected:
@@ -252,13 +252,14 @@ protected:
 
 protected:
   Value(Kind kind, Type *type, const std::string &name = "")
-      : type(type), name(name), uses() {}
+      : kind(kind), type(type), name(name), uses() {}
 
 public:
   virtual ~Value() = default;
 
 public:
   Kind getKind() const { return kind; }
+  void setKind(Kind k) {this->kind = k; }
   static bool classof(const Value *) { return true; }
 
 public:

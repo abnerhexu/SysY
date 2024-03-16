@@ -4,8 +4,7 @@
 #include <iostream>
 #include "SysYLexer.h"
 #include "SysYParser.h"
-#include "SysYFormatter.h"
-#include "SysYIRGenerator.h"
+#include "frontend/SysYIRGenerator.h"
 #include "debug.h"
 
 int main(int argc, char **argv) {
@@ -26,6 +25,9 @@ int main(int argc, char **argv) {
 
   sysy::SysYIRGenerator generator;
   generator.visitModule(module);
+
+  auto moduleIR = generator.get();
+  moduleIR->print(std::cout);
 
   return EXIT_SUCCESS;
 }

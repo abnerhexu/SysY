@@ -28,7 +28,7 @@ inline std::string colorize(const std::string& str, Color color) {
   }
 }
 
-bool gdebug = true;
+# define gdebug (1);
 
 void debug_info(const int line, std::string filename){
   std::cout << "at line " << line << " in file " << filename  << "debug info" << std::endl;
