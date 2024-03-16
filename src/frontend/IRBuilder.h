@@ -180,6 +180,16 @@ public:
     return createBinaryInst(Instruction::kFCmpGE, Type::getFloatType(), lhs,
                             rhs, name);
   }
+  BinaryInst *createOrInst(Value *lhs, Value *rhs,
+                               const std::string &name = "") {
+    return createBinaryInst(Instruction::kOr, Type::getIntType(), lhs,
+                            rhs, name);
+  }
+  BinaryInst *createFOrInst(Value *lhs, Value *rhs,
+                               const std::string &name = "") {
+    return createBinaryInst(Instruction::kFOr, Type::getFloatType(), lhs,
+                            rhs, name);
+  }
   ReturnInst *createReturnInst(Value *value = nullptr) {
     auto inst = new ReturnInst(value);
     assert(inst);

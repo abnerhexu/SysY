@@ -270,8 +270,8 @@ void UnaryInst::print(std::ostream &os) const {
 void BinaryInst::print(std::ostream &os) const {
   printVarName(os, this) << " = ";
   auto kind = this->getKind();
-  std::vector<std::string> ops = {"add", "sub", "mul", "div", "rem", "icmpeq", "icmpne", "icmplt", "icmpgt", "icmple", "icmpge", "fadd", "fsub", "fmul", "fdiv", "frem", "fcmpeq", "fcmpne", "fcmplt", "fcmpgt", "fcmple", "fcmpge"};
-  if (kind < kAdd or kind > kFCmpGE) {
+  std::vector<std::string> ops = {"add", "sub", "mul", "div", "rem", "icmpeq", "icmpne", "icmplt", "icmpgt", "icmple", "icmpge", "fadd", "fsub", "fmul", "fdiv", "frem", "fcmpeq", "fcmpne", "fcmplt", "fcmpgt", "fcmple", "fcmpge", "or", "and", "for", "fand"};
+  if (kind < kAdd or kind > kFAnd) {
     assert(false);
   }
   else {

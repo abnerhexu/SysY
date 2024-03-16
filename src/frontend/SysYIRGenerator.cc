@@ -189,7 +189,20 @@ std::any SysYIRGenerator::visitEqualExp(SysYParser::EqualExpContext *ctx) {
 }
 
 std::any SysYIRGenerator::visitOrExp(SysYParser::OrExpContext *ctx) {
-  return visitChildren(ctx);
+  auto lhs = std::any_cast<Value *>(ctx->exp(0)->accept(this));
+  auto rhs = std::any_cast<Value *>(ctx->exp(1)->accept(this));
+  auto lhsTy = lhs->getType();
+  auto rhsTy = rhs->getType();
+  auto type = getArithmeticResultType(lhsTy, rhsTy);
+  if (lhsTy != type)
+    lhs = builder.createIToFInst(lhs);
+  if (rhsTy != type)
+    rhs = builder.createIToFInst(rhs);
+  Value *result = nullptr;
+  if (ctx->OR())
+    result = type->isInt() ? builder.createOrInst(lhs, rhs)
+                           : builder.createFOrInst(lhs, rhs);
+  return result;
 }
 
 std::any SysYIRGenerator::visitUnaryExp(SysYParser::UnaryExpContext *ctx) {

@@ -217,34 +217,35 @@ enum Kind : uint64_t {
     kFCmpGT = 20,
     kFCmpLE = 21,
     kFCmpGE = 22,
+    kOr = 23,
+    kAnd = 24,
+    kFOr = 25,
+    kFAnd = 26,
     // Unary
-    kNeg = 23,
-    kNot = 24,
-    kFNeg = 25,
-    kFtoI = 26,
-    kItoF = 27,
+    kNeg = 27,
+    kNot = 28,
+    kFNeg = 29,
+    kFtoI = 30,
+    kItoF = 31,
     // call
-    kCall = 28,
+    kCall = 32,
     // terminator
-    kCondBr = 29,
-    kBr = 30,
-    kReturn = 31,
+    kCondBr = 33,
+    kBr = 34,
+    kReturn = 35,
     // mem op
-    kAlloca = 32,
-    kLoad = 33,
-    kStore = 34,
+    kAlloca = 36,
+    kLoad = 37,
+    kStore = 38,
     kFirstInst = kAdd,
     kLastInst = kStore,
     // constant
     // kConstant = 37,
-    kArgument = 35,
-    kBasicBlock = 36,
-    kFunction = 37,
-    kConstant = 38,
-    kGlobal = 39,
-    // logic operations
-    kLAnd = 40,
-    kLOr = 41
+    kArgument = 39,
+    kBasicBlock = 40,
+    kFunction = 41,
+    kConstant = 42,
+    kGlobal = 43,
   };
   
 protected:
