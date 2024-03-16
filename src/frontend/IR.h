@@ -242,6 +242,9 @@ enum Kind : uint64_t {
     kFunction = 37,
     kConstant = 38,
     kGlobal = 39,
+    // logic operations
+    kLAnd = 40,
+    kLOr = 41
   };
   
 protected:
