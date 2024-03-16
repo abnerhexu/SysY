@@ -271,7 +271,13 @@ std::any SysYIRGenerator::visitIfStmt(SysYParser::IfStmtContext *ctx) {
   auto* func = curBlock->getParent();
   auto* thenBlock = func->addBasicBlock("then");
   auto* elseBlock = func->addBasicBlock("else");
+  auto* exitBlock = func->addBasicBlock("exit");
   builder.createCondBrInst(cond, thenBlock, elseBlock, {}, {});
+  curBlock->getSuccessors().push_back(thenBlock);
+  thenBlock->getPredecessors().push_back(curBlock);
+  builder.setPosition(thenBlock, thenBlock->end());
+  visitStmt(ctx->stmt(0));
+  builder.createUncondBrInst(exitBlock, {});
 }
 
 } // namespace sysy
