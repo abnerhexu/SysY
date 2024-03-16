@@ -264,20 +264,21 @@ std::any SysYIRGenerator::visitCall(SysYParser::CallContext *ctx) {
 }
 
 std::any SysYIRGenerator::visitIfStmt(SysYParser::IfStmtContext *ctx) {
-  auto cond = std::any_cast<Value *>(ctx->exp()->accept(this));
-  assert(ctx->stmt(0));
-  assert(cond);
-  auto* curBlock = builder.getBasicBlock();
-  auto* func = curBlock->getParent();
-  auto* thenBlock = func->addBasicBlock("then");
-  auto* elseBlock = func->addBasicBlock("else");
-  auto* exitBlock = func->addBasicBlock("exit");
-  builder.createCondBrInst(cond, thenBlock, elseBlock, {}, {});
-  curBlock->getSuccessors().push_back(thenBlock);
-  thenBlock->getPredecessors().push_back(curBlock);
-  builder.setPosition(thenBlock, thenBlock->end());
-  visitStmt(ctx->stmt(0));
-  builder.createUncondBrInst(exitBlock, {});
+  // auto cond = std::any_cast<Value *>(ctx->exp()->accept(this));
+  // assert(ctx->stmt(0));
+  // assert(cond);
+  // auto* curBlock = builder.getBasicBlock();
+  // auto* func = curBlock->getParent();
+  // auto* thenBlock = func->addBasicBlock("then");
+  // auto* elseBlock = func->addBasicBlock("else");
+  // auto* exitBlock = func->addBasicBlock("exit");
+  // builder.createCondBrInst(cond, thenBlock, elseBlock, {}, {});
+  // curBlock->getSuccessors().push_back(thenBlock);
+  // thenBlock->getPredecessors().push_back(curBlock);
+  // builder.setPosition(thenBlock, thenBlock->end());
+  // visitStmt(ctx->stmt(0));
+  // builder.createUncondBrInst(exitBlock, {});
+  return visitChildren(ctx);
 }
 
 } // namespace sysy
