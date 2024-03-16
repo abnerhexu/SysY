@@ -182,7 +182,7 @@ std::any SysYIRGenerator::visitEqualExp(SysYParser::EqualExpContext *ctx) {
   if (ctx->EQ())
     result = type->isInt() ? builder.createICmpEQInst(lhs, rhs)
                            : builder.createFCmpEQInst(lhs, rhs);
-  else
+  else if (ctx->NE())
     result = type->isInt() ? builder.createICmpNEInst(lhs, rhs)
                            : builder.createFCmpNEInst(lhs, rhs);
   return result;
@@ -281,21 +281,38 @@ std::any SysYIRGenerator::visitCall(SysYParser::CallContext *ctx) {
 }
 
 std::any SysYIRGenerator::visitIfStmt(SysYParser::IfStmtContext *ctx) {
-  // auto cond = std::any_cast<Value *>(ctx->exp()->accept(this));
-  // assert(ctx->stmt(0));
-  // assert(cond);
-  // auto* curBlock = builder.getBasicBlock();
-  // auto* func = curBlock->getParent();
-  // auto* thenBlock = func->addBasicBlock("then");
-  // auto* elseBlock = func->addBasicBlock("else");
-  // auto* exitBlock = func->addBasicBlock("exit");
-  // builder.createCondBrInst(cond, thenBlock, elseBlock, {}, {});
-  // curBlock->getSuccessors().push_back(thenBlock);
-  // thenBlock->getPredecessors().push_back(curBlock);
-  // builder.setPosition(thenBlock, thenBlock->end());
-  // visitStmt(ctx->stmt(0));
-  // builder.createUncondBrInst(exitBlock, {});
-  return visitChildren(ctx);
+  auto cond = std::any_cast<Value *>(ctx->exp()->accept(this));
+  // std::cout << ctx->exp()->getText() << std::endl;
+  // std::cout << cond->getKind() << std::endl;
+  assert(ctx->stmt(0));
+  assert(cond);
+  auto* curBlock = builder.getBasicBlock();
+  auto* func = curBlock->getParent();
+  auto* thenBlock = func->addBasicBlock("then");
+  auto* elseBlock = func->addBasicBlock("else");
+  auto* exitBlock = func->addBasicBlock("exit");
+  builder.createCondBrInst(cond, thenBlock, elseBlock, {}, {});
+  curBlock->getSuccessors().push_back(thenBlock);
+  thenBlock->getPredecessors().push_back(curBlock);
+  builder.setPosition(thenBlock, thenBlock->end());
+  visitStmt(ctx->stmt(0));
+  builder.createUncondBrInst(exitBlock, {});
+  auto* thenExitBlock = builder.getBasicBlock();
+
+  curBlock->getSuccessors().push_back(elseBlock);
+  elseBlock->getPredecessors().push_back(curBlock);
+  builder.setPosition(elseBlock, elseBlock->end());
+  if (ctx->ELSE()) {
+    visitStmt(ctx->stmt(1));
+  }
+  builder.createUncondBrInst(exitBlock, {});
+  auto* elseExitBlock = builder.getBasicBlock();
+  thenExitBlock->getSuccessors().push_back(exitBlock);
+  exitBlock->getPredecessors().push_back(thenExitBlock);
+  elseExitBlock->getSuccessors().push_back(exitBlock);
+  exitBlock->getPredecessors().push_back(elseExitBlock);
+  builder.setPosition(exitBlock, exitBlock->end());
+  return builder.getBasicBlock();
 }
 
 } // namespace sysy

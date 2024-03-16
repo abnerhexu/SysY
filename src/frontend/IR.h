@@ -681,19 +681,20 @@ public:
 public:
   Value *getCondition() const {return getOperand(0); }
   BasicBlock *getThenBlock() const {
-    return dynamic_cast<BasicBlock *>(getOperand(0));
-  }
-  BasicBlock *getElseBlock() const {
     return dynamic_cast<BasicBlock *>(getOperand(1));
   }
+  BasicBlock *getElseBlock() const {
+    return dynamic_cast<BasicBlock *>(getOperand(2));
+  }
   auto getThenArguments() const {
-    auto begin = operands.begin() + 2;
-    auto end = begin + getThenBlock()->getNumArguments();
+    auto begin = std::next(operand_begin(), 3);
+    auto end = std::next(begin, getThenBlock()->getNumArguments());
     return make_range(begin, end);
   }
   auto getElseArguments() const {
-    auto begin = operands.begin() + 2 + getThenBlock()->getNumArguments();
-    auto end = operands.end();
+    auto begin =
+        std::next(operand_begin(), 3 + getThenBlock()->getNumArguments());
+    auto end = operand_end();
     return make_range(begin, end);
   }
 

@@ -26,7 +26,7 @@ static inline std::ostream &printVarName(std::ostream &os, const Value *var) {
   return os << (dynamicCast<GlobalValue>(var) ? '@' : '%') << var->getName();
 }
 static inline std::ostream &printBlockName(std::ostream &os, const BasicBlock *block) {
-  return os << '^' << block->getName();
+  return os << block->getName() << ":";
 }
 static inline std::ostream &printFunctionName(std::ostream &os, const Function *func) {
   return os << '@' << func->getName();
@@ -293,8 +293,7 @@ void ReturnInst::print(std::ostream &os) const {
 }
 
 void UncondBrInst::print(std::ostream &os) const {
-  os << "br ";
-  printBlockName(os, this->getBlock());
+  os << "br " << this->getBlock()->getName();
   auto args = this->getArguments();
   if (!args.empty()) {
     os << "(";
@@ -310,8 +309,7 @@ void UncondBrInst::print(std::ostream &os) const {
 
 void CondBrInst::print(std::ostream &os) const {
   os << "condbr ";
-  printOperand(os, this->getCondition()) << ", ";
-  printBlockName(os, this->getThenBlock());
+  printOperand(os, this->getCondition()) << ", " << this->getThenBlock()->getName() << ", ";
   // then block
   auto args = this->getThenArguments();
   if (not args.empty()) {
@@ -324,7 +322,7 @@ void CondBrInst::print(std::ostream &os) const {
     }
     os << ")";
   }
-  printBlockName(os, this->getElseBlock());
+  os << this->getElseBlock()->getName();
   // else block
   auto eargs = getElseArguments();
   if (not eargs.empty()) {
