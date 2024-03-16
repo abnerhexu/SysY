@@ -121,9 +121,7 @@ public:
     return visitChildren(ctx);
   }
 
-  virtual std::any visitOrExp(SysYParser::OrExpContext *ctx) override {
-    return visitChildren(ctx);
-  }
+  virtual std::any visitOrExp(SysYParser::OrExpContext *ctx) override;
 
   virtual std::any visitCallExp(SysYParser::CallExpContext *ctx) override {
     return visitChildren(ctx);
@@ -131,9 +129,7 @@ public:
 
   virtual std::any visitAdditiveExp(SysYParser::AdditiveExpContext *ctx) override;
 
-  virtual std::any visitEqualExp(SysYParser::EqualExpContext *ctx) override {
-    return visitChildren(ctx);
-  }
+  virtual std::any visitEqualExp(SysYParser::EqualExpContext *ctx) override;
 
   virtual std::any visitCall(SysYParser::CallContext *ctx) override;
 

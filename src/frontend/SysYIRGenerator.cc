@@ -155,6 +155,30 @@ std::any SysYIRGenerator::visitAdditiveExp(SysYParser::AdditiveExpContext *ctx) 
   return result;
 }
 
+std::any SysYIRGenerator::visitEqualExp(SysYParser::EqualExpContext *ctx) {
+  auto lhs = std::any_cast<Value *>(ctx->exp(0)->accept(this));
+  auto rhs = std::any_cast<Value *>(ctx->exp(1)->accept(this));
+  auto lhsTy = lhs->getType();
+  auto rhsTy = rhs->getType();
+  auto type = getArithmeticResultType(lhsTy, rhsTy);
+  if (lhsTy != type)
+    lhs = builder.createIToFInst(lhs);
+  if (rhsTy != type)
+    rhs = builder.createIToFInst(rhs);
+  Value *result = nullptr;
+  if (ctx->EQ())
+    result = type->isInt() ? builder.createICmpEQInst(lhs, rhs)
+                           : builder.createFCmpEQInst(lhs, rhs);
+  else
+    result = type->isInt() ? builder.createICmpNEInst(lhs, rhs)
+                           : builder.createFCmpNEInst(lhs, rhs);
+  return result;
+}
+
+std::any SysYIRGenerator::visitOrExp(SysYParser::OrExpContext *ctx) {
+  return visitChildren(ctx);
+}
+
 std::any SysYIRGenerator::visitUnaryExp(SysYParser::UnaryExpContext *ctx) {
   auto v = std::any_cast<Value *>(ctx->exp()->accept(this));
   auto type = v->getType();
