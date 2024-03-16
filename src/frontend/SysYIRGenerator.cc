@@ -22,6 +22,8 @@ std::any SysYIRGenerator::visitDecl(SysYParser::DeclContext *ctx) {
 }
 
 std::any SysYIRGenerator::visitGlobalDecl(SysYParser::DeclContext *ctx) {
+  std::cout << "Do not support!" << std::endl;
+  assert(false);
   std::vector<Value *> values;
   bool isConst = ctx->CONST();
   auto type = std::any_cast<Type *>(visitBtype(ctx->btype()));
@@ -30,10 +32,21 @@ std::any SysYIRGenerator::visitGlobalDecl(SysYParser::DeclContext *ctx) {
     std::vector<Value *> dims;
     for (auto exp : varDef->lValue()->exp())
       dims.push_back(std::any_cast<Value *>(exp->accept(this)));
-    auto init = varDef->ASSIGN()
-                    ? std::any_cast<Value *>(visitArrayInitValue(dynamic_cast<SysYParser::ArrayInitValueContext *>(varDef->initValue())))
-                    : nullptr;
-    values.push_back(module->createGlobalValue(name, type, dims, init));
+    if (varDef->ASSIGN()) {
+      auto p = dynamic_cast<SysYParser::ScalarInitValueContext *>(varDef->initValue());
+      if (p->exp()) {
+        visitChildren(p->exp());
+      }
+      auto init = std::any_cast<Value *>(visitScalarInitValue(p));
+      values.push_back(module->createGlobalValue(name, type->getPointerType(type), dims, init));
+    }
+    else {
+      values.push_back(module->createGlobalValue(name, type->getPointerType(type), dims, nullptr));
+    }
+    // auto init = varDef->ASSIGN()
+    //                 ? std::any_cast<Value *>(visitScalarInitValue(dynamic_cast<SysYParser::ScalarInitValueContext *>(varDef->initValue())))
+    //                 : nullptr;
+    // values.push_back(module->createGlobalValue(name, type, dims, init));
   }
   return values;
 }
@@ -218,8 +231,7 @@ std::any SysYIRGenerator::visitMultiplicativeExp(
 }
 
 std::any SysYIRGenerator::visitReturnStmt(SysYParser::ReturnStmtContext *ctx) {
-  auto value =
-      ctx->exp() ? std::any_cast<Value *>(ctx->exp()->accept(this)) : nullptr;
+  auto value = ctx->exp() ? std::any_cast<Value *>(ctx->exp()->accept(this)) : nullptr;
   Value *result = builder.createReturnInst(value);
   return result;
 }
@@ -236,6 +248,17 @@ std::any SysYIRGenerator::visitCall(SysYParser::CallContext *ctx) {
   }
   Value *call = builder.createCallInst(func, args);
   return call;
+}
+
+std::any SysYIRGenerator::visitIfStmt(SysYParser::IfStmtContext *ctx) {
+  auto cond = std::any_cast<Value *>(ctx->exp()->accept(this));
+  assert(ctx->stmt(0));
+  assert(cond);
+  auto* curBlock = builder.getBasicBlock();
+  auto* func = curBlock->getParent();
+  auto* thenBlock = func->addBasicBlock("then");
+  auto* elseBlock = func->addBasicBlock("else");
+  builder.createCondBrInst(cond, thenBlock, elseBlock, {}, {});
 }
 
 } // namespace sysy
