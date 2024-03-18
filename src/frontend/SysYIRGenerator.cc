@@ -43,10 +43,6 @@ std::any SysYIRGenerator::visitGlobalDecl(SysYParser::DeclContext *ctx) {
     else {
       values.push_back(module->createGlobalValue(name, type->getPointerType(type), dims, nullptr));
     }
-    // auto init = varDef->ASSIGN()
-    //                 ? std::any_cast<Value *>(visitScalarInitValue(dynamic_cast<SysYParser::ScalarInitValueContext *>(varDef->initValue())))
-    //                 : nullptr;
-    // values.push_back(module->createGlobalValue(name, type, dims, init));
   }
   return values;
 }
@@ -288,9 +284,9 @@ std::any SysYIRGenerator::visitIfStmt(SysYParser::IfStmtContext *ctx) {
   assert(cond);
   auto* curBlock = builder.getBasicBlock();
   auto* func = curBlock->getParent();
-  auto* thenBlock = func->addBasicBlock("then");
-  auto* elseBlock = func->addBasicBlock("else");
-  auto* exitBlock = func->addBasicBlock("exit");
+  auto* thenBlock = func->addBasicBlock(emitBlockName("then."));
+  auto* elseBlock = func->addBasicBlock(emitBlockName("else."));
+  auto* exitBlock = func->addBasicBlock(emitBlockName("exit."));
   builder.createCondBrInst(cond, thenBlock, elseBlock, {}, {});
   curBlock->getSuccessors().push_back(thenBlock);
   thenBlock->getPredecessors().push_back(curBlock);

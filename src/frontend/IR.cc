@@ -91,7 +91,7 @@ int Type::getSize() const {
 
 void Type::print(std::ostream &os) const {
   auto kind = this->getKind();
-  std::vector<std::string> typs = {"int", "float", "void"};
+  std::vector<std::string> typs = {"i32", "float", "void"};
   if (kInt <= kind && kind <= kVoid) {
     os << typs[kind];
   }

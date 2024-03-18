@@ -1,0 +1,17 @@
+int main(){
+  int a = 0;
+  int b = 1;
+  int c;
+  if (a == b) {
+    if (a > b) {
+      c = a + b;
+    }
+    else {
+      c = a - b;
+    }
+  }
+  else {
+    c = a * b;
+  }
+  return 0;
+}

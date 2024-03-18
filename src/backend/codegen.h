@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include "IR.h"
 
 namespace codegen {
 static const std::string space = "    ";
@@ -19,5 +20,143 @@ public:
   {"f23", "fs7"}, {"f24", "fs8"}, {"f25", "fs9"}, {"f26", "fs10"}, {"f27", "fs11"}, {"f28", "ft8"}, {"f29", "ft9"}, {"f30", "ft10"}, {"f31", "ft11"}};
 }; // class RegisterManager
 
+class InstOperand {
+public:
+  enum Kind {
+    IReg, Imm, Freg
+  };
+  Kind kind;
+  int imm;
+  int iregID;
+  int fregID;
+  InstOperand() {};
+  InstOperand(int x, Kind kind) {
+    this->kind = kind;
+    if (kind == IReg) {
+      this->iregID = x;
+    }
+    else if (kind == Freg) {
+      this->fregID = x;
+    }
+    else if (kind == Imm) {
+      this->imm = x;
+    }
+    else {
+      std::cerr << "Unknown operand kind" << std::endl;
+      exit(1);
+    }
+  }
+
+  int getImm() {
+    if (this->kind == Imm) {
+      return this->imm;
+    }
+    else {
+      std::cerr << "Not an immediate operand" << std::endl;
+      exit(1);
+    }
+  }
+
+  int getIregID() {
+    if (this->kind == IReg) {
+      return this->iregID;
+    }
+    else {
+      std::cerr << "Not an integer register operand" << std::endl;
+      exit(1);
+    }
+  }
+
+  int getFregID() {
+    if (this->kind == Freg) {
+      return this->fregID;
+    }
+    else {
+      std::cerr << "Not a floating point register operand" << std::endl;
+      exit(1);
+    }
+  }
+};
+
+class CodeGen {
+public:
+  enum Kind {
+    IReg, Imm, Freg
+  };
+  Kind kind;
+  std::string fname;
+private:
+  sysy::Module* module;
+  sysy::Function* curFunc;
+  sysy::BasicBlock* curBBlock;
+  RegisterManager rmanager;
+
+  // global values
+  bool loadGlobalValue = true;
+
+  // basic block
+  std::vector<sysy::BasicBlock*> bblocks;
+  int bblockId = 0;
+
+  // function params, return value and localValues
+  std::map<sysy::Argument*, int> paramsOffset;
+  std::map<sysy::Instruction*, int> localVarOffset;
+  int retValueOffset = 0;
+  // TODO 
+  // int OffsetAcc = 0;
+  // label manager
+  std::map<sysy::BasicBlock*, std::string> bblockLabels;
+  int bblabelId = 0;
+
+public:
+  CodeGen(sysy::Module* module, std::string fname): module(module), fname(fname) {};
+  std::string code_gen();
+  std::string module_gen(sysy::Module* module);
+  std::string function_gen(sysy::Function* func);
+  std::string basicBlock_gen(sysy::BasicBlock* bblock);
+  std::string instruction_gen(sysy::Instruction* inst);
+  std::string globalData_gen();
+  std::string prologueCode_gen(sysy::Function *func);
+  std::string epilogueCode_gen(sysy::Function *func);
+  std::string literalPoolsCode_gen(sysy::Function *func);
+  std::string functionHead_gen(sysy::Function *func);
+
+  void clearModuleLabels(sysy::Module *module) {
+    this->bblabelId = 0;
+  }
+
+  // instruction generator
+  std::pair<int, std::string> GenLoadInst(sysy::LoadInst* inst, int dstRegID);
+  std::string GenStoreInst(sysy::StoreInst* inst);
+  std::pair<int, std::string> GenAllocaInst(sysy::AllocaInst* inst, int dstRegID);
+  std::string GenRetuenInst(sysy::ReturnInst* inst);
+  std::pair<int, std::string> GenCallInst(sysy::CallInst* inst, int dstRegID);
+  std::pair<int, std::string> GenBinaryInst(sysy::BinaryInst* inst, int dstRegID);
+  std::pair<int, std::string> GenUnaryInst(sysy::UnaryInst* inst, int dstRegID);
+  std::string GenUncondBrInst(sysy::UncondBrInst* inst);
+  std::string GenCondBrInst(sysy::CondBrInst* inst);
+
+  std::string SaveReg2Stack(int regID, Kind kind, sysy::Instruction* inst);
+  void clearFuncInfo(sysy::Function *func) {
+    this->localVarOffset.clear();
+    this->paramsOffset.clear();
+    this->retValueOffset = 0;
+    this->bblockLabels.clear();
+    //TODO this->OffsetAcc = 0;
+  }
+
+  std::string getBasicBlocksLabel(sysy::BasicBlock* bb) {
+    auto t = this->bblockLabels.find(bb);
+    std::string label;
+    if (t == this->bblockLabels.end()) {
+      label = ".block_" + std::to_string(this->bblabelId++);
+      bblockLabels.emplace(bb, label);
+    }
+    else {
+      label = t->second;
+    }
+    return label;
+  }
+}; // class CodeGen
 
 }

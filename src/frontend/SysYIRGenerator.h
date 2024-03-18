@@ -152,6 +152,21 @@ private:
     assert(lhs->isIntOrFloat() and rhs->isIntOrFloat());
     return lhs == rhs ? lhs : Type::getFloatType();
   }
+
+private:
+  std::map<std::string, size_t> globalBlockSegs = {{"block", 0}};
+public:
+  std::string emitBlockName(const std::string &hint = "") {
+    if (hint.empty()) {
+      return "block" + std::to_string(globalBlockSegs["block"]++);
+    }
+    else {
+      if (globalBlockSegs.find(hint) == globalBlockSegs.end()) {
+        globalBlockSegs[hint] = 0;
+      }
+      return hint + std::to_string(globalBlockSegs[hint]++);
+    }
+  }
 }; // class SysYIRGenerator
 
 } // namespace sysy
