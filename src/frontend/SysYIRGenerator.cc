@@ -284,9 +284,10 @@ std::any SysYIRGenerator::visitIfStmt(SysYParser::IfStmtContext *ctx) {
   assert(cond);
   auto* curBlock = builder.getBasicBlock();
   auto* func = curBlock->getParent();
-  auto* thenBlock = func->addBasicBlock(emitBlockName("then."));
-  auto* elseBlock = func->addBasicBlock(emitBlockName("else."));
-  auto* exitBlock = func->addBasicBlock(emitBlockName("exit."));
+  auto allocatedAnyID = AllocateNamedBlockID("header");
+  auto* thenBlock = func->addBasicBlock(emitBlockName("then.", allocatedAnyID));
+  auto* elseBlock = func->addBasicBlock(emitBlockName("else.", allocatedAnyID));
+  auto* exitBlock = func->addBasicBlock(emitBlockName("exit.", allocatedAnyID));
   builder.createCondBrInst(cond, thenBlock, elseBlock, {}, {});
   curBlock->getSuccessors().push_back(thenBlock);
   thenBlock->getPredecessors().push_back(curBlock);
@@ -314,9 +315,10 @@ std::any SysYIRGenerator::visitIfStmt(SysYParser::IfStmtContext *ctx) {
 std::any SysYIRGenerator::visitWhileStmt(SysYParser::WhileStmtContext *ctx) {
   auto* curBlock = builder.getBasicBlock();
   auto* func = curBlock->getParent();
-  auto* headerBlock = func->addBasicBlock(emitBlockName("header."));
-  auto* thenBlock = func->addBasicBlock(emitBlockName("then."));
-  auto* exitBlock = func->addBasicBlock(emitBlockName("exit."));
+  auto allocatedAnyID = AllocateNamedBlockID("header");
+  auto* headerBlock = func->addBasicBlock(emitBlockName("header.", allocatedAnyID));
+  auto* thenBlock = func->addBasicBlock(emitBlockName("then.", allocatedAnyID));
+  auto* exitBlock = func->addBasicBlock(emitBlockName("exit.", allocatedAnyID));
   curBlock->getSuccessors().push_back(headerBlock);
   headerBlock->getPredecessors().push_back(curBlock);
   builder.setPosition(headerBlock, headerBlock->end());

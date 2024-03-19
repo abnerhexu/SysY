@@ -152,18 +152,26 @@ private:
   }
 
 private:
-  std::map<std::string, size_t> globalBlockSegs = {{"block", 0}};
+  std::map<std::string, size_t> globalBlockSegs = {{"block", 0}, {"br", 0}};
 public:
-  std::string emitBlockName(const std::string &hint = "") {
-    if (hint.empty()) {
-      return "block" + std::to_string(globalBlockSegs["block"]++);
+  std::string emitBlockName(const std::string &hint = "", const int allocatedBlockID = -1) {
+    if (hint == "") {
+      globalBlockSegs["block"]++;
+      return "block" + std::to_string(globalBlockSegs["block"]);
+    }
+    if (allocatedBlockID == -1) {
+      globalBlockSegs["br"]++;
+      return hint + std::to_string(globalBlockSegs["br"]);
     }
     else {
-      if (globalBlockSegs.find(hint) == globalBlockSegs.end()) {
-        globalBlockSegs[hint] = 0;
-      }
-      return hint + std::to_string(globalBlockSegs[hint]++);
+      return hint + std::to_string(allocatedBlockID);
     }
+  }
+  int AllocateNamedBlockID(const std::string hint = "") {
+    if (hint == "") {
+      return ++globalBlockSegs["block"];
+    }
+    else return ++globalBlockSegs["br"];
   }
 }; // class SysYIRGenerator
 
