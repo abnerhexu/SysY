@@ -77,9 +77,7 @@ public:
 
   virtual std::any visitIfStmt(SysYParser::IfStmtContext *ctx) override;
 
-  virtual std::any visitWhileStmt(SysYParser::WhileStmtContext *ctx) override {
-    return visitChildren(ctx);
-  }
+  virtual std::any visitWhileStmt(SysYParser::WhileStmtContext *ctx) override;
 
   virtual std::any visitBreakStmt(SysYParser::BreakStmtContext *ctx) override {
     return visitChildren(ctx);

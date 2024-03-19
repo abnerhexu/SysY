@@ -311,4 +311,24 @@ std::any SysYIRGenerator::visitIfStmt(SysYParser::IfStmtContext *ctx) {
   return builder.getBasicBlock();
 }
 
+std::any SysYIRGenerator::visitWhileStmt(SysYParser::WhileStmtContext *ctx) {
+  auto* curBlock = builder.getBasicBlock();
+  auto* func = curBlock->getParent();
+  auto* headerBlock = func->addBasicBlock(emitBlockName("header."));
+  auto* thenBlock = func->addBasicBlock(emitBlockName("then."));
+  auto* exitBlock = func->addBasicBlock(emitBlockName("exit."));
+  curBlock->getSuccessors().push_back(headerBlock);
+  headerBlock->getPredecessors().push_back(curBlock);
+  builder.setPosition(headerBlock, headerBlock->end());
+  auto cond = std::any_cast<Value *>(ctx->exp()->accept(this));
+  builder.createCondBrInst(cond, thenBlock, exitBlock, {}, {});
+  curBlock->getSuccessors().push_back(thenBlock);
+  thenBlock->getPredecessors().push_back(curBlock);
+  builder.setPosition(thenBlock, thenBlock->end());
+  visitStmt(ctx->stmt());
+  builder.createUncondBrInst(headerBlock, {});
+  builder.setPosition(exitBlock, exitBlock->end());
+  return builder.getBasicBlock();
+}
+
 } // namespace sysy
