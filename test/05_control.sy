@@ -1,8 +1,12 @@
 int func_while(int upper){
   int acc = 0;
-  while (upper > 0){
+  int stop = 1;
+  while (stop == 1){
     acc = acc + upper;
     upper = upper - 1;
+    if (upper == 0) {
+      stop = 0;
+    }
   }
   return acc;
 }

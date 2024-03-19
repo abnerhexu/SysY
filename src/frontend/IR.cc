@@ -219,7 +219,8 @@ void BasicBlock::print(std::ostream &os) {
   if (not args.empty()) {
     os << "(";
     for (auto arg = args.begin(); arg != args.end(); arg = std::next(arg)) {
-      printVarName(os, arg->get()) << ": " << arg->get()->getType();
+      printVarName(os, arg->get()) << ": ";
+      arg->get()->getType()->print(os);
       os << (std::next(arg) == args.end()? "": ", ");
     }
     os << ")";
@@ -369,7 +370,7 @@ void Function::print(std::ostream &os) const {
   os << *returnType << " ";
   printFunctionName(os, this) << "(";
   for (auto paramType = paramTypes.begin(); paramType != paramTypes.end(); paramType = std::next(paramType)) {
-    os << *paramType;
+    (*paramType)->print(os);
     if (std::next(paramType) != paramTypes.end()) {
       os << ", ";
     }
