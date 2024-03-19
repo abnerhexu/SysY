@@ -1,0 +1,25 @@
+int func_while(int upper){
+  int acc = 0;
+  while (upper > 0){
+    acc = acc + upper;
+    upper = upper - 1;
+  }
+  return acc;
+}
+
+int func_if(int x){
+  if (x > 0) {
+    return x;
+  }
+  else {
+    return 0;
+  }
+}
+int main(){
+  int a = 0;
+  int b = 1;
+  int upper = 1024;
+  int c = func_if(b);
+  int d = func_while(upper);
+  return 0;
+}
