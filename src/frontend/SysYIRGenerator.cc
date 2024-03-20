@@ -56,9 +56,9 @@ std::any SysYIRGenerator::visitLocalDecl(SysYParser::DeclContext *ctx) {
     symbols.insert(name, alloca);
     if (varDef->ASSIGN()) {
       auto p = dynamic_cast<SysYParser::ScalarInitValueContext *>(varDef->initValue());
-      if (p->exp()) {
-        visitChildren(p->exp());
-      }
+      // if (p->exp()) {
+      //   visitChildren(p->exp());
+      // }
       auto value = std::any_cast<Value *>(visitScalarInitValue(p));
       // value->setKind(Value::Kind::kConstant); //TODO possible bug
       auto store = builder.createStoreInst(value, alloca);
@@ -284,10 +284,10 @@ std::any SysYIRGenerator::visitIfStmt(SysYParser::IfStmtContext *ctx) {
   assert(cond);
   auto* curBlock = builder.getBasicBlock();
   auto* func = curBlock->getParent();
-  auto allocatedAnyID = AllocateNamedBlockID("header");
-  auto* thenBlock = func->addBasicBlock(emitBlockName("then.", allocatedAnyID));
-  auto* elseBlock = func->addBasicBlock(emitBlockName("else.", allocatedAnyID));
-  auto* exitBlock = func->addBasicBlock(emitBlockName("exit.", allocatedAnyID));
+  auto allocatedAnyID = AllocateNamedBlockID("if.header.");
+  auto* thenBlock = func->addBasicBlock(emitBlockName("if.then.", allocatedAnyID));
+  auto* elseBlock = func->addBasicBlock(emitBlockName("if.else.", allocatedAnyID));
+  auto* exitBlock = func->addBasicBlock(emitBlockName("if.exit.", allocatedAnyID));
   builder.createCondBrInst(cond, thenBlock, elseBlock, {}, {});
   curBlock->getSuccessors().push_back(thenBlock);
   thenBlock->getPredecessors().push_back(curBlock);
@@ -315,10 +315,10 @@ std::any SysYIRGenerator::visitIfStmt(SysYParser::IfStmtContext *ctx) {
 std::any SysYIRGenerator::visitWhileStmt(SysYParser::WhileStmtContext *ctx) {
   auto* curBlock = builder.getBasicBlock();
   auto* func = curBlock->getParent();
-  auto allocatedAnyID = AllocateNamedBlockID("header");
-  auto* headerBlock = func->addBasicBlock(emitBlockName("header.", allocatedAnyID));
-  auto* thenBlock = func->addBasicBlock(emitBlockName("then.", allocatedAnyID));
-  auto* exitBlock = func->addBasicBlock(emitBlockName("exit.", allocatedAnyID));
+  auto allocatedAnyID = AllocateNamedBlockID("while.cond.");
+  auto* headerBlock = func->addBasicBlock(emitBlockName("while.cond.", allocatedAnyID));
+  auto* thenBlock = func->addBasicBlock(emitBlockName("while.body.", allocatedAnyID));
+  auto* exitBlock = func->addBasicBlock(emitBlockName("while.end.", allocatedAnyID));
   curBlock->getSuccessors().push_back(headerBlock);
   headerBlock->getPredecessors().push_back(curBlock);
   builder.setPosition(headerBlock, headerBlock->end());
