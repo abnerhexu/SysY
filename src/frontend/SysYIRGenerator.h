@@ -93,9 +93,7 @@ public:
     return visitChildren(ctx);
   }
 
-  virtual std::any visitRelationExp(SysYParser::RelationExpContext *ctx) override {
-    return visitChildren(ctx);
-  }
+  virtual std::any visitRelationExp(SysYParser::RelationExpContext *ctx) override;
 
   virtual std::any visitMultiplicativeExp(SysYParser::MultiplicativeExpContext *ctx) override;
 

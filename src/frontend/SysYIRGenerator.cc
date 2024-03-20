@@ -164,6 +164,32 @@ std::any SysYIRGenerator::visitAdditiveExp(SysYParser::AdditiveExpContext *ctx) 
   return result;
 }
 
+std::any SysYIRGenerator::visitRelationExp(SysYParser::RelationExpContext *ctx) {
+  auto lhs = std::any_cast<Value *>(ctx->exp(0)->accept(this));
+  auto rhs = std::any_cast<Value *>(ctx->exp(1)->accept(this));
+  auto lhsTy = lhs->getType();
+  auto rhsTy = rhs->getType();
+  auto type = getArithmeticResultType(lhsTy, rhsTy);
+  if (lhsTy != type)
+    lhs = builder.createIToFInst(lhs);
+  if (rhsTy != type)
+    rhs = builder.createIToFInst(rhs);
+  Value *result = nullptr;
+  if (ctx->LT())
+    result = type->isInt() ? builder.createICmpLTInst(lhs, rhs)
+                           : builder.createFCmpLTInst(lhs, rhs);
+  else if (ctx->GT())
+    result = type->isInt() ? builder.createICmpGTInst(lhs, rhs)
+                           : builder.createFCmpGTInst(lhs, rhs);
+  else if (ctx->LE())
+    result = type->isInt() ? builder.createICmpLEInst(lhs, rhs)
+                           : builder.createFCmpLEInst(lhs, rhs);
+  else if (ctx->GE())
+    result = type->isInt() ? builder.createICmpGEInst(lhs, rhs)
+                           : builder.createFCmpGEInst(lhs, rhs);
+  return result;
+}
+
 std::any SysYIRGenerator::visitEqualExp(SysYParser::EqualExpContext *ctx) {
   auto lhs = std::any_cast<Value *>(ctx->exp(0)->accept(this));
   auto rhs = std::any_cast<Value *>(ctx->exp(1)->accept(this));
