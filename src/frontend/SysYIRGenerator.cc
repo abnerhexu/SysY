@@ -292,7 +292,31 @@ std::any SysYIRGenerator::visitContinueStmt(SysYParser::ContinueStmtContext *ctx
     dest = dest->getPredecessors()[0];
     name = dest->getName();
   }
-  std::cout << name << std::endl;
+  // std::cout << name << std::endl;
+  Value* result = builder.createUncondBrInst(dest, {});
+  return result;
+}
+
+std::any SysYIRGenerator::visitBreakStmt(SysYParser::BreakStmtContext *ctx) {
+  auto* curBlock = builder.getBasicBlock();
+  auto* dest = curBlock;
+  std::string name = dest->getName();
+  while (name.compare(0, 10, "while.cond") != 0){
+    dest = dest->getPredecessors()[0];
+    name = dest->getName();
+  }
+  //std::cout << name << std::endl;
+  auto* dest_body = dest->getSuccessors()[0];
+  //std::cout << dest_body->getNumSuccessors() << std::endl;
+  name = dest->getName();
+  for (int i = 0; i < dest_body->getNumSuccessors(); i++){
+    dest = dest_body->getSuccessors()[i];
+    name = dest->getName();
+    //std::cout << name << ' ' << dest->getNumSuccessors() << std::endl;
+    if (name.compare(0, 9, "while.end") == 0)
+      break;
+  }
+  //std::cout << name << std::endl;
   Value* result = builder.createUncondBrInst(dest, {});
   return result;
 }
@@ -367,6 +391,8 @@ std::any SysYIRGenerator::visitWhileStmt(SysYParser::WhileStmtContext *ctx) {
   builder.createCondBrInst(cond, thenBlock, exitBlock, {}, {});
   headerBlock->getSuccessors().push_back(thenBlock);
   thenBlock->getPredecessors().push_back(headerBlock);
+  thenBlock->getSuccessors().push_back(exitBlock);
+  exitBlock->getPredecessors().push_back(thenBlock);
   builder.setPosition(thenBlock, thenBlock->end());
   visitStmt(ctx->stmt());
   builder.createUncondBrInst(headerBlock, {});
