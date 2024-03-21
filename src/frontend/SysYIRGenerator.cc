@@ -3,6 +3,7 @@
 #include <memory>
 #include <vector>
 #include <any>
+#include <string>
 #include "SysYIRGenerator.h"
 
 namespace sysy {
@@ -282,6 +283,20 @@ std::any SysYIRGenerator::visitMultiplicativeExp(
   return result;
 }
 
+std::any SysYIRGenerator::visitContinueStmt(SysYParser::ContinueStmtContext *ctx) {
+  //std::any_cast<Value *>(ctx->parent->accept(this));
+  auto* curBlock = builder.getBasicBlock();
+  auto* dest = curBlock;
+  std::string name = dest->getName();
+  while (name.compare(0, 10, "while.cond") != 0){
+    dest = dest->getPredecessors()[0];
+    name = dest->getName();
+  }
+  std::cout << name << std::endl;
+  Value* result = builder.createUncondBrInst(dest, {});
+  return result;
+}
+
 std::any SysYIRGenerator::visitReturnStmt(SysYParser::ReturnStmtContext *ctx) {
   auto value = ctx->exp() ? std::any_cast<Value *>(ctx->exp()->accept(this)) : nullptr;
   Value *result = builder.createReturnInst(value);
@@ -350,8 +365,8 @@ std::any SysYIRGenerator::visitWhileStmt(SysYParser::WhileStmtContext *ctx) {
   builder.setPosition(headerBlock, headerBlock->end());
   auto cond = std::any_cast<Value *>(ctx->exp()->accept(this));
   builder.createCondBrInst(cond, thenBlock, exitBlock, {}, {});
-  curBlock->getSuccessors().push_back(thenBlock);
-  thenBlock->getPredecessors().push_back(curBlock);
+  headerBlock->getSuccessors().push_back(thenBlock);
+  thenBlock->getPredecessors().push_back(headerBlock);
   builder.setPosition(thenBlock, thenBlock->end());
   visitStmt(ctx->stmt());
   builder.createUncondBrInst(headerBlock, {});

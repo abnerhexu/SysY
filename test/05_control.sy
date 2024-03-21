@@ -6,6 +6,7 @@ int func_while(int upper){
     upper = upper - 1;
     if (upper == 0) {
       stop = 0;
+      continue;
     }
   }
   return acc;

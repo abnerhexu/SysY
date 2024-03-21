@@ -83,9 +83,7 @@ public:
     return visitChildren(ctx);
   }
 
-  virtual std::any visitContinueStmt(SysYParser::ContinueStmtContext *ctx) override {
-    return visitChildren(ctx); 
-  }
+  virtual std::any visitContinueStmt(SysYParser::ContinueStmtContext *ctx) override;
 
   virtual std::any visitReturnStmt(SysYParser::ReturnStmtContext *ctx) override;
 
