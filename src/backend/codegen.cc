@@ -1,12 +1,18 @@
-#include <iostream>
 #include "codegen.h"
 
 namespace codegen {
+
+RegisterManager regManager;
 
 std::string CodeGen::code_gen() {
   std::string assemblyCode;
   assemblyCode += this->module_gen(module);
   return assemblyCode;
+}
+
+std::string CodeGen::globalData_gen(){
+  std::string data;
+  return data;
 }
 
 std::string CodeGen::module_gen(sysy::Module *module) {
@@ -17,9 +23,9 @@ std::string CodeGen::module_gen(sysy::Module *module) {
   std::string assemblyCode;
 
   clearModuleLabels(module);
-
   descriptionCode += space + ".file" + this->fname + endl;
   descriptionCode += space + ".attribute risc-v rv64gc little-endian" + endl;
+  descriptionCode += space + ".palign 4" + endl;
   descriptionCode += space + ".text" + endl;
   descriptionCode += space + ".globl main" + endl;
   dataCode += globalData_gen(); 
@@ -87,12 +93,41 @@ std::string CodeGen::basicBlock_gen(sysy::BasicBlock *bb) {
   return assemblyCode;
 }
 
-std::pair<int, std::string> CodeGen::GenBinaryInst(sysy::BinaryInst *inst) {
+std::string CodeGen::GenBinaryInst(sysy::BinaryInst *inst) {
   std::string instruction;
-
+  auto lhs = inst->getLhs();
+  auto rhs = inst->getRhs();
+  auto op = inst->getKind();
+  std::string optype;
+  switch (op) {
+  case sysy::Value::Kind::kAdd:
+    optype = "add";
+    break;
+  case sysy::Value::Kind::kSub:
+    optype = "sub";
+    break;
+  case sysy::Value::Kind::kMul:
+    optype = "mul";
+    break;
+  case sysy::Value::Kind::kDiv:
+    optype = "div";
+    break;
+  default:
+    std::cerr << "Error: unsupported binary op" << std::endl;
+    exit(1);
+  }
+  if (lhs->getType()->isInt()) {
+    auto destRegID = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::saved);
+    instruction = optype + " " + regManager.intRegs[destRegID].second + ", " + regManager.intRegs[regManager.varIRegMap.find(lhs->getName())->second.second].second + ", " + regManager.intRegs[regManager.varIRegMap.find(rhs->getName())->second.second].second + endl;
+  }
+  else {
+    std::cerr << "Error: unsupported binary op" << std::endl;
+    exit(1);
+  }
+  return instruction;
 }
 
-std::pair<int, std::string> CodeGen::GenAllocaInst(sysy::AllocaInst *inst) {
+std::string CodeGen::GenAllocaInst(sysy::AllocaInst *inst) {
   std::string instruction;
   int destRegID = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::sp);
   for (auto &var: regManager.varIRegMap){
@@ -102,7 +137,7 @@ std::pair<int, std::string> CodeGen::GenAllocaInst(sysy::AllocaInst *inst) {
   }
   regManager.varIRegMap.insert({inst->getName(), {RegisterManager::VarPos::OnStack, 0}});
   instruction = "addi sp, sp, " + std::to_string(inst->getType()->getSize()) + endl;
-  return {destRegID, instruction};
+  return instruction;
 }
 
 std::string CodeGen::GenStoreInst(sysy::StoreInst *inst) {
@@ -134,6 +169,8 @@ std::string CodeGen::GenStoreInst(sysy::StoreInst *inst) {
         if (srcReg->second.first == RegisterManager::VarPos::InReg) {
           if (destPos->second.first == RegisterManager::VarPos::OnStack){
             instruction += "sw " + regManager.intRegs[srcReg->second.second].second + ", " + std::to_string(destPos->second.second) + "(sp)" + endl;
+            regManager.releaseReg(RegisterManager::RegType::IntReg, srcReg->second.second);
+            regManager.varIRegMap[src->getName()] = {RegisterManager::VarPos::OnStack, destPos->second.second};
           }
           else {
             std::cerr << "do not suppport non on-stack reg-mem store at this moment" << std::endl;
@@ -159,20 +196,69 @@ std::string CodeGen::GenStoreInst(sysy::StoreInst *inst) {
   return instruction;
 }
 
+std::string CodeGen::GenLoadInst(sysy::LoadInst *inst) {
+  std::string instruction;
+  auto src = inst->getPointer();
+  auto rtype = src->getType()->getKind();
+  auto srcOffset = 0;
+  if (rtype == sysy::Type::kInt) {
+    auto destRegID = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::temp);
+    auto srcPos = regManager.varIRegMap.find(src->getName());
+    if (srcPos != regManager.varIRegMap.end()) {
+      if (srcPos->second.first == RegisterManager::VarPos::OnStack) {
+        instruction = "lw " + regManager.intRegs[destRegID].second + ", " + std::to_string(srcPos->second.second) + "(" + "sp" + ")" + endl;
+      }
+      else {
+        std::cerr << "do not support global vars yet" << std::endl;
+        exit(1);
+      }
+      regManager.varIRegMap[inst->getName()] = {RegisterManager::VarPos::InReg, destRegID};
+    }
+    else {
+      std::cerr << "Error: cannot find src reg" << std::endl;
+      exit(1);
+    }
+  }
+  else if (rtype == sysy::Type::kFloat){
+    // float reg
+    auto destRegID = regManager.requestReg(RegisterManager::RegType::FloatReg, RegisterManager::RegHint::temp);
+    auto srcPos = regManager.varFRegMap.find(src->getName());
+    if (srcPos != regManager.varFRegMap.end()) {
+      if (srcPos->second.first == RegisterManager::VarPos::OnStack) {
+        instruction = "flw " + regManager.floatRegs[destRegID].second + ", " + std::to_string(srcPos->second.second) + "(" + "sp" + ")" + endl;
+      }
+      else {
+        std::cerr << "do not support global vars yet" << std::endl;
+        exit(1);
+      }
+    }
+    else {
+      std::cerr << "Error: cannot find src reg" << std::endl;
+      exit(1);
+    }
+  }
+  else {
+    std::cerr << "Error: unsupported type" << std::endl;
+    exit(1);
+  }
+  return instruction;
+}
+
+
 std::string CodeGen::instruction_gen(sysy::Instruction *inst) {
   std::string instruction;
   std::string instName = inst->getName();
   auto instType = inst->getKind();
-  std::pair<int, std::string> instInfo;
   switch (instType) {
     case sysy::Instruction::kAdd:
     case sysy::Instruction::kSub:
     case sysy::Instruction::kMul:
     case sysy::Instruction::kDiv: {
       sysy::BinaryInst *bInst = dynamic_cast<sysy::BinaryInst *>(inst);
-      instInfo = GenBinaryInst(bInst);
+      instruction = GenBinaryInst(bInst);
     }
   }
+  return instruction;
 }
 
 int RegisterManager::requestReg(RegType rtype, RegHint hint) {
@@ -187,8 +273,29 @@ int RegisterManager::requestReg(RegType rtype, RegHint hint) {
       return 3;
     case tp:
       return 4;
-    case t0:
-    
+    case temp:
+      for (auto i: this->ItempRegList) {
+        if (this->intRegTaken[i] == false) {
+          this->intRegTaken[i] = true;
+          return i;
+        }
+      }
+      std::cerr << "Error: no free temp reg" << std::endl;
+      exit(1);
+    case saved:
+      for (auto i: this->IsavedRegList) {
+        if (this->intRegTaken[i] == false) {
+          this->intRegTaken[i] = true;
+          return i;
+        }
+      }
+      std::cerr << "Error: no free saved reg" << std::endl;
+      exit(1);
+    default:
+      std::cerr << "Error: invalid reg hint" << std::endl;
+      exit(1);
   }
 }
+
+
 }

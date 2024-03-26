@@ -6,6 +6,7 @@
 #include "SysYParser.h"
 #include "frontend/SysYIRGenerator.h"
 #include "debug.h"
+#include "backend/codegen.h"
 
 int main(int argc, char **argv) {
   if (argc != 2) {
@@ -29,5 +30,9 @@ int main(int argc, char **argv) {
   auto moduleIR = generator.get();
   moduleIR->print(std::cout);
 
+  codegen::CodeGen codeGenerator(moduleIR);
+  std::string assemblyCode = codeGenerator.code_gen();
+  std::cout << "------------------ assemblyCode ------------------" << std::endl;
+  std::cout << assemblyCode << std::endl;
   return EXIT_SUCCESS;
 }

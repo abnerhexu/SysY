@@ -1,7 +1,8 @@
-#pragma once
+#ifndef __codegen__
+#define __codegen__
 #include <iostream>
 #include <vector>
-#include "IR.h"
+#include "../frontend/IR.h"
 
 namespace codegen {
 static const std::string space = "    ";
@@ -10,7 +11,6 @@ static const std::string endl = "\n";
 static std::string RTypeInst(std::string name, std::string rd, std::string rs1, std::string rs2) {
   return space + name + " " + rd + ", " + rs1 + ", " + rs2;
 }
-
 
 class RegisterManager {
   friend class CodeGen;
@@ -28,6 +28,8 @@ public:
   std::map<std::string, std::pair<VarPos, int>> varIRegMap;
   std::map<std::string, std::pair<VarPos, int>> varFRegMap;
 
+  std::vector<int> ItempRegList = {6, 7, 28, 29, 30, 31};
+  std::vector<int> IsavedRegList = {9, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27};
 private:
   std::vector<bool> intRegTaken;
   std::vector<bool> floatRegTaken;
@@ -52,7 +54,15 @@ public:
 
 public:
   int requestReg(RegType rtype, RegHint hint = dontCare);
-  bool releaseReg(RegType rtype, int regID);
+  bool releaseReg(RegType rtype, int regID) {
+    if (rtype == IntReg) {
+      this->intRegTaken[regID] = false;
+    }
+    else if (rtype == FloatReg) {
+      this->floatRegTaken[regID] = false;
+    }
+    return true;
+  }
 
   void resetRegs(RegType rtype){
     switch (rtype) {
@@ -77,7 +87,7 @@ public:
   }
 }; // class RegisterManager
 
-RegisterManager regManager;
+extern RegisterManager regManager;
 
 class InstOperand {
 public:
@@ -170,7 +180,7 @@ private:
   int bblabelId = 0;
 
 public:
-  CodeGen(sysy::Module* module, std::string fname): module(module), fname(fname) {};
+  CodeGen(sysy::Module* module, const std::string fname = ""): module(module), fname(fname) {};
   std::string code_gen();
   std::string module_gen(sysy::Module* module);
   std::string function_gen(sysy::Function* func);
@@ -187,12 +197,12 @@ public:
   }
 
   // instruction generator
-  std::pair<int, std::string> GenLoadInst(sysy::LoadInst* inst, int dstRegID);
+  std::string GenLoadInst(sysy::LoadInst* inst);
   std::string GenStoreInst(sysy::StoreInst* inst);
-  std::pair<int, std::string> GenAllocaInst(sysy::AllocaInst* inst);
+  std::string GenAllocaInst(sysy::AllocaInst* inst);
   std::string GenRetuenInst(sysy::ReturnInst* inst);
   std::pair<int, std::string> GenCallInst(sysy::CallInst* inst, int dstRegID);
-  std::pair<int, std::string> GenBinaryInst(sysy::BinaryInst* inst);
+  std::string GenBinaryInst(sysy::BinaryInst* inst);
   std::pair<int, std::string> GenUnaryInst(sysy::UnaryInst* inst, int dstRegID);
   std::string GenUncondBrInst(sysy::UncondBrInst* inst);
   std::string GenCondBrInst(sysy::CondBrInst* inst);
@@ -221,3 +231,5 @@ public:
 }; // class CodeGen
 
 }
+
+#endif
