@@ -5,7 +5,7 @@
 #include "../frontend/IR.h"
 
 namespace codegen {
-static const std::string space = "    ";
+static const std::string space = "  ";
 static const std::string endl = "\n";
 
 static std::string RTypeInst(std::string name, std::string rd, std::string rs1, std::string rs2) {

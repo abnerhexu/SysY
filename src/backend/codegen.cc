@@ -68,7 +68,7 @@ std::string CodeGen::function_gen(sysy::Function *func) {
   auto bbs = func->getBasicBlocks();
   for (auto it = bbs.begin(); it != bbs.end(); it++){
     auto bb = it->get();
-    bbCode = basicBlock_gen(bb);
+    bbCode += basicBlock_gen(bb);
   }
   std::string assemblyCode;
   std::string headerCode = functionHeader_gen(func);
@@ -87,7 +87,7 @@ std::string CodeGen::basicBlock_gen(sysy::BasicBlock *bb) {
   std::string assemblyCode;
   assemblyCode += bbLabel + ":" + endl;
   for (auto &inst: bb->getInstructions()) {
-    auto instType = inst->getKind();
+    // auto instType = inst->getKind();
     assemblyCode += instruction_gen(inst.get());
   }
   return assemblyCode;
@@ -119,6 +119,7 @@ std::string CodeGen::GenBinaryInst(sysy::BinaryInst *inst) {
   if (lhs->getType()->isInt()) {
     auto destRegID = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::saved);
     instruction = optype + " " + regManager.intRegs[destRegID].second + ", " + regManager.intRegs[regManager.varIRegMap.find(lhs->getName())->second.second].second + ", " + regManager.intRegs[regManager.varIRegMap.find(rhs->getName())->second.second].second + endl;
+    regManager.varIRegMap[inst->getName()] = {RegisterManager::VarPos::InReg, destRegID};
   }
   else {
     std::cerr << "Error: unsupported binary op" << std::endl;
@@ -183,6 +184,13 @@ std::string CodeGen::GenStoreInst(sysy::StoreInst *inst) {
         }
       }
       else {
+        std::cerr << "src name: " << src->getName() << std::endl;
+        for (auto it: regManager.varIRegMap) {
+          std::cerr << it.first << " " << it.second.first << " " << it.second.second << std::endl;
+        }
+        std::cerr << "Inst: " << std::endl;
+        inst->print(std::cerr);
+        std::cerr << std::endl;
         std::cerr << "Error: cannot find src reg" << std::endl;
         exit(1);
       }
@@ -199,9 +207,9 @@ std::string CodeGen::GenStoreInst(sysy::StoreInst *inst) {
 std::string CodeGen::GenLoadInst(sysy::LoadInst *inst) {
   std::string instruction;
   auto src = inst->getPointer();
-  auto rtype = src->getType()->getKind();
+  auto rtype = inst->getType();
   auto srcOffset = 0;
-  if (rtype == sysy::Type::kInt) {
+  if (rtype->isInt()) {
     auto destRegID = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::temp);
     auto srcPos = regManager.varIRegMap.find(src->getName());
     if (srcPos != regManager.varIRegMap.end()) {
@@ -215,11 +223,14 @@ std::string CodeGen::GenLoadInst(sysy::LoadInst *inst) {
       regManager.varIRegMap[inst->getName()] = {RegisterManager::VarPos::InReg, destRegID};
     }
     else {
+      std::cerr << "Inst: ";
+      inst->print(std::cerr);
+      std::cerr << std::endl;
       std::cerr << "Error: cannot find src reg" << std::endl;
       exit(1);
     }
   }
-  else if (rtype == sysy::Type::kFloat){
+  else if (rtype->isFloat()){
     // float reg
     auto destRegID = regManager.requestReg(RegisterManager::RegType::FloatReg, RegisterManager::RegHint::temp);
     auto srcPos = regManager.varFRegMap.find(src->getName());
@@ -238,6 +249,7 @@ std::string CodeGen::GenLoadInst(sysy::LoadInst *inst) {
     }
   }
   else {
+    std::cerr << rtype->isInt() << rtype->isFloat() << std::endl;
     std::cerr << "Error: unsupported type" << std::endl;
     exit(1);
   }
@@ -250,13 +262,25 @@ std::string CodeGen::instruction_gen(sysy::Instruction *inst) {
   std::string instName = inst->getName();
   auto instType = inst->getKind();
   switch (instType) {
-    case sysy::Instruction::kAdd:
-    case sysy::Instruction::kSub:
-    case sysy::Instruction::kMul:
-    case sysy::Instruction::kDiv: {
-      sysy::BinaryInst *bInst = dynamic_cast<sysy::BinaryInst *>(inst);
-      instruction = GenBinaryInst(bInst);
-    }
+    case sysy::Value::Kind::kAdd:
+    case sysy::Value::Kind::kSub:
+    case sysy::Value::Kind::kMul:
+    case sysy::Value::Kind::kDiv: 
+      instruction = GenBinaryInst(dynamic_cast<sysy::BinaryInst *>(inst));
+      break;
+    case sysy::Value::Kind::kAlloca:
+      instruction = GenAllocaInst(dynamic_cast<sysy::AllocaInst *>(inst));
+      break;
+    case sysy::Value::Kind::kStore:
+      instruction = GenStoreInst(dynamic_cast<sysy::StoreInst *>(inst));
+      break;  
+    case sysy::Value::Kind::kLoad:
+      instruction = GenLoadInst(dynamic_cast<sysy::LoadInst *>(inst));
+      break;
+    default:
+      // std::cerr << "Error: unsupported instruction" << std::endl;
+      // exit(1);
+      break;
   }
   return instruction;
 }
@@ -280,8 +304,9 @@ int RegisterManager::requestReg(RegType rtype, RegHint hint) {
           return i;
         }
       }
-      std::cerr << "Error: no free temp reg" << std::endl;
-      exit(1);
+      // std::cerr << "Error: no free temp reg" << std::endl;
+      // exit(1);
+      return 0;
     case saved:
       for (auto i: this->IsavedRegList) {
         if (this->intRegTaken[i] == false) {
@@ -289,8 +314,9 @@ int RegisterManager::requestReg(RegType rtype, RegHint hint) {
           return i;
         }
       }
-      std::cerr << "Error: no free saved reg" << std::endl;
-      exit(1);
+      // std::cerr << "Error: no free saved reg" << std::endl;
+      // exit(1);
+      return 0;
     default:
       std::cerr << "Error: invalid reg hint" << std::endl;
       exit(1);
