@@ -103,6 +103,6 @@ void LLIRGen::GenLoadInst(sysy::LoadInst *inst) {
   //TODO
   //std::cout << inst->getName() << std::endl;
   regManager.varIRegMap.insert({inst->getName(), {RegisterManager::VarPos::InReg, this->curReg}});
-
+  this->curReg++;
 }
 } // namespace codegen
