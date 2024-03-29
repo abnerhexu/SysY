@@ -16,6 +16,7 @@ add_executable(sysyc
   frontend/IR.cc
   frontend/SysYIRGenerator.cc
   backend/codegen.cc
+  backend/llir.cc
 )
 target_include_directories(sysyc PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(sysyc PRIVATE SysYParser)

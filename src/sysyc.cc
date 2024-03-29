@@ -7,6 +7,7 @@
 #include "frontend/SysYIRGenerator.h"
 #include "debug.h"
 #include "backend/codegen.h"
+#include "backend/llir.h"
 
 int main(int argc, char **argv) {
   if (argc != 2) {
@@ -29,6 +30,9 @@ int main(int argc, char **argv) {
 
   auto moduleIR = generator.get();
   moduleIR->print(std::cout);
+
+  codegen::LLIRGen llirgenerator(moduleIR);
+  llirgenerator.llir_gen();
 
   codegen::CodeGen codeGenerator(moduleIR);
   std::string assemblyCode = codeGenerator.code_gen();
