@@ -1,6 +1,10 @@
 #include "codegen.h"
+
 namespace codegen {
   class LLIRGen {
+
+friend class CodeGen;
+
 public:
   sysy::Module* module;
   int bblabelId = 0;
@@ -15,7 +19,7 @@ public:
   void clearModuleLabels(sysy::Module *module) {
     this->bblabelId = 0;
   }
-  int function_gen_Pass1(sysy::Function *func);
+  void function_gen_Pass1(sysy::Function *func);
   void function_gen_Pass2(sysy::Function *func);
   void clearFuncInfo(sysy::Function *func) {
     //TODO this->OffsetAcc = 0;

@@ -30,6 +30,8 @@ public:
 
   std::vector<int> ItempRegList = {6, 7, 28, 29, 30, 31};
   std::vector<int> IsavedRegList = {9, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27};
+
+  std::map<sysy::Function*, int> spOffset;
 private:
   std::vector<bool> intRegTaken;
   std::vector<bool> floatRegTaken;
