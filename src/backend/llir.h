@@ -8,9 +8,11 @@ friend class CodeGen;
 public:
   sysy::Module* module;
   int bblabelId = 0;
-  int curReg;
+  int curReg = 32;
   sysy::Function* curFunc;
   sysy::BasicBlock* curBBlock;
+  std::map<int, int> LastVisit;
+  int inst_index = 0;
 
 public:
   LLIRGen(sysy::Module* module): module(module) {};

@@ -4,7 +4,6 @@ namespace codegen {
 
 void LLIRGen::llir_gen() {
     this->module_gen(this->module);
-    this->curReg = 32;
     return;
 }
 
@@ -51,6 +50,9 @@ void LLIRGen::function_gen_Pass2(sysy::Function* func) {
     auto bb = it->get();
     alloca_offset = basicBlock_gen(bb, alloca_offset);
   }
+  // for (auto &t : this->LastVisit){
+  //   std::cout << t.first << ' ' << t.second << std::endl;
+  // }
 }
 
 int LLIRGen::basicBlock_gen(sysy::BasicBlock* bb, int alloca_offset) {
@@ -79,11 +81,30 @@ int LLIRGen::basicBlock_gen(sysy::BasicBlock* bb, int alloca_offset) {
 
 void LLIRGen::instruction_gen(sysy::Instruction* inst, int alloca_offset) {
   auto instType = inst->getKind();
+  this->inst_index += 1;
   switch (instType) {
     case sysy::Value::Kind::kAdd:
     case sysy::Value::Kind::kSub:
     case sysy::Value::Kind::kMul:
-    case sysy::Value::Kind::kDiv: 
+    case sysy::Value::Kind::kDiv:
+    case sysy::Value::Kind::kRem:
+    case sysy::Value::Kind::kICmpEQ:
+    case sysy::Value::Kind::kICmpNE:
+    case sysy::Value::Kind::kICmpLT:
+    case sysy::Value::Kind::kICmpGT:
+    case sysy::Value::Kind::kICmpLE:
+    case sysy::Value::Kind::kICmpGE:
+    case sysy::Value::Kind::kFAdd:
+    case sysy::Value::Kind::kFSub:
+    case sysy::Value::Kind::kFMul:
+    case sysy::Value::Kind::kFDiv:
+    case sysy::Value::Kind::kFRem:
+    case sysy::Value::Kind::kFCmpEQ:
+    case sysy::Value::Kind::kFCmpNE:
+    case sysy::Value::Kind::kFCmpLT:
+    case sysy::Value::Kind::kFCmpGT:
+    case sysy::Value::Kind::kFCmpLE:
+    case sysy::Value::Kind::kFCmpGE:
       this->GenBinaryInst(dynamic_cast<sysy::BinaryInst *>(inst));
       break;
     case sysy::Value::Kind::kAlloca:
@@ -100,11 +121,21 @@ void LLIRGen::instruction_gen(sysy::Instruction* inst, int alloca_offset) {
       // exit(1);
       break;
   }
+  if (inst->getNumOperands() != 0){
+    for (int i = 0; i < inst->getNumOperands(); i++){
+      if (regManager.varIRegMap.find(inst->getOperand(i)->getName()) == regManager.varIRegMap.end() ||
+          regManager.varIRegMap[inst->getOperand(i)->getName()].first != RegisterManager::VarPos::InReg)
+        continue;
+      int llir_reg = regManager.varIRegMap[inst->getOperand(i)->getName()].second;
+      this->LastVisit[llir_reg] = this->inst_index;
+    }
+  }
 }
 
 void LLIRGen::GenBinaryInst(sysy::BinaryInst *inst) {
   //TODO
   regManager.varIRegMap.insert({inst->getName(), {RegisterManager::VarPos::InReg, this->curReg}});
+  this->LastVisit.insert({this->curReg, this->inst_index});
   this->curReg++;
 }
 void LLIRGen::GenAllocaInst(sysy::AllocaInst *inst, int alloca_offset) {
@@ -118,6 +149,7 @@ void LLIRGen::GenLoadInst(sysy::LoadInst *inst) {
   //TODO
   //std::cout << inst->getName() << std::endl;
   regManager.varIRegMap.insert({inst->getName(), {RegisterManager::VarPos::InReg, this->curReg}});
+  this->LastVisit.insert({this->curReg, this->inst_index});
   this->curReg++;
 }
 } // namespace codegen
