@@ -721,7 +721,7 @@ public:
 public:
   int getNumDims() const { return getNumOperands(); }
   auto getDims() const { return getOperands(); }
-  Value *getDim(int index) { return getOperand(index); }
+  Value *getDim(int index) const { return getOperand(index); }
 
 public:
   void print(std::ostream &os) const;
