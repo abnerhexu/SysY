@@ -1,0 +1,8 @@
+int main() {
+  int a[5][3];
+  int bc = 3;
+  
+  a[3][2] = bc;
+  
+  return 0;
+}

@@ -53,17 +53,32 @@ std::any SysYIRGenerator::visitLocalDecl(SysYParser::DeclContext *ctx) {
   auto type = Type::getPointerType(std::any_cast<Type *>(visitBtype(ctx->btype())));
   for (auto varDef : ctx->varDef()) {
     auto name = varDef->lValue()->ID()->getText();
-    auto alloca = builder.createAllocaInst(type, {}, name);
+    // for (int i = 0; varDef->lValue()->exp(i) != 0; i++){
+    //   // std::cout << varDef->lValue()->exp(i) << ' ';
+    //   values.push_back(dynamic_cast<Value *>(varDef->lValue()->exp(i)));
+    // }
+    std::vector<Value *> dims;
+    for (auto exp : varDef->lValue()->exp())
+      dims.push_back(std::any_cast<Value *>(exp->accept(this)));
+    auto alloca = builder.createAllocaInst(type, dims, name);
     symbols.insert(name, alloca);
-    if (varDef->ASSIGN()) {
-      auto p = dynamic_cast<SysYParser::ScalarInitValueContext *>(varDef->initValue());
-      // if (p->exp()) {
-      //   visitChildren(p->exp());
-      // }
-      auto value = std::any_cast<Value *>(visitScalarInitValue(p));
-      // value->setKind(Value::Kind::kConstant); //TODO possible bug
-      auto store = builder.createStoreInst(value, alloca);
-      // std::cout << "any casted value kind: " << value->getKind() << std::endl;
+    if (varDef->lValue()->exp(0) == 0){
+      if (varDef->ASSIGN()) {
+        auto p = dynamic_cast<SysYParser::ScalarInitValueContext *>(varDef->initValue());
+        // if (p->exp()) {
+        //   visitChildren(p->exp());
+        // }
+        auto value = std::any_cast<Value *>(visitScalarInitValue(p));
+        // value->setKind(Value::Kind::kConstant); //TODO possible bug
+        auto store = builder.createStoreInst(value, alloca);
+        // std::cout << "any casted value kind: " << value->getKind() << std::endl;
+      }
+    }else{
+      if (varDef->ASSIGN()) {
+        auto p = dynamic_cast<SysYParser::ArrayInitValueContext *>(varDef->initValue());
+        auto value = std::any_cast<Value *>(visitArrayInitValue(p));
+        auto store = builder.createStoreInst(value, alloca);
+      }
     }
     values.push_back(alloca);
   }
@@ -116,6 +131,15 @@ std::any SysYIRGenerator::visitBlockStmt(SysYParser::BlockStmtContext *ctx) {
   }
   return builder.getBasicBlock();
 }
+
+std::any SysYIRGenerator::visitScalarInitValue(SysYParser::ScalarInitValueContext *ctx) {
+  return visitChildren(ctx);
+}
+
+std::any SysYIRGenerator::visitArrayInitValue(SysYParser::ArrayInitValueContext *ctx) {
+  return visitChildren(ctx);
+}
+
 
 std::any SysYIRGenerator::visitAssignStmt(SysYParser::AssignStmtContext *ctx) {
   auto rhs = std::any_cast<Value *>(ctx->exp()->accept(this));

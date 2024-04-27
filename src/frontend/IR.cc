@@ -340,7 +340,13 @@ void CondBrInst::print(std::ostream &os) const {
 
 void AllocaInst::print(std::ostream &os) const {
   if (getNumDims()) {
-    std::cerr << "do not support arrays!" << std::endl;
+    //std::cerr << "do not support arrays!" << std::endl;
+    unsigned int len = 1;
+    for (int i = 0; i < getNumDims(); i++){
+      //std::cout << getDim(i)->getName() << ' ';
+      getDim(i);
+    }
+    std::cout << std::endl;
   }
   printVarName(os, this) << " = ";
   os << "alloca " << *static_cast<const PointerType *>(getType())->getBaseType() << " : " << *getType();
@@ -357,7 +363,8 @@ void LoadInst::print(std::ostream &os) const {
 
 void StoreInst::print(std::ostream &os) const {
   if (getNumIndices()) {
-    std::cerr << "do not support arrays!" << std::endl;
+    // std::cerr << "do not support arrays!" << std::endl;
+
   }
   os << "store ";
   printOperand(os, getValue()) << ", ";

@@ -39,14 +39,10 @@ public:
   //   return visitChildren(ctx);
   // }
 
-  virtual std::any visitScalarInitValue(SysYParser::ScalarInitValueContext *ctx) override {
-    return visitChildren(ctx);
-  }
+  virtual std::any visitScalarInitValue(SysYParser::ScalarInitValueContext *ctx) override;
 
-  virtual std::any visitArrayInitValue(SysYParser::ArrayInitValueContext *ctx) override {
-    return visitChildren(ctx);
-  }
-
+  virtual std::any visitArrayInitValue(SysYParser::ArrayInitValueContext *ctx) override;
+  
   virtual std::any visitFunc(SysYParser::FuncContext *ctx) override;
 
   virtual std::any visitFuncType(SysYParser::FuncTypeContext *ctx) override;
