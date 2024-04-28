@@ -170,8 +170,11 @@ std::any SysYIRGenerator::visitNumberExp(SysYParser::NumberExpContext *ctx) {
 std::any SysYIRGenerator::visitLValueExp(SysYParser::LValueExpContext *ctx) {
   auto name = ctx->lValue()->ID()->getText();
   Value *value = symbols.lookup(name);
+  std::vector <Value *> indices;
+  for (auto exp : ctx->lValue()->exp())
+      indices.push_back(std::any_cast<Value *>(exp->accept(this)));
   if (isa<GlobalValue>(value) or isa<AllocaInst>(value))
-    value = builder.createLoadInst(value);
+    value = builder.createLoadInst(value, indices);
   return value;
 }
 

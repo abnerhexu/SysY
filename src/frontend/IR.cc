@@ -360,12 +360,21 @@ void AllocaInst::print(std::ostream &os) const {
 }
 
 void LoadInst::print(std::ostream &os) const {
-  if (getNumIndices()) {
-    std::cerr << "do not support arrays!" << std::endl;
-  }
   printVarName(os, this) << " = ";
   os << "load ";
-  printOperand(os, getPointer()) << " : " << *getType();
+  if (getNumIndices()) {
+    // std::cerr << "do not support arrays!" << std::endl;
+    int len = 1;
+    int offset = 0;
+    std::string name = getPointer()->getName();
+    for (int i = getNumIndices()-1; i >= 0; i--){
+      offset += (dynamicCast<ConstantValue>(getIndex(i)))->getInt() * len;
+      len *= (dynamicCast<ConstantValue>(usedarrays[name][i]))->getInt();
+    }
+    printOperand(os, getPointer()) << "+" << offset << "(" << *getPointer()->getType() << ") : " << *getType();
+  }else{
+    printOperand(os, getPointer()) << " : " << *getType();
+  }
 }
 
 void StoreInst::print(std::ostream &os) const {
