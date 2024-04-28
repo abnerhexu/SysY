@@ -12,6 +12,8 @@
 
 namespace sysy {
 
+extern std::map<std::string, std::vector<Value *>> usedarrays;
+
 class SysYIRGenerator : public SysYBaseVisitor {
 private:
   std::unique_ptr<Module> module;

@@ -8,6 +8,8 @@
 
 namespace sysy {
 
+std::map<std::string, std::vector<Value *>> usedarrays;
+
 std::any SysYIRGenerator::visitModule(SysYParser::ModuleContext *ctx) {
   SymbolTable::ModuleScope scope(symbols);
   auto pModule = new Module();
@@ -74,11 +76,12 @@ std::any SysYIRGenerator::visitLocalDecl(SysYParser::DeclContext *ctx) {
         // std::cout << "any casted value kind: " << value->getKind() << std::endl;
       }
     }else{
+      usedarrays.insert({name, dims});
       if (varDef->ASSIGN()) {
         auto p = dynamic_cast<SysYParser::ArrayInitValueContext *>(varDef->initValue());
         auto value = std::any_cast<Value *>(visitArrayInitValue(p));
         auto store = builder.createStoreInst(value, alloca);
-      }
+      }else{}
     }
     values.push_back(alloca);
   }
@@ -146,7 +149,10 @@ std::any SysYIRGenerator::visitAssignStmt(SysYParser::AssignStmtContext *ctx) {
   auto lValue = ctx->lValue();
   auto name = lValue->ID()->getText();
   auto pointer = symbols.lookup(name);
-  Value *store = builder.createStoreInst(rhs, pointer);
+  std::vector <Value *> indices;
+  for (auto exp : ctx->lValue()->exp())
+      indices.push_back(std::any_cast<Value *>(exp->accept(this)));
+  Value *store = builder.createStoreInst(rhs, pointer, indices);
   return store;
 }
 

@@ -8,6 +8,7 @@
 #include <memory>
 #include <set>
 #include <vector>
+#include "SysYIRGenerator.h"
 
 namespace sysy {
 
@@ -339,17 +340,23 @@ void CondBrInst::print(std::ostream &os) const {
 }
 
 void AllocaInst::print(std::ostream &os) const {
+  printVarName(os, this) << " = ";
   if (getNumDims()) {
     //std::cerr << "do not support arrays!" << std::endl;
-    unsigned int len = 1;
+    os << "alloca ";
     for (int i = 0; i < getNumDims(); i++){
-      //std::cout << getDim(i)->getName() << ' ';
-      getDim(i);
+      //std::cout << *getDim(i) << ' ';
+      os << "[" << *getDim(i) << " x ";
     }
-    std::cout << std::endl;
+    os << *static_cast<const PointerType *>(getType())->getBaseType();
+    for (int i = 0; i < getNumDims(); i++){
+      //std::cout << *getDim(i) << ' ';
+      os << "]";
+    }
+    os << " : " << *getType();
+  }else{
+    os << "alloca " << *static_cast<const PointerType *>(getType())->getBaseType() << " : " << *getType();
   }
-  printVarName(os, this) << " = ";
-  os << "alloca " << *static_cast<const PointerType *>(getType())->getBaseType() << " : " << *getType();
 }
 
 void LoadInst::print(std::ostream &os) const {
@@ -362,13 +369,25 @@ void LoadInst::print(std::ostream &os) const {
 }
 
 void StoreInst::print(std::ostream &os) const {
-  if (getNumIndices()) {
-    // std::cerr << "do not support arrays!" << std::endl;
-
-  }
   os << "store ";
   printOperand(os, getValue()) << ", ";
-  printOperand(os, getPointer()) << " : " << *getValue()->getType();
+  if (getNumIndices()) {
+    // std::cerr << "do not support arrays!" << std::endl;
+    // std::cout << getPointer()->getName() << std::endl;
+    int len = 1;
+    int offset = 0;
+    std::string name = getPointer()->getName();
+    for (int i = getNumIndices()-1; i >= 0; i--){
+      // std::cout << *getIndex(i) << ' ';
+      offset += (dynamicCast<ConstantValue>(getIndex(i)))->getInt() * len;
+      len *= (dynamicCast<ConstantValue>(usedarrays[name][i]))->getInt();
+      // std::cout << (dynamicCast<ConstantValue>(getIndex(i)))->getInt() << ' ' << (dynamicCast<ConstantValue>(usedarrays[name][i]))->getInt() << std::endl;
+    }
+    // std::cout << offset << std::endl;
+    printOperand(os, getPointer()) << "+" << offset << "(" << *getPointer()->getType() << ") : " << *getValue()->getType();
+  }else{
+    printOperand(os, getPointer()) << " : " << *getValue()->getType();
+  }
 }
 
 void Function::print(std::ostream &os) const {
