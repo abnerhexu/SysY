@@ -25,8 +25,8 @@ std::any SysYIRGenerator::visitDecl(SysYParser::DeclContext *ctx) {
 }
 
 std::any SysYIRGenerator::visitGlobalDecl(SysYParser::DeclContext *ctx) {
-  std::cout << "Do not support!" << std::endl;
-  assert(false);
+  // std::cout << "Do not support!" << std::endl;
+  // assert(false);
   std::vector<Value *> values;
   bool isConst = ctx->CONST();
   auto type = std::any_cast<Type *>(visitBtype(ctx->btype()));
@@ -75,13 +75,14 @@ std::any SysYIRGenerator::visitLocalDecl(SysYParser::DeclContext *ctx) {
         auto store = builder.createStoreInst(value, alloca);
         // std::cout << "any casted value kind: " << value->getKind() << std::endl;
       }
-    }else{
+    }
+    else{
       usedarrays.insert({name, dims});
       if (varDef->ASSIGN()) {
         auto p = dynamic_cast<SysYParser::ArrayInitValueContext *>(varDef->initValue());
         auto value = std::any_cast<Value *>(visitArrayInitValue(p));
         auto store = builder.createStoreInst(value, alloca);
-      }else{}
+      }
     }
     values.push_back(alloca);
   }

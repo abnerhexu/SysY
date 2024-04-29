@@ -450,4 +450,19 @@ Function *CallInst::getCallee() const {
   return dynamicCast<Function>(getOperand(0));
 }
 
+void GlobalValue::print(std::ostream &os) const {
+  os << this->getName() << " global_var ";
+  int numDims = this->getNumDims();// if numDims > 0, it is array
+  for (int i = 0; i < numDims; i++) {
+    os << "[" << dynamicCast<ConstantValue>(this->getDim(i))->getInt() << " x ";
+    if (i == numDims - 1) {
+      os << *this->getType();
+    }
+  }
+  for (int i = 0; i < numDims; i++) {
+    os << "] ";
+  }
+  os << ": " << *this->getType();
+}
+
 } // namespace sysy

@@ -863,7 +863,8 @@ public:
 public:
   Value *init() const { return hasInit ? operands.back().getValue() : nullptr; }
   int getNumDims() const { return getNumOperands() - (hasInit ? 1 : 0); }
-  Value *getDim(int index) { return getOperand(index); }
+  Value *getDim(int index) const { return getOperand(index); }
+  void print(std::ostream &os) const;
 }; // class GlobalValue
 
 //! IR unit for representing a SysY compile unit
