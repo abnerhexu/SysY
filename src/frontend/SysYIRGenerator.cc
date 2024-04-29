@@ -88,7 +88,6 @@ std::any SysYIRGenerator::visitLocalDecl(SysYParser::DeclContext *ctx) {
         for (int i = 0; i < values.size(); i++){
           arrayindex = new ConstantValue(i);
           indices[0] = arrayindex;
-          std::cout << (dynamicCast<ConstantValue>(indices[0]))->getInt() << std::endl;
           builder.createStoreInst(values[i], alloca, indices);
         }
       }
@@ -153,7 +152,7 @@ std::any SysYIRGenerator::visitScalarInitValue(SysYParser::ScalarInitValueContex
 
 std::any SysYIRGenerator::visitArrayInitValue(SysYParser::ArrayInitValueContext *ctx) {
   std::vector<Value *>values;
-  std::cout << ctx->getText() << ' ' << ctx->initValue().size() << std::endl;
+  // std::cout << ctx->getText() << ' ' << ctx->initValue().size() << std::endl;
   for (int i = 0; i < ctx->initValue().size(); i++){
     // value = std::any_cast<Value *>(visitScalarInitValue(dynamic_cast<SysYParser::ScalarInitValueContext *>(ctx->initValue()[i])));
     values.push_back(std::any_cast<Value *>(ctx->initValue()[i]->accept(this)));
