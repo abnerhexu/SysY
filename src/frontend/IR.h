@@ -254,7 +254,7 @@ protected:
   std::string name;
   std::list<Use *> uses;
 
-protected:
+public:
   Value(Kind kind, Type *type, const std::string &name = "")
       : kind(kind), type(type), name(name), uses() {}
 
@@ -297,7 +297,7 @@ protected:
     float fScalar;
   };
 
-protected:
+public:
   ConstantValue(int value, const std::string &name = "")
       : Value(kConstant, Type::getIntType(), name), iScalar(value) {}
   ConstantValue(float value, const std::string &name = "")

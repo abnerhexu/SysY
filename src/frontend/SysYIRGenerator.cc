@@ -71,17 +71,26 @@ std::any SysYIRGenerator::visitLocalDecl(SysYParser::DeclContext *ctx) {
         //   visitChildren(p->exp());
         // }
         auto value = std::any_cast<Value *>(visitScalarInitValue(p));
-        // value->setKind(Value::Kind::kConstant); //TODO possible bug
         auto store = builder.createStoreInst(value, alloca);
+        // value->setKind(Value::Kind::kConstant); //TODO possible bug
         // std::cout << "any casted value kind: " << value->getKind() << std::endl;
       }
     }
     else{
       usedarrays.insert({name, dims});
       if (varDef->ASSIGN()) {
+        std::vector<Value *>indices;
+        Value *arrayindex = new ConstantValue(0);
+        indices.push_back(arrayindex);
         auto p = dynamic_cast<SysYParser::ArrayInitValueContext *>(varDef->initValue());
-        auto value = std::any_cast<Value *>(visitArrayInitValue(p));
-        auto store = builder.createStoreInst(value, alloca);
+        auto values = std::any_cast<std::vector<Value *>>(visitArrayInitValue(p));
+        // auto store = builder.createStoreInst(value, alloca);
+        for (int i = 0; i < values.size(); i++){
+          arrayindex = new ConstantValue(i);
+          indices[0] = arrayindex;
+          std::cout << (dynamicCast<ConstantValue>(indices[0]))->getInt() << std::endl;
+          builder.createStoreInst(values[i], alloca, indices);
+        }
       }
     }
     values.push_back(alloca);
@@ -137,11 +146,20 @@ std::any SysYIRGenerator::visitBlockStmt(SysYParser::BlockStmtContext *ctx) {
 }
 
 std::any SysYIRGenerator::visitScalarInitValue(SysYParser::ScalarInitValueContext *ctx) {
+  // Value *value =  std::any_cast<Value *>(ctx->exp()->accept(this));
+  // std::cout << (dynamicCast<ConstantValue>(value))->getInt() << std::endl;
   return visitChildren(ctx);
 }
 
 std::any SysYIRGenerator::visitArrayInitValue(SysYParser::ArrayInitValueContext *ctx) {
-  return visitChildren(ctx);
+  std::vector<Value *>values;
+  std::cout << ctx->getText() << ' ' << ctx->initValue().size() << std::endl;
+  for (int i = 0; i < ctx->initValue().size(); i++){
+    // value = std::any_cast<Value *>(visitScalarInitValue(dynamic_cast<SysYParser::ScalarInitValueContext *>(ctx->initValue()[i])));
+    values.push_back(std::any_cast<Value *>(ctx->initValue()[i]->accept(this)));
+    // std::cout << (dynamicCast<ConstantValue>(value))->getInt() << std::endl;
+  }
+  return values;
 }
 
 

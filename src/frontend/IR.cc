@@ -390,7 +390,7 @@ void StoreInst::print(std::ostream &os) const {
       // std::cout << *getIndex(i) << ' ';
       offset += (dynamicCast<ConstantValue>(getIndex(i)))->getInt() * len;
       len *= (dynamicCast<ConstantValue>(usedarrays[name][i]))->getInt();
-      // std::cout << (dynamicCast<ConstantValue>(getIndex(i)))->getInt() << ' ' << (dynamicCast<ConstantValue>(usedarrays[name][i]))->getInt() << std::endl;
+      // std::cout << (dynamicCast<ConstantValue>(getIndex(i)))->getInt() << std::endl;
     }
     // std::cout << offset << std::endl;
     printOperand(os, getPointer()) << "+" << offset << "(" << *getPointer()->getType() << ") : " << *getValue()->getType();
