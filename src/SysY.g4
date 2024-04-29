@@ -101,7 +101,7 @@ varDef: lValue (ASSIGN initValue)?;
 
 initValue:
 	exp											# scalarInitValue
-	| LBRACE (initValue (COMMA initValue)*)?	# arrayInitValue;
+	| LBRACE (initValue (COMMA initValue)*)? RBRACE	# arrayInitValue;
 
 func: funcType ID LPAREN funcFParams? RPAREN blockStmt;
 
