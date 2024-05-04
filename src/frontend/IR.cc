@@ -455,10 +455,8 @@ void GlobalValue::print(std::ostream &os) const {
   int numDims = this->getNumDims();// if numDims > 0, it is array
   for (int i = 0; i < numDims; i++) {
     os << "[" << dynamicCast<ConstantValue>(this->getDim(i))->getInt() << " x ";
-    if (i == numDims - 1) {
-      os << *this->getType();
-    }
   }
+  os << *static_cast<const PointerType *>(getType())->getBaseType();
   for (int i = 0; i < numDims; i++) {
     os << "] ";
   }

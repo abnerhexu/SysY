@@ -844,15 +844,17 @@ protected:
   Module *parent;
   bool hasInit;
   bool isConst;
+  std::vector<Value*> initVals;
 
 protected:
   GlobalValue(Module *parent, Type *type, const std::string &name,
-              const std::vector<Value *> &dims = {}, Value *init = nullptr)
-      : User(kGlobal, type, name), parent(parent), hasInit(init) {
+              const std::vector<Value *> &dims = {}, const std::vector<Value *> &init = {})
+      : User(kGlobal, type, name), parent(parent), hasInit(init.empty() == false) {
     assert(type->isPointer());
     addOperands(dims);
-    if (init)
-      addOperand(init);
+    if (init.empty() == false)
+      addOperands(init);
+      addInitVals(init);
   }
 
 public:
@@ -862,8 +864,10 @@ public:
 
 public:
   Value *init() const { return hasInit ? operands.back().getValue() : nullptr; }
-  int getNumDims() const { return getNumOperands() - (hasInit ? 1 : 0); }
+  int getNumDims() const { return getNumOperands() - (hasInit ? this->initVals.size() : 0); }
   Value *getDim(int index) const { return getOperand(index); }
+  void addInitVals(const std::vector<Value *> &init) {for (auto &it: init) this->initVals.push_back(it);}
+  int getNumInitVals() const { return this->initVals.size(); }
   void print(std::ostream &os) const;
 }; // class GlobalValue
 
@@ -889,7 +893,7 @@ public:
     return func;
   };
   GlobalValue *createGlobalValue(const std::string &name, Type *type,
-                                 const std::vector<Value *> &dims = {}, Value *init = nullptr) {
+                                 const std::vector<Value *> &dims = {}, const std::vector<Value *> &init = {}) {
     if (globals.count(name)) {
       return nullptr;
     }

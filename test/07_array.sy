@@ -1,4 +1,4 @@
-int btt;
+int btt[4] = {1, 2, 3, 4};
 int main() {
   int a[5] = {1,2,3};
   int b = 3;

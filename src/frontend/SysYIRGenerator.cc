@@ -28,6 +28,7 @@ std::any SysYIRGenerator::visitGlobalDecl(SysYParser::DeclContext *ctx) {
   // std::cout << "Do not support!" << std::endl;
   // assert(false);
   std::vector<Value *> values;
+  std::vector<Value*> init;
   bool isConst = ctx->CONST();
   auto type = std::any_cast<Type *>(visitBtype(ctx->btype()));
   for (auto varDef : ctx->varDef()) {
@@ -36,15 +37,22 @@ std::any SysYIRGenerator::visitGlobalDecl(SysYParser::DeclContext *ctx) {
     for (auto exp : varDef->lValue()->exp())
       dims.push_back(std::any_cast<Value *>(exp->accept(this)));
     if (varDef->ASSIGN()) {
-      auto p = dynamic_cast<SysYParser::ScalarInitValueContext *>(varDef->initValue());
-      if (p->exp()) {
-        visitChildren(p->exp());
+      if (varDef->lValue()->exp(0) == 0) {
+        auto p = dynamic_cast<SysYParser::ScalarInitValueContext *>(varDef->initValue());
+        if (p->exp()) {
+          visitChildren(p->exp());
+        }
+        init.push_back(std::any_cast<Value *>(visitScalarInitValue(p)));
+        values.push_back(module->createGlobalValue(name, type->getPointerType(type), dims, init));
+      } // scalar
+      else {
+        auto p = dynamic_cast<SysYParser::ArrayInitValueContext *>(varDef->initValue());
+        auto initVals = std::any_cast<std::vector<Value*>>(visitArrayInitValue(p));
+        values.push_back(module->createGlobalValue(name, type->getPointerType(type), dims, initVals));
       }
-      auto init = std::any_cast<Value *>(visitScalarInitValue(p));
-      values.push_back(module->createGlobalValue(name, type->getPointerType(type), dims, init));
     }
     else {
-      values.push_back(module->createGlobalValue(name, type->getPointerType(type), dims, nullptr));
+      values.push_back(module->createGlobalValue(name, type->getPointerType(type), dims, init));
     }
   }
   return values;
@@ -55,10 +63,6 @@ std::any SysYIRGenerator::visitLocalDecl(SysYParser::DeclContext *ctx) {
   auto type = Type::getPointerType(std::any_cast<Type *>(visitBtype(ctx->btype())));
   for (auto varDef : ctx->varDef()) {
     auto name = varDef->lValue()->ID()->getText();
-    // for (int i = 0; varDef->lValue()->exp(i) != 0; i++){
-    //   // std::cout << varDef->lValue()->exp(i) << ' ';
-    //   values.push_back(dynamic_cast<Value *>(varDef->lValue()->exp(i)));
-    // }
     std::vector<Value *> dims;
     for (auto exp : varDef->lValue()->exp())
       dims.push_back(std::any_cast<Value *>(exp->accept(this)));
@@ -67,26 +71,21 @@ std::any SysYIRGenerator::visitLocalDecl(SysYParser::DeclContext *ctx) {
     if (varDef->lValue()->exp(0) == 0){
       if (varDef->ASSIGN()) {
         auto p = dynamic_cast<SysYParser::ScalarInitValueContext *>(varDef->initValue());
-        // if (p->exp()) {
-        //   visitChildren(p->exp());
-        // }
         auto value = std::any_cast<Value *>(visitScalarInitValue(p));
         auto store = builder.createStoreInst(value, alloca);
-        // value->setKind(Value::Kind::kConstant); //TODO possible bug
-        // std::cout << "any casted value kind: " << value->getKind() << std::endl;
       }
     }
     else{
       usedarrays.insert({name, dims});
       if (varDef->ASSIGN()) {
         std::vector<Value *>indices;
-        Value *arrayindex = new ConstantValue(0);
+        Value *arrayindex = new ConstantValue(0); // caution: memory leak risk!!!
         indices.push_back(arrayindex);
         auto p = dynamic_cast<SysYParser::ArrayInitValueContext *>(varDef->initValue());
         auto values = std::any_cast<std::vector<Value *>>(visitArrayInitValue(p));
         // auto store = builder.createStoreInst(value, alloca);
         for (int i = 0; i < values.size(); i++){
-          arrayindex = new ConstantValue(i);
+          arrayindex = new ConstantValue(i); // caution: memory leak risk!!!
           indices[0] = arrayindex;
           builder.createStoreInst(values[i], alloca, indices);
         }
