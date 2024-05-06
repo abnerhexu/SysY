@@ -380,21 +380,34 @@ void LoadInst::print(std::ostream &os) const {
 void StoreInst::print(std::ostream &os) const {
   os << "store ";
   printOperand(os, getValue()) << ", ";
+  // std::cout << getNumIndices() << std::endl;
   if (getNumIndices()) {
-    // std::cerr << "do not support arrays!" << std::endl;
-    // std::cout << getPointer()->getName() << std::endl;
-    int len = 1;
-    int offset = 0;
+    // assignment to arrays
     std::string name = getPointer()->getName();
-    for (int i = getNumIndices()-1; i >= 0; i--){
+    printOperand(os, getPointer());
+    for (int i = 0; i < getNumIndices(); i++){
+      os << "+";
       // std::cout << *getIndex(i) << ' ';
-      offset += (dynamicCast<ConstantValue>(getIndex(i)))->getInt() * len;
-      len *= (dynamicCast<ConstantValue>(usedarrays[name][i]))->getInt();
+      // offset += (dynamicCast<ConstantValue*>(getIndex(i)))->getInt() * len;
+      // len *= (dynamicCast<ConstantValue*>(usedarrays[name][i]))->getInt();
       // std::cout << (dynamicCast<ConstantValue>(getIndex(i)))->getInt() << std::endl;
+      if (getIndex(i)->isConstant()) {
+        os << dynamic_cast<ConstantValue*>(getIndex(i))->getInt();
+      }
+      else {
+        os << getIndex(i)->getName();
+      }
+      for (int j = i + 1; j < getNumIndices(); j++) {
+        os << " * ";
+        if (usedarrays[name][j]->isConstant()) { os << dynamic_cast<ConstantValue*>(usedarrays[name][j])->getInt();}
+        else {os << usedarrays[name][j]->getName(); }
+        // if (j != getNumIndices() - 1) {os << "*"; }
+      }
     }
     // std::cout << offset << std::endl;
-    printOperand(os, getPointer()) << "+" << offset << "(" << *getPointer()->getType() << ") : " << *getValue()->getType();
-  }else{
+    os << "(" << *getPointer()->getType() << ") : " << *getValue()->getType();
+  }
+  else {
     printOperand(os, getPointer()) << " : " << *getValue()->getType();
   }
 }

@@ -32,6 +32,7 @@ std::any SysYIRGenerator::visitGlobalDecl(SysYParser::DeclContext *ctx) {
   bool isConst = ctx->CONST();
   auto type = std::any_cast<Type *>(visitBtype(ctx->btype()));
   for (auto varDef : ctx->varDef()) {
+    sysy::GlobalValue* GlobalValue;
     auto name = varDef->lValue()->ID()->getText();
     std::vector<Value *> dims;
     for (auto exp : varDef->lValue()->exp())
@@ -43,18 +44,24 @@ std::any SysYIRGenerator::visitGlobalDecl(SysYParser::DeclContext *ctx) {
           visitChildren(p->exp());
         }
         init.push_back(std::any_cast<Value *>(visitScalarInitValue(p)));
-        values.push_back(module->createGlobalValue(name, type->getPointerType(type), dims, init));
+        GlobalValue = module->createGlobalValue(name, type->getPointerType(type), dims, init);
+        values.push_back(GlobalValue);
       } // scalar
       else {
         auto p = dynamic_cast<SysYParser::ArrayInitValueContext *>(varDef->initValue());
         auto initVals = std::any_cast<std::vector<Value*>>(visitArrayInitValue(p));
-        values.push_back(module->createGlobalValue(name, type->getPointerType(type), dims, initVals));
-      }
+        GlobalValue = module->createGlobalValue(name, type->getPointerType(type), dims, initVals);
+        values.push_back(GlobalValue);
+        usedarrays.insert({name, dims});
+      } // array
     }
     else {
-      values.push_back(module->createGlobalValue(name, type->getPointerType(type), dims, init));
+      GlobalValue = module->createGlobalValue(name, type->getPointerType(type), dims, init);
+      values.push_back(GlobalValue);
     }
+    symbols.insert(name, GlobalValue);
   }
+  
   return values;
 }
 
@@ -166,6 +173,7 @@ std::any SysYIRGenerator::visitAssignStmt(SysYParser::AssignStmtContext *ctx) {
   auto lValue = ctx->lValue();
   auto name = lValue->ID()->getText();
   auto pointer = symbols.lookup(name);
+  // std::cout << pointer << name << std::endl;
   std::vector <Value *> indices;
   for (auto exp : ctx->lValue()->exp())
       indices.push_back(std::any_cast<Value *>(exp->accept(this)));

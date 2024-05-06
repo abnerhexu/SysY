@@ -14,6 +14,7 @@ static std::string RTypeInst(std::string name, std::string rd, std::string rs1, 
 
 class RegisterManager {
   friend class CodeGen;
+  friend class LLIRGen;
 public:
   std::vector<std::pair<std::string, std::string>> intRegs = {{"x0", "zero"}, {"x1", "ra"}, {"x2", "sp"}, {"x3", "gp"}, {"x4", "tp"}, {"x5", "t0"}, {"x6", "t1"}, {"x7", "t2"}, {"x8", "s0"}, {"x9", "s1"}, {"x10", "a0"}, {"x11", "a1"}, {"x12", "a2"}, {"x13", "a3"}, {"x14", "a4"}, {"x15", "a5"}, {"x16", "a6"}, {"x17", "a7"}, {"x18", "s2"}, {"x19", "s3"}, {"x20", "s4"}, {"x21", "s5"}, 
   {"x22", "s6"}, {"x23", "s7"}, {"x24", "s8"}, {"x25", "s9"}, {"x26", "s10"}, {"x27", "s11"}, {"x28", "t3"}, {"x29", "t4"}, {"x30", "t5"}, {"x31", "t6"}};
@@ -22,9 +23,11 @@ public:
   {"f23", "fs7"}, {"f24", "fs8"}, {"f25", "fs9"}, {"f26", "fs10"}, {"f27", "fs11"}, {"f28", "ft8"}, {"f29", "ft9"}, {"f30", "ft10"}, {"f31", "ft11"}};
 
   enum VarPos {
-    Globals, OnStack, InReg
+    Globals, OnStack, InIReg, InFReg
   };
-
+  // string: name
+  // varPos: indication the var position
+  // int: stack offset (if on stack), or reg id (if on regs)
   std::map<std::string, std::pair<VarPos, int>> varIRegMap;
   std::map<std::string, std::pair<VarPos, int>> varFRegMap;
 
@@ -32,9 +35,15 @@ public:
   std::vector<int> IsavedRegList = {9, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27};
 
   std::map<sysy::Function*, int> spOffset;
+  // int: allocated fake register, 
+  // pair.first: lastly used inst_index, 
+  // pair.second: the inst itself
+  std::map<int, std::pair<int, sysy::Instruction*>> LastVisit; 
 private:
-  std::vector<bool> intRegTaken;
-  std::vector<bool> floatRegTaken;
+  // first: taken or not
+  // second: last used
+  std::vector<std::pair<bool, int>> intRegTaken;
+  std::vector<std::pair<bool, int>> floatRegTaken;
 
 public:
   enum RegType {
@@ -55,13 +64,13 @@ public:
   };
 
 public:
-  int requestReg(RegType rtype, RegHint hint = dontCare);
+  int requestReg(RegType rtype, RegHint hint = dontCare, int last_used = 0);
   bool releaseReg(RegType rtype, int regID) {
     if (rtype == IntReg) {
-      this->intRegTaken[regID] = false;
+      this->intRegTaken[regID].first = false;
     }
     else if (rtype == FloatReg) {
-      this->floatRegTaken[regID] = false;
+      this->floatRegTaken[regID].first = false;
     }
     return true;
   }
@@ -70,17 +79,19 @@ public:
     switch (rtype) {
     case IntReg:
       this->intRegTaken.clear();
-      this->intRegTaken.resize(32, false);
+      this->intRegTaken.resize(32, {false, 0});
       break;
     case FloatReg:
       this->floatRegTaken.clear();
-      this->floatRegTaken.resize(32, false);
+      this->floatRegTaken.resize(32, {false, 0});
       break;
     default:
       std::cerr << "Unknown register type" << std::endl;
       exit(1);
     }
   }
+
+  void gc(int inst_index);
 
 public:
   RegisterManager() {
@@ -188,7 +199,7 @@ public:
   std::string function_gen(sysy::Function* func);
   std::string basicBlock_gen(sysy::BasicBlock* bblock);
   std::string instruction_gen(sysy::Instruction* inst);
-  std::string globalData_gen();
+  std::string globalData_gen(sysy::Module* module);
   std::string CalleeRegSave_gen(sysy::Function *func);
   std::string CalleeRegRestore_gen(sysy::Function *func);
   std::string literalPoolsCode_gen(sysy::Function *func);

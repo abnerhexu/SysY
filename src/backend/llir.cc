@@ -23,7 +23,7 @@ void LLIRGen::module_gen(sysy::Module* module) {
 }
 
 void LLIRGen::function_gen_Pass1(sysy::Function* func) {
-  //TODO
+  // Pass 1: get the sp off
   int cnt = 0;
   this->curFunc = func;
   clearFuncInfo(func);
@@ -42,6 +42,7 @@ void LLIRGen::function_gen_Pass1(sysy::Function* func) {
 }
 
 void LLIRGen::function_gen_Pass2(sysy::Function* func) {
+  // Pass 2: map the vars to offs
   this->curFunc = func;
   int alloca_offset = 0;
   clearFuncInfo(func);
@@ -121,35 +122,55 @@ void LLIRGen::instruction_gen(sysy::Instruction* inst, int alloca_offset) {
       // exit(1);
       break;
   }
+  inst->inst_index = this->inst_index;
   if (inst->getNumOperands() != 0){
     for (int i = 0; i < inst->getNumOperands(); i++){
-      if (regManager.varIRegMap.find(inst->getOperand(i)->getName()) == regManager.varIRegMap.end() ||
-          regManager.varIRegMap[inst->getOperand(i)->getName()].first != RegisterManager::VarPos::InReg)
-        continue;
-      int llir_reg = regManager.varIRegMap[inst->getOperand(i)->getName()].second;
-      this->LastVisit[llir_reg] = this->inst_index;
+      if (regManager.varIRegMap.find(inst->getOperand(i)->getName()) != regManager.varIRegMap.end() && 
+          regManager.varIRegMap[inst->getOperand(i)->getName()].first == RegisterManager::VarPos::InIReg) {
+        int llir_reg = regManager.varIRegMap[inst->getOperand(i)->getName()].second;
+        regManager.LastVisit[llir_reg].first = this->inst_index;
+        regManager.LastVisit[llir_reg].second->last_used = this->inst_index;
+      }
+      if (regManager.varFRegMap.find(inst->getOperand(i)->getName()) != regManager.varIRegMap.end() &&
+          regManager.varFRegMap[inst->getOperand(i)->getName()].first == RegisterManager::VarPos::InFReg) {
+        int llir_reg = regManager.varIRegMap[inst->getOperand(i)->getName()].second;
+        regManager.LastVisit[llir_reg].first = this->inst_index;
+        regManager.LastVisit[llir_reg].second->last_used = this->inst_index;
+      }
     }
   }
 }
 
 void LLIRGen::GenBinaryInst(sysy::BinaryInst *inst) {
-  //TODO
-  regManager.varIRegMap.insert({inst->getName(), {RegisterManager::VarPos::InReg, this->curReg}});
-  this->LastVisit.insert({this->curReg, this->inst_index});
+  if (inst->getType()->isInt()) {
+    regManager.varIRegMap.insert({inst->getName(), {RegisterManager::VarPos::InIReg, this->curReg}});
+  }
+  else {
+    regManager.varFRegMap.insert({inst->getName(), {RegisterManager::VarPos::InFReg, this->curReg}});
+  }
+  regManager.LastVisit.insert({this->curReg, {this->inst_index, inst}});
   this->curReg++;
 }
 void LLIRGen::GenAllocaInst(sysy::AllocaInst *inst, int alloca_offset) {
-  //TODO
-  regManager.varIRegMap.insert({inst->getName(), {RegisterManager::VarPos::OnStack, alloca_offset}});
+  if (dynamic_cast<sysy::PointerType*>(inst->getType())->getBaseType()->isInt()) {
+    regManager.varIRegMap.insert({inst->getName(), {RegisterManager::VarPos::OnStack, alloca_offset}});
+  }
+  else {
+    regManager.varFRegMap.insert({inst->getName(), {RegisterManager::VarPos::OnStack, alloca_offset}});
+  }
 }
 void LLIRGen::GenStoreInst(sysy::StoreInst *inst) {
   //TODO
 }
 void LLIRGen::GenLoadInst(sysy::LoadInst *inst) {
-  //TODO
   //std::cout << inst->getName() << std::endl;
-  regManager.varIRegMap.insert({inst->getName(), {RegisterManager::VarPos::InReg, this->curReg}});
-  this->LastVisit.insert({this->curReg, this->inst_index});
+  if (inst->getType()->isInt()) {
+    regManager.varIRegMap.insert({inst->getName(), {RegisterManager::VarPos::InIReg, this->curReg}});
+  }
+  else {
+    regManager.varFRegMap.insert({inst->getName(), {RegisterManager::VarPos::InFReg, this->curReg}});
+  }
+  regManager.LastVisit.insert({this->curReg, {this->inst_index, inst}});
   this->curReg++;
 }
 } // namespace codegen

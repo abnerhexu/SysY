@@ -10,8 +10,45 @@ std::string CodeGen::code_gen() {
   return assemblyCode;
 }
 
-std::string CodeGen::globalData_gen(){
+std::string CodeGen::globalData_gen(sysy::Module* module){
   std::string data;
+  auto GlobalValues = module->getGlobalValues();
+  for (auto &it: *GlobalValues) {
+    auto name = it.first;
+    if (dynamic_cast<sysy::PointerType*>(it.second->getType())->getBaseType()->isInt()) {
+      // int
+      if (it.second->getNumDims() > 0) {
+        regManager.varIRegMap.insert({name, {RegisterManager::VarPos::Globals, 0}});
+        data += ".gblock_" + name + ":" + endl;
+        if (it.second->getNumInitVals() > 0) {
+          int totSize = 1;
+          for (int k = 0; k < it.second->getNumDims(); k++) {
+            totSize *= dynamic_cast<sysy::ConstantValue*>(it.second->getDim(k))->getInt();
+          }
+          for (int k = 0; k < it.second->getNumInitVals(); k++) {
+            data += space + ".word  " + std::to_string(dynamic_cast<sysy::ConstantValue*>(it.second->getInitVals(k))->getInt()) + endl;
+          }
+          totSize -= it.second->getNumInitVals();
+          if (totSize > 0) {
+            data += space + ".zero  " + std::to_string(totSize*4) + endl;
+          }
+        }
+      } // array
+      else {
+        regManager.varIRegMap.insert({name, {RegisterManager::VarPos::Globals, 0}});
+        data += ".gblock_" + name + ":" + endl;
+        if (it.second->getNumInitVals() > 0) {
+          data += space + ".word  " + std::to_string(dynamic_cast<sysy::ConstantValue*>(it.second->init())->getInt()) + endl;
+        } // with init
+        else {
+          data += space + ".zero  4" + endl;
+        } // without init
+      } // scalar
+    }
+    else {
+      std::cout << it.first << " " << it.second->getType()->getPointerType(it.second->getType())->isInt() << std::endl;
+    }
+  }
   return data;
 }
 
@@ -27,9 +64,9 @@ std::string CodeGen::module_gen(sysy::Module *module) {
   descriptionCode += space + ".attribute risc-v rv64gc little-endian" + endl;
   descriptionCode += space + ".palign 4" + endl;
   descriptionCode += space + ".text" + endl;
-  descriptionCode += space + ".globl main" + endl;
-  dataCode += globalData_gen(); 
+  // descriptionCode += space + ".globl main" + endl;
   std::map<std::string, sysy::Function*> *funcs = module->getFunctions();
+  dataCode += globalData_gen(module); 
   for (auto it = funcs->begin(); it != funcs->end(); it++) {
     std::string fname = it->first;
     sysy::Function *func = it->second;
@@ -97,6 +134,8 @@ std::string CodeGen::basicBlock_gen(sysy::BasicBlock *bb) {
   for (auto &inst: bb->getInstructions()) {
     // auto instType = inst->getKind();
     assemblyCode += instruction_gen(inst.get());
+    regManager.gc(inst.get()->inst_index);
+    // std::cout << "name: " << inst.get()->getName() << " index: " << inst.get()->inst_index << " last used: " << inst.get()->last_used << std::endl;
   }
   return assemblyCode;
 }
@@ -125,9 +164,9 @@ std::string CodeGen::GenBinaryInst(sysy::BinaryInst *inst) {
     exit(1);
   }
   if (lhs->getType()->isInt()) {
-    auto destRegID = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::saved);
+    auto destRegID = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::saved, inst->last_used);
     instruction = space + optype + " " + regManager.intRegs[destRegID].second + ", " + regManager.intRegs[regManager.varIRegMap.find(lhs->getName())->second.second].second + ", " + regManager.intRegs[regManager.varIRegMap.find(rhs->getName())->second.second].second + endl;
-    regManager.varIRegMap[inst->getName()] = {RegisterManager::VarPos::InReg, destRegID};
+    regManager.varIRegMap[inst->getName()] = {RegisterManager::VarPos::InIReg, destRegID};
   }
   else {
     std::cerr << "Error: unsupported binary op" << std::endl;
@@ -150,13 +189,18 @@ std::string CodeGen::GenStoreInst(sysy::StoreInst *inst) {
   auto constSrc = dynamic_cast<sysy::ConstantValue *>(src);
   auto destName = inst->getPointer()->getName();
   auto destPos = regManager.varIRegMap.find(destName);
-  assert(destPos != regManager.varIRegMap.end());
   if (constSrc) {
+    // handle IR like store 1, %a
     if (constSrc->isInt()) {
       int tmpRegID = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::temp);
-      instruction += space + "addi " + regManager.intRegs[tmpRegID].second + ", " + "zero, " + std::to_string(constSrc->getInt()) + endl;
+      instruction += space + "li " + regManager.intRegs[tmpRegID].second + ", " + std::to_string(constSrc->getInt()) + endl;
       if (destPos->second.first == RegisterManager::VarPos::OnStack) {
         instruction += space + "sw " + regManager.intRegs[tmpRegID].second + ", " + std::to_string(destPos->second.second) + "(" + "sp" + ")" + endl;
+      }
+      else if (destPos->second.first == RegisterManager::VarPos::Globals) {
+        // firstly, compute the offset
+        // secondly, generate code
+        std::cout << "do not support this moment" << std::endl;
       }
       else {
         std::cerr << "do not suppport float imm-mem store at this moment" << std::endl;
@@ -170,7 +214,7 @@ std::string CodeGen::GenStoreInst(sysy::StoreInst *inst) {
     if (src->getType()->isInt()) {
       auto srcReg = regManager.varIRegMap.find(src->getName());
       if (srcReg != regManager.varIRegMap.end()) {
-        if (srcReg->second.first == RegisterManager::VarPos::InReg) {
+        if (srcReg->second.first == RegisterManager::VarPos::InIReg) {
           if (destPos->second.first == RegisterManager::VarPos::OnStack){
             instruction += space + "sw " + regManager.intRegs[srcReg->second.second].second + ", " + std::to_string(destPos->second.second) + "(sp)" + endl;
             regManager.releaseReg(RegisterManager::RegType::IntReg, srcReg->second.second);
@@ -209,56 +253,52 @@ std::string CodeGen::GenStoreInst(sysy::StoreInst *inst) {
 
 std::string CodeGen::GenLoadInst(sysy::LoadInst *inst) {
   std::string instruction;
+  int destRegID;
   auto src = inst->getPointer();
-  auto rtype = inst->getType();
-  auto srcOffset = 0;
-  if (rtype->isInt()) {
-    auto destRegID = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::temp);
-    auto srcPos = regManager.varIRegMap.find(src->getName());
-    if (srcPos != regManager.varIRegMap.end()) {
-      if (srcPos->second.first == RegisterManager::VarPos::OnStack) {
-        instruction = space + "lw " + regManager.intRegs[destRegID].second + ", " + std::to_string(srcPos->second.second) + "(" + "sp" + ")" + endl;
-      }
-      else {
-        std::cerr << "do not support global vars yet" << std::endl;
-        exit(1);
-      }
-      regManager.varIRegMap[inst->getName()] = {RegisterManager::VarPos::InReg, destRegID};
-    }
-    else {
-      std::cerr << "Inst: ";
-      inst->print(std::cerr);
-      std::cerr << std::endl;
-      std::cerr << "Error: cannot find src reg" << std::endl;
-      exit(1);
-    }
-  }
-  else if (rtype->isFloat()){
-    // float reg
-    auto destRegID = regManager.requestReg(RegisterManager::RegType::FloatReg, RegisterManager::RegHint::temp);
-    auto srcPos = regManager.varFRegMap.find(src->getName());
-    if (srcPos != regManager.varFRegMap.end()) {
-      if (srcPos->second.first == RegisterManager::VarPos::OnStack) {
-        instruction = space + "flw " + regManager.floatRegs[destRegID].second + ", " + std::to_string(srcPos->second.second) + "(" + "sp" + ")" + endl;
-      }
-      else {
-        std::cerr << "do not support global vars yet" << std::endl;
-        exit(1);
-      }
-    }
-    else {
-      std::cerr << "Error: cannot find src reg" << std::endl;
-      exit(1);
-    }
+  auto srcPos = regManager.varIRegMap.find(src->getName());
+  // allocate a reg for dest
+  if (inst->getType()->isInt()) {
+    destRegID = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::temp, inst->last_used);
+    regManager.varIRegMap[inst->getName()] = {RegisterManager::VarPos::InIReg, destRegID};
+    instruction = space + "lw " + regManager.intRegs[destRegID].second + ", " + std::to_string(srcPos->second.second) + "(" + "sp" + ")" + endl;
   }
   else {
-    std::cerr << rtype->isInt() << rtype->isFloat() << std::endl;
-    std::cerr << "Error: unsupported type" << std::endl;
-    exit(1);
+    destRegID = regManager.requestReg(RegisterManager::RegType::FloatReg, RegisterManager::RegHint::temp, inst->last_used);
+    regManager.varIRegMap[inst->getName()] = {RegisterManager::VarPos::InIReg, destRegID};
+    instruction = space + "flw " + regManager.floatRegs[destRegID].second + ", " + std::to_string(srcPos->second.second) + "(" + "sp" + ")" + endl;
   }
   return instruction;
 }
 
+std::string GenReturnInst(sysy::ReturnInst* inst) {
+  std::string instruction;
+  if (inst->hasReturnValue()) {
+    auto retVname = inst->getReturnValue()->getName();
+    auto retV = inst->getReturnValue();
+    auto retVtype = inst->getReturnValue()->getType();
+    if (retV->isConstant()) { 
+      if (retVtype->isInt()) {
+        instruction += space + "li a0, " + std::to_string(dynamic_cast<sysy::ConstantValue*>(retV)->getInt()) + endl; 
+      }
+    }
+    else {
+      if (retVtype->isInt()) {
+        if (regManager.varIRegMap.find(retV->getName())->second.first == RegisterManager::VarPos::OnStack) {
+          instruction += space + "lw a0, " + std::to_string(regManager.varIRegMap.find(retV->getName())->second.second) + "(sp)" + endl;
+        }
+        else {
+          // on reg
+          instruction += space + "mv a0, " + regManager.intRegs[regManager.varIRegMap.find(retV->getName())->second.second].second + endl;
+        }
+      }
+    }
+  }
+  else {
+    // bare return, used for void functions
+  }
+  instruction += space + "ret" + endl;
+  return instruction;
+}
 
 std::string CodeGen::instruction_gen(sysy::Instruction *inst) {
   std::string instruction;
@@ -280,15 +320,15 @@ std::string CodeGen::instruction_gen(sysy::Instruction *inst) {
     case sysy::Value::Kind::kLoad:
       instruction = GenLoadInst(dynamic_cast<sysy::LoadInst *>(inst));
       break;
+    case sysy::Value::Kind::kReturn:
+      instruction = GenReturnInst(dynamic_cast<sysy::ReturnInst *>(inst));
     default:
-      // std::cerr << "Error: unsupported instruction" << std::endl;
-      // exit(1);
       break;
   }
   return instruction;
 }
 
-int RegisterManager::requestReg(RegType rtype, RegHint hint) {
+int RegisterManager::requestReg(RegType rtype, RegHint hint, int last_used) {
   switch (hint) {
     case zero:
       return 0;
@@ -302,29 +342,41 @@ int RegisterManager::requestReg(RegType rtype, RegHint hint) {
       return 4;
     case temp:
       for (auto i: this->ItempRegList) {
-        if (this->intRegTaken[i] == false) {
-          this->intRegTaken[i] = true;
+        if (this->intRegTaken[i].first == false) {
+          this->intRegTaken[i].first = true;
+          this->intRegTaken[i].second = last_used;
           return i;
         }
       }
-      // std::cerr << "Error: no free temp reg" << std::endl;
-      // exit(1);
       return 0;
     case saved:
       for (auto i: this->IsavedRegList) {
-        if (this->intRegTaken[i] == false) {
-          this->intRegTaken[i] = true;
+        if (this->intRegTaken[i].first == false) {
+          this->intRegTaken[i].first = true;
+          this->intRegTaken[i].second = last_used;
           return i;
         }
       }
-      // std::cerr << "Error: no free saved reg" << std::endl;
-      // exit(1);
       return 0;
     default:
       std::cerr << "Error: invalid reg hint" << std::endl;
       exit(1);
   }
 }
+
+void RegisterManager::gc(int inst_index) {
+  for (auto &it: this->intRegTaken) {
+    if (it.second <= inst_index) {
+      it.first = false;
+    }
+  }
+  for (auto &it: this->floatRegTaken) {
+    if (it.second <= inst_index) {
+      it.first = false;
+    }
+  }
+}
+
 
 
 }

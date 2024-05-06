@@ -466,6 +466,9 @@ public:
  */
 class Instruction : public User {
 
+public:
+  int inst_index;
+  int last_used;
 protected:
   Kind kind;
   BasicBlock *parent;
@@ -795,6 +798,7 @@ protected:
   Function(Module *parent, Type *type, const std::string &name)
       : Value(kFunction, type, name), parent(parent), blocks() {
     blocks.emplace_back(new BasicBlock(this, "entry"));
+    this->variableID = 0;
   }
 
 public:
@@ -868,6 +872,7 @@ public:
   Value *getDim(int index) const { return getOperand(index); }
   void addInitVals(const std::vector<Value *> &init) {for (auto &it: init) this->initVals.push_back(it);}
   int getNumInitVals() const { return this->initVals.size(); }
+  Value *getInitVals(int index) const {return this->initVals[index]; }
   void print(std::ostream &os) const;
 }; // class GlobalValue
 
