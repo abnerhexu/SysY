@@ -191,6 +191,7 @@ private:
   // label manager
   std::map<sysy::BasicBlock*, std::string> bblockLabels;
   int bblabelId = 0;
+  int GAccessBB = 0;
 
 public:
   CodeGen(sysy::Module* module, const std::string fname = ""): module(module), fname(fname) {};
@@ -204,6 +205,10 @@ public:
   std::string CalleeRegRestore_gen(sysy::Function *func);
   std::string literalPoolsCode_gen(sysy::Function *func);
   std::string functionHeader_gen(sysy::Function *func);
+  std::string GAccessBB_gen() {
+    GAccessBB++;
+    return ".Lpcrel_hi" + std::to_string(this->GAccessBB);
+  }
 
   void clearModuleLabels(sysy::Module *module) {
     this->bblabelId = 0;

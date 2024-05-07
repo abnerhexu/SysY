@@ -83,8 +83,8 @@ std::string CodeGen::module_gen(sysy::Module *module) {
 
 std::string CodeGen::functionHeader_gen(sysy::Function *func){
   std::string assemblyCode;
-  assemblyCode += space + ".global " + func->getName() + endl;
-  assemblyCode += space + ".type " + func->getName() + ", @function" + endl;
+  // assemblyCode += space + ".global " + func->getName() + endl;
+  // assemblyCode += space + ".type " + func->getName() + ", @function" + endl;
   return assemblyCode;
 }
 
@@ -116,7 +116,9 @@ std::string CodeGen::function_gen(sysy::Function *func) {
   // handle sp
   int spOff = regManager.spOffset[func];
   assert(spOff < 8192);
-  handleSpCode = space + "addi sp, sp, -" + std::to_string(spOff) + endl;
+  if (spOff > 0) {
+    handleSpCode = space + "addi sp, sp, -" + std::to_string(spOff) + endl;
+  }
 
   // TODO literalPoolsCode
   auto funcName = func->getName();
@@ -200,7 +202,15 @@ std::string CodeGen::GenStoreInst(sysy::StoreInst *inst) {
       else if (destPos->second.first == RegisterManager::VarPos::Globals) {
         // firstly, compute the offset
         // secondly, generate code
-        std::cout << "do not support this moment" << std::endl;
+        // std::cout << "do not support this moment" << std::endl;
+        auto newBBName = this->GAccessBB_gen();
+        instruction += newBBName + endl;
+        int tempRegID1 = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::dontCare, -1);
+        int tempRegID2 = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::dontCare, -1);
+        instruction += space + "auipc " + regManager.intRegs[tempRegID1].second + ", %pcrel_hi" + "(" + destName + ")" + endl;
+        instruction += space + "addi " + regManager.intRegs[tempRegID2].second + ", " + regManager.intRegs[tempRegID1].second + ", %pcrel_lo(" + newBBName + ")" + endl;
+        instruction += space + "li " + regManager.intRegs[tempRegID1].second + ", " + std::to_string(constSrc->getInt()) + endl;
+        instruction += space + regManager.intRegs[tempRegID1].second + "(" + regManager.intRegs[tempRegID2].second + ")" + endl;
       }
       else {
         std::cerr << "do not suppport float imm-mem store at this moment" << std::endl;

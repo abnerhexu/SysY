@@ -2,6 +2,6 @@ int arr[4] = {0, 1, 2, 3};
 int c = 2;
 int d;
 int main() {
-  arr[0] = 1;
+  arr[c] = 1;
   return 0;
 }

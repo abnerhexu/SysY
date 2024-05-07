@@ -272,8 +272,8 @@ void UnaryInst::print(std::ostream &os) const {
 void BinaryInst::print(std::ostream &os) const {
   printVarName(os, this) << " = ";
   auto kind = this->getKind();
-  std::vector<std::string> ops = {"add", "sub", "mul", "div", "rem", "icmpeq", "icmpne", "icmplt", "icmpgt", "icmple", "icmpge", "fadd", "fsub", "fmul", "fdiv", "frem", "fcmpeq", "fcmpne", "fcmplt", "fcmpgt", "fcmple", "fcmpge", "or", "and", "for", "fand"};
-  if (kind < kAdd or kind > kFAnd) {
+  std::vector<std::string> ops = {"add", "sub", "mul", "div", "rem", "icmpeq", "icmpne", "icmplt", "icmpgt", "icmple", "icmpge", "fadd", "fsub", "fmul", "fdiv", "frem", "fcmpeq", "fcmpne", "fcmplt", "fcmpgt", "fcmple", "fcmpge", "or", "and", "for", "fand", "sll"};
+  if (kind < kAdd or kind > kSLL) {
     assert(false);
   }
   else {
@@ -395,7 +395,8 @@ void StoreInst::print(std::ostream &os) const {
         os << dynamic_cast<ConstantValue*>(getIndex(i))->getInt();
       }
       else {
-        os << getIndex(i)->getName();
+        // std::cout << "name: " << getIndex(i)->getName() << std::endl;
+        os << "%" << getIndex(i)->getName();
       }
       for (int j = i + 1; j < getNumIndices(); j++) {
         os << " * ";

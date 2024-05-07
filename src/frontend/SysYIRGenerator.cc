@@ -173,12 +173,27 @@ std::any SysYIRGenerator::visitAssignStmt(SysYParser::AssignStmtContext *ctx) {
   auto lValue = ctx->lValue();
   auto name = lValue->ID()->getText();
   auto pointer = symbols.lookup(name);
+  auto shape = usedarrays[name];
+  std::vector<Value*> irs;
   // std::cout << pointer << name << std::endl;
   std::vector <Value *> indices;
-  for (auto exp : ctx->lValue()->exp())
-      indices.push_back(std::any_cast<Value *>(exp->accept(this)));
+  // for (auto exp : ctx->lValue()->exp())
+  //     indices.push_back(std::any_cast<Value *>(exp->accept(this)));
+  int i = 0;
+  for (int j = shape.size() - 1; i > 0; j--) {
+    irs.push_back(builder.createMulInst(shape[j], shape[j - 1]));
+  }
+  for (auto &exp: ctx->lValue()->exp()) {
+    if (irs.empty()) {
+      // 1-dimensional array
+      auto inst = builder.createSllInst(std::any_cast<Value *>(exp->accept(this)), nullptr);
+    }
+    else {
+      irs.push_back(builder.createMulInst(std::any_cast<Value*>(exp->accept(this)), nullptr));
+    }
+  }
   Value *store = builder.createStoreInst(rhs, pointer, indices);
-  return store;
+  return irs;
 }
 
 std::any SysYIRGenerator::visitNumberExp(SysYParser::NumberExpContext *ctx) {

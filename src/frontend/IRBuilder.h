@@ -195,6 +195,9 @@ public:
     return createBinaryInst(Instruction::kAnd, Type::getIntType(), lhs,
                             rhs, name);
   }
+  BinaryInst *createSllInst(Value *lhs, Value *rhs, const std::string &name = "") {
+    return createBinaryInst(Instruction::kSLL, Type::getIntType(), lhs, rhs, name);
+  }
   BinaryInst *createFAndInst(Value *lhs, Value *rhs,
                                const std::string &name = "") {
     return createBinaryInst(Instruction::kFAnd, Type::getIntType(), lhs,
