@@ -1,6 +1,6 @@
-int btt[4] = {1, 2, 3, 4};
 int main() {
-  int a[5] = {1,2,3};
+  int a[6][5][4];
   int b = 3;
+  a[3][2][1] = 1;
   return 0;
 }

@@ -174,24 +174,43 @@ std::any SysYIRGenerator::visitAssignStmt(SysYParser::AssignStmtContext *ctx) {
   auto name = lValue->ID()->getText();
   auto pointer = symbols.lookup(name);
   auto shape = usedarrays[name];
-  std::vector<Value*> irs;
+  std::vector<Value *> irs;
+  std::vector<Value *> add_results;
   // std::cout << pointer << name << std::endl;
   std::vector <Value *> indices;
   // for (auto exp : ctx->lValue()->exp())
   //     indices.push_back(std::any_cast<Value *>(exp->accept(this)));
-  int i = 0;
-  for (int j = shape.size() - 1; i > 0; j--) {
-    irs.push_back(builder.createMulInst(shape[j], shape[j - 1]));
+  // int i = 0;
+  // for (int j = shape.size() - 1; j > 0; j--) {
+  //   irs.push_back(builder.createMulInst(shape[j], shape[j - 1]));
+  // }
+  if (shape.size() > 1){
+    irs.push_back(shape[shape.size()-1]);
+    // std::cout << dynamic_cast<ConstantValue*>(irs[0])->getInt() << std::endl;
+    for (int i = 1; i < shape.size()-1; i++){
+      irs.push_back(builder.createMulInst(irs[i-1], shape[shape.size()-i-1]));
+    }
   }
+  int j = 0;
   for (auto &exp: ctx->lValue()->exp()) {
     if (irs.empty()) {
       // 1-dimensional array
-      auto inst = builder.createSllInst(std::any_cast<Value *>(exp->accept(this)), nullptr);
+      indices.push_back(std::any_cast<Value *>(exp->accept(this)));
     }
     else {
-      irs.push_back(builder.createMulInst(std::any_cast<Value*>(exp->accept(this)), nullptr));
+      if (j == shape.size()-1){
+        add_results.push_back(builder.createAddInst(add_results[j-1], std::any_cast<Value *>(exp->accept(this))));
+      }else{
+        Value * mul_result = builder.createMulInst(std::any_cast<Value*>(exp->accept(this)), irs[shape.size()-j-2]);
+        if (j == 0)
+          add_results.push_back(mul_result);
+        else
+          add_results.push_back(builder.createAddInst(add_results[j-1], mul_result));
+      }
+      j++;
     }
   }
+  indices.push_back(add_results[add_results.size()-1]);
   Value *store = builder.createStoreInst(rhs, pointer, indices);
   return irs;
 }
