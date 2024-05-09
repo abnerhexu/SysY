@@ -76,6 +76,7 @@ std::any SysYIRGenerator::visitLocalDecl(SysYParser::DeclContext *ctx) {
     auto alloca = builder.createAllocaInst(type, dims, name);
     symbols.insert(name, alloca);
     if (varDef->lValue()->exp(0) == 0){
+      // scalar
       if (varDef->ASSIGN()) {
         auto p = dynamic_cast<SysYParser::ScalarInitValueContext *>(varDef->initValue());
         auto value = std::any_cast<Value *>(visitScalarInitValue(p));
@@ -83,6 +84,7 @@ std::any SysYIRGenerator::visitLocalDecl(SysYParser::DeclContext *ctx) {
       }
     }
     else{
+      // array
       usedarrays.insert({name, dims});
       if (varDef->ASSIGN()) {
         std::vector<Value *>indices;
@@ -94,7 +96,7 @@ std::any SysYIRGenerator::visitLocalDecl(SysYParser::DeclContext *ctx) {
         for (int i = 0; i < values.size(); i++){
           arrayindex = new ConstantValue(i); // caution: memory leak risk!!!
           indices[0] = arrayindex;
-          builder.createStoreInst(values[i], alloca, indices);
+          builder.createStoreInst(values[i], alloca, indices, "", "true");
         }
       }
     }
@@ -211,7 +213,17 @@ std::any SysYIRGenerator::visitAssignStmt(SysYParser::AssignStmtContext *ctx) {
     }
   }
   indices.push_back(add_results[add_results.size()-1]);
-  Value *store = builder.createStoreInst(rhs, pointer, indices);
+  Value *store;
+  // std::cout << name << " " << dynamic_cast<AllocaInst*>(pointer)->getNumDims() << std::endl;
+  if (dynamic_cast<AllocaInst*>(pointer)->getNumDims() > 0) {
+    store = builder.createStoreInst(rhs, pointer, indices, "", "true"); // stores in an array
+    // std::cout << rhs->getName() << std::endl;
+    // assert(0);
+  }
+  else {
+    store = builder.createStoreInst(rhs, pointer, indices);
+  }
+  irs.push_back(store);
   return irs;
 }
 

@@ -9,12 +9,46 @@
 #include "backend/codegen.h"
 #include "backend/llir.h"
 
-int main(int argc, char **argv) {
-  if (argc != 2) {
-    std::cerr << "Usage: " << argv[0] << "inputfile\n";
-    return EXIT_FAILURE;
+struct ArgsOptions {
+  std::string srcfile;
+  bool emitIr = false;
+  bool emitAs = false;
+  bool constPropagation = false;
+  bool outputBinary = false;
+};
+
+ArgsOptions parseArguments(int argc, char* argv[]) {
+  ArgsOptions options;
+  options.srcfile = argv[1];
+  for(int i = 2; i < argc; ++i) {
+    std::string arg = argv[i];
+    if (arg == "--emit-ir") {
+      options.emitIr = true;
+    } 
+    else if (arg == "--emit-as") {
+      options.emitAs = true;
+    } 
+    else if (arg == "--const-propagation") {
+      options.constPropagation = true;
+    } 
+    else if (arg == "--output-binary") {
+      options.outputBinary = true;
+    }
+    else if (arg == "--verbose") {
+      options.emitIr = true;
+      options.emitAs = true;
+    } 
+    else {
+      std::cerr << "Unknown argument: " << arg << std::endl;
+    }
   }
-  std::ifstream fin(argv[1]);
+  return options;
+}
+
+
+int main(int argc, char *argv[]) {
+  ArgsOptions args = parseArguments(argc, argv);
+  std::ifstream fin(args.srcfile);
   if (not fin) {
     std::cerr << "Failed to open file " << argv[1];
     return EXIT_FAILURE;
@@ -29,14 +63,17 @@ int main(int argc, char **argv) {
   generator.visitModule(module);
 
   auto moduleIR = generator.get();
-  moduleIR->print(std::cout);
-
+  if (args.emitIr) {
+    moduleIR->print(std::cout);
+  }
+  
   codegen::LLIRGen llirgenerator(moduleIR);
   llirgenerator.llir_gen();
 
   codegen::CodeGen codeGenerator(moduleIR);
   std::string assemblyCode = codeGenerator.code_gen();
-  std::cout << "------------------ assemblyCode ------------------" << std::endl;
-  std::cout << assemblyCode << std::endl;
+  if (args.emitAs) {
+    std::cout << assemblyCode << std::endl;
+  }
   return EXIT_SUCCESS;
 }

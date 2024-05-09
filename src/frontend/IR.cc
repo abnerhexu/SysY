@@ -237,7 +237,7 @@ void BasicBlock::print(std::ostream &os) {
 Instruction::Instruction(Kind kind, Type *type, BasicBlock *parent,
               const std::string &name): User(kind, type, name), kind(kind), parent(parent) {
   if (not type->isVoid() and not hasName())
-    setName(std::to_string(getFunction()->allocateVariableID()));
+    setName("v" + std::to_string(getFunction()->allocateVariableID()));
 }
 
 void CallInst::print(std::ostream &os) const {

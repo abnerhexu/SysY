@@ -136,6 +136,7 @@ std::string CodeGen::basicBlock_gen(sysy::BasicBlock *bb) {
   for (auto &inst: bb->getInstructions()) {
     // auto instType = inst->getKind();
     assemblyCode += instruction_gen(inst.get());
+    // std::cout << assemblyCode << std::endl;
     regManager.gc(inst.get()->inst_index);
     // std::cout << "name: " << inst.get()->getName() << " index: " << inst.get()->inst_index << " last used: " << inst.get()->last_used << std::endl;
   }
@@ -148,12 +149,15 @@ std::string CodeGen::GenBinaryInst(sysy::BinaryInst *inst) {
   auto rhs = inst->getRhs();
   auto op = inst->getKind();
   std::string optype;
+  std::string optypei;
   switch (op) {
   case sysy::Value::Kind::kAdd:
     optype = "add";
+    optypei = "addi";
     break;
   case sysy::Value::Kind::kSub:
     optype = "sub";
+    optype = "addi";
     break;
   case sysy::Value::Kind::kMul:
     optype = "mul";
@@ -165,11 +169,105 @@ std::string CodeGen::GenBinaryInst(sysy::BinaryInst *inst) {
     std::cerr << "Error: unsupported binary op" << std::endl;
     exit(1);
   }
-  if (lhs->getType()->isInt()) {
-    auto destRegID = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::saved, inst->last_used);
-    instruction = space + optype + " " + regManager.intRegs[destRegID].second + ", " + regManager.intRegs[regManager.varIRegMap.find(lhs->getName())->second.second].second + ", " + regManager.intRegs[regManager.varIRegMap.find(rhs->getName())->second.second].second + endl;
-    regManager.varIRegMap[inst->getName()] = {RegisterManager::VarPos::InIReg, destRegID};
+  // if both sources are imm, go here
+  if (lhs->isConstant() && rhs->isConstant()) {
+    if (lhs->isInt() && rhs->isInt()) {
+      auto src1ID = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::dontCare, -1);
+      instruction += space + "li " + regManager.intRegs[src1ID].second + ", " + std::to_string(dynamic_cast<sysy::ConstantValue*>(lhs)->getInt()) + endl;
+      auto src2ID = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::dontCare, inst->last_used);
+      instruction += space + "li " + regManager.intRegs[src2ID].second + ", " + std::to_string(dynamic_cast<sysy::ConstantValue*>(rhs)->getInt()) + endl;
+      instruction += space + optype + " " + regManager.intRegs[src2ID].second + ", " + regManager.intRegs[src2ID].second + ", " + regManager.intRegs[src1ID].second + endl;
+      regManager.releaseReg(RegisterManager::RegType::IntReg, src1ID);
+      regManager.varIRegMap[inst->getName()] = {RegisterManager::VarPos::InIReg, src2ID};
+      regManager.intRegTaken[src2ID].second = inst->last_used;
+      // std::cout << inst->getName() << " " << regManager.varIRegMap.find(inst->getName())->second.second << std::endl;
+      // assert(0);
+      return instruction;
+    }
+    else {
+      assert(false);
+    }
   }
+  // both are var
+  if (!lhs->isConstant() && !rhs->isConstant()) {
+    int src1ID, src2ID; // src2 serves as the dest reg
+    // src1 on stack, firstly load into regs
+    if (regManager.varIRegMap.find(lhs->getName())->second.first == RegisterManager::VarPos::OnStack) {
+      src1ID = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::dontCare, -1);
+      instruction += space + "lw " + regManager.intRegs[src1ID].second + ", " + std::to_string(regManager.varIRegMap.find(lhs->getName())->second.second) + "(sp)" + endl;
+    }
+    else if (regManager.varIRegMap.find(lhs->getName())->second.first == RegisterManager::VarPos::InIReg) {
+      src1ID = regManager.varIRegMap.find(lhs->getName())->second.second;
+    }
+    // src2 on stack, firstly load into regs
+    if (regManager.varIRegMap.find(rhs->getName())->second.first == RegisterManager::VarPos::OnStack) {
+      src2ID = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::dontCare, -1);
+      instruction += space + "lw " + regManager.intRegs[src2ID].second + ", " + std::to_string(regManager.varIRegMap.find(rhs->getName())->second.second) + "(sp)" + endl;
+    }
+    else if (regManager.varIRegMap.find(rhs->getName())->second.first == RegisterManager::VarPos::InIReg) {
+      src2ID = regManager.varIRegMap.find(rhs->getName())->second.second;
+    }
+    instruction += space + optype + " " + regManager.intRegs[src2ID].second + ", " + regManager.intRegs[src1ID].second + ", " + regManager.intRegs[src2ID].second + endl;
+    regManager.varIRegMap[inst->getName()] = {RegisterManager::VarPos::InIReg, src2ID};
+    if (regManager.varIRegMap.find(lhs->getName())->second.first == RegisterManager::VarPos::OnStack) {
+      regManager.releaseReg(RegisterManager::IntReg, src1ID);
+    }
+    regManager.intRegTaken[src2ID].second = inst->last_used;
+    return instruction;
+  }
+  if (!lhs->isConstant() && rhs->isConstant()) {
+    auto tmp = lhs;
+    lhs = rhs;
+    rhs = tmp;
+  }
+  // left is constant, right is var
+  if (lhs->isConstant() && !rhs->isConstant()) {
+    if (lhs->isInt() && rhs->isInt()) {
+      // src2 on stack, firstly load into regs
+      if (regManager.varIRegMap.find(rhs->getName())->second.first == RegisterManager::VarPos::OnStack) {
+        auto src1ID = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::dontCare, -1);
+        instruction += space + "li " + regManager.intRegs[src1ID].second + ", " + std::to_string(dynamic_cast<sysy::ConstantValue*>(lhs)->getInt()) + endl;
+        assert(regManager.varIRegMap.find(rhs->getName()) != regManager.varIRegMap.end());
+        auto destRegID = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::saved, inst->last_used);
+        instruction += space + "lw " + regManager.intRegs[destRegID].second + ", " + std::to_string(regManager.varIRegMap.find(rhs->getName())->second.second) + "(sp)" + endl;
+        instruction += space + optype + " " + regManager.intRegs[destRegID].second + ", " + regManager.intRegs[src1ID].second + ", " + regManager.intRegs[destRegID].second + endl;
+        regManager.releaseReg(RegisterManager::IntReg, src1ID);
+        regManager.varIRegMap[inst->getName()] = {RegisterManager::VarPos::InIReg, destRegID};
+        return instruction;
+      }
+      // addi
+      else if (dynamic_cast<sysy::ConstantValue*>(lhs)->getInt() < 2048 && op == sysy::Value::Kind::kAdd){
+        // if imm < 2048, simply addi
+        instruction += space + optypei + " " + regManager.intRegs[regManager.varIRegMap.find(rhs->getName())->second.second].second + ", " + regManager.intRegs[regManager.varIRegMap.find(rhs->getName())->second.second].second + ", " + std::to_string(dynamic_cast<sysy::ConstantValue*>(lhs)->getInt()) + endl;
+        regManager.varIRegMap[inst->getName()] = {RegisterManager::VarPos::InIReg, regManager.varIRegMap.find(rhs->getName())->second.second};
+        regManager.intRegTaken[regManager.varIRegMap.find(rhs->getName())->second.second].second = inst->last_used;
+        return instruction;
+      }
+      // src2 in reg, use as the dest, but loading src1 into temp reg is needed to be done first
+      else if (regManager.varIRegMap.find(rhs->getName())->second.first == RegisterManager::VarPos::InIReg) {
+        auto src1ID = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::dontCare, -1);
+        instruction += space + "li " + regManager.intRegs[src1ID].second + ", " + std::to_string(dynamic_cast<sysy::ConstantValue*>(lhs)->getInt()) + endl;
+        // std::cout << rhs->getName() << " " << regManager.varIRegMap.find(rhs->getName())->second.second << std::endl;
+        // assert(0);
+        instruction += space + optype + " " + regManager.intRegs[regManager.varIRegMap.find(rhs->getName())->second.second].second + ", " + regManager.intRegs[src1ID].second + ", " + regManager.intRegs[regManager.varIRegMap.find(rhs->getName())->second.second].second + endl;
+        regManager.releaseReg(RegisterManager::IntReg, src1ID);
+        regManager.varIRegMap[inst->getName()] = {RegisterManager::VarPos::InIReg, regManager.varIRegMap.find(rhs->getName())->second.second};
+        regManager.intRegTaken[regManager.varIRegMap.find(rhs->getName())->second.second].second = inst->last_used;
+        return instruction;
+      }
+      else {
+        assert(false);
+      }
+    }
+    else {
+      assert(false);
+    }
+  }
+  // else if (lhs->getType()->isInt()) {
+  //   auto destRegID = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::saved, inst->last_used);
+  //   instruction = space + optype + " " + regManager.intRegs[destRegID].second + ", " + regManager.intRegs[regManager.varIRegMap.find(lhs->getName())->second.second].second + ", " + regManager.intRegs[regManager.varIRegMap.find(rhs->getName())->second.second].second + endl;
+  //   regManager.varIRegMap[inst->getName()] = {RegisterManager::VarPos::InIReg, destRegID};
+  // }
   else {
     std::cerr << "Error: unsupported binary op" << std::endl;
     exit(1);
@@ -188,76 +286,125 @@ std::string CodeGen::GenAllocaInst(sysy::AllocaInst *inst) {
 std::string CodeGen::GenStoreInst(sysy::StoreInst *inst) {
   std::string instruction;
   auto src = inst->getValue();
-  auto constSrc = dynamic_cast<sysy::ConstantValue *>(src);
   auto destName = inst->getPointer()->getName();
+  // std::cout << destName << ", " << inst->inarray << std::endl;
   auto destPos = regManager.varIRegMap.find(destName);
-  if (constSrc) {
-    // handle IR like store 1, %a
-    if (constSrc->isInt()) {
-      int tmpRegID = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::temp);
-      instruction += space + "li " + regManager.intRegs[tmpRegID].second + ", " + std::to_string(constSrc->getInt()) + endl;
-      if (destPos->second.first == RegisterManager::VarPos::OnStack) {
-        instruction += space + "sw " + regManager.intRegs[tmpRegID].second + ", " + std::to_string(destPos->second.second) + "(" + "sp" + ")" + endl;
-      }
-      else if (destPos->second.first == RegisterManager::VarPos::Globals) {
-        // firstly, compute the offset
-        // secondly, generate code
-        // std::cout << "do not support this moment" << std::endl;
-        auto newBBName = this->GAccessBB_gen();
-        instruction += newBBName + endl;
-        int tempRegID1 = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::dontCare, -1);
-        int tempRegID2 = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::dontCare, -1);
-        instruction += space + "auipc " + regManager.intRegs[tempRegID1].second + ", %pcrel_hi" + "(" + destName + ")" + endl;
-        instruction += space + "addi " + regManager.intRegs[tempRegID2].second + ", " + regManager.intRegs[tempRegID1].second + ", %pcrel_lo(" + newBBName + ")" + endl;
-        instruction += space + "li " + regManager.intRegs[tempRegID1].second + ", " + std::to_string(constSrc->getInt()) + endl;
-        instruction += space + regManager.intRegs[tempRegID1].second + "(" + regManager.intRegs[tempRegID2].second + ")" + endl;
-      }
-      else {
-        std::cerr << "do not suppport float imm-mem store at this moment" << std::endl;
-        exit(1);
-      }
-      assert(regManager.releaseReg(RegisterManager::RegType::IntReg, tmpRegID)); // in case of release failed
-    }
-  }
-  else {
-    // var in registers
-    if (src->getType()->isInt()) {
-      auto srcReg = regManager.varIRegMap.find(src->getName());
-      if (srcReg != regManager.varIRegMap.end()) {
-        if (srcReg->second.first == RegisterManager::VarPos::InIReg) {
-          if (destPos->second.first == RegisterManager::VarPos::OnStack){
-            instruction += space + "sw " + regManager.intRegs[srcReg->second.second].second + ", " + std::to_string(destPos->second.second) + "(sp)" + endl;
-            regManager.releaseReg(RegisterManager::RegType::IntReg, srcReg->second.second);
-            regManager.varIRegMap[src->getName()] = {RegisterManager::VarPos::OnStack, destPos->second.second};
-          }
-          else {
-            std::cerr << "do not suppport non on-stack reg-mem store at this moment" << std::endl;
-            exit(1);
-          }
+  if (!inst->inarray) {
+    if (src->isConstant()) {
+      auto constSrc = dynamic_cast<sysy::ConstantValue *>(src);
+      // handle IR like store 1, %a
+      if (constSrc->isInt()) {
+        int tmpRegID = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::temp);
+        instruction += space + "li " + regManager.intRegs[tmpRegID].second + ", " + std::to_string(constSrc->getInt()) + endl;
+        if (destPos->second.first == RegisterManager::VarPos::OnStack) {
+          instruction += space + "sw " + regManager.intRegs[tmpRegID].second + ", " + std::to_string(destPos->second.second) + "(" + "sp" + ")" + endl;
+          regManager.releaseReg(RegisterManager::RegType::IntReg, tmpRegID);
+          return instruction;
+        }
+        else if (destPos->second.first == RegisterManager::VarPos::Globals) {
+          // firstly, compute the offset
+          // secondly, generate code
+          // std::cout << "do not support this moment" << std::endl;
+          auto newBBName = this->GAccessBB_gen();
+          instruction += newBBName + endl;
+          int tempRegID1 = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::dontCare, -1);
+          int tempRegID2 = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::dontCare, -1);
+          instruction += space + "auipc " + regManager.intRegs[tempRegID1].second + ", %pcrel_hi" + "(" + destName + ")" + endl;
+          instruction += space + "addi " + regManager.intRegs[tempRegID2].second + ", " + regManager.intRegs[tempRegID1].second + ", %pcrel_lo(" + newBBName + ")" + endl;
+          instruction += space + "li " + regManager.intRegs[tempRegID1].second + ", " + std::to_string(constSrc->getInt()) + endl;
+          instruction += space + regManager.intRegs[tempRegID1].second + "(" + regManager.intRegs[tempRegID2].second + ")" + endl;
+          regManager.releaseReg(RegisterManager::RegType::IntReg, tmpRegID);
+          return instruction;
         }
         else {
-          std::cerr << "Error: store to stack" << std::endl;
+          std::cerr << "do not suppport float imm-mem store at this moment" << std::endl;
           exit(1);
         }
-      }
-      else {
-        std::cerr << "src name: " << src->getName() << std::endl;
-        for (auto it: regManager.varIRegMap) {
-          std::cerr << it.first << " " << it.second.first << " " << it.second.second << std::endl;
-        }
-        std::cerr << "Inst: " << std::endl;
-        inst->print(std::cerr);
-        std::cerr << std::endl;
-        std::cerr << "Error: cannot find src reg" << std::endl;
-        exit(1);
+        // assert(); // in case of release failed
       }
     }
     else {
-      // float reg
-      std::cerr << "do not support float reg-mem store at this moment" << std::endl;
-      exit(1);
+      // src is var in reg
+      auto srcReg = regManager.varIRegMap.find(src->getName());
+      assert(srcReg != regManager.varIRegMap.end());
+      if (srcReg->second.first == RegisterManager::VarPos::InIReg) {
+        if (destPos->second.first == RegisterManager::VarPos::OnStack) {
+          instruction += space + "sw " + regManager.intRegs[srcReg->second.second].second + ", " + std::to_string(destPos->second.second) + "(sp)" + endl;
+          regManager.releaseReg(RegisterManager::RegType::IntReg, srcReg->second.second);
+          regManager.varIRegMap[src->getName()] = {RegisterManager::VarPos::OnStack, destPos->second.second};
+          return instruction;
+        }
+      }
     }
   }
+  else {
+    // var is array
+    if (src->isConstant()) {
+      // src is const
+      auto constSrc = dynamic_cast<sysy::ConstantValue *>(src);
+      if (constSrc->isInt()) {
+        int tmpRegID = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::temp);
+        instruction += space + "li " + regManager.intRegs[tmpRegID].second + ", " + std::to_string(constSrc->getInt()) + endl;
+        if (destPos->second.first == RegisterManager::VarPos::OnStack) {
+          if (inst->getOffset()->isConstant()) {
+            // offset is const
+            instruction += space + "sw" + regManager.intRegs[tmpRegID].second + ", " + std::to_string(destPos->second.second + dynamic_cast<sysy::ConstantValue*>(inst->getOffset())->getInt()) + "(sp)" + endl;
+            regManager.varIRegMap[src->getName()] = {RegisterManager::VarPos::OnStack, destPos->second.second + dynamic_cast<sysy::ConstantValue*>(inst->getOffset())->getInt()};
+            regManager.releaseReg(RegisterManager::RegType::IntReg, tmpRegID);
+            return instruction;
+          }
+          else {
+            // offset is var
+            auto offname = inst->getOffset()->getName();
+            assert(regManager.varIRegMap.find(offname) != regManager.varIRegMap.end());
+            if (regManager.varIRegMap.find(offname)->second.first == RegisterManager::VarPos::InIReg) {
+              // offset is in reg
+              instruction += space + "add " + regManager.intRegs[regManager.varIRegMap.find(offname)->second.second].second + ", " + regManager.intRegs[regManager.varIRegMap.find(offname)->second.second].second + ", sp" + endl;
+              instruction += space + "sw " + regManager.intRegs[tmpRegID].second + ", 0(" + regManager.intRegs[regManager.varIRegMap.find(offname)->second.second].second + ")" + endl;
+              regManager.varIRegMap[src->getName()] = {RegisterManager::VarPos::OnStack, -1}; // todo: actually this is unnecessary
+              regManager.releaseReg(RegisterManager::RegType::IntReg, tmpRegID);
+              return instruction;
+            }
+            else {
+              // offset is on stack
+              assert(0);
+            }
+          }
+        }
+      }
+      else { assert(0); }
+    }
+    else {
+      // src is var
+      assert(regManager.varIRegMap.find(src->getName()) != regManager.varIRegMap.end());
+      auto srcReg = regManager.varIRegMap.find(src->getName())->second.second;
+      assert(regManager.varIRegMap.find(src->getName())->second.first == RegisterManager::VarPos::InIReg); // src should be in reg
+      if (destPos->second.first == RegisterManager::VarPos::OnStack) {
+        if (inst->getOffset()->isConstant()) {
+          // offset is const
+          instruction += space + "sw" + regManager.intRegs[srcReg].second + ", " + std::to_string(destPos->second.second + dynamic_cast<sysy::ConstantValue*>(inst->getOffset())->getInt()) + "(sp)" + endl;
+          regManager.varIRegMap[src->getName()] = {RegisterManager::VarPos::OnStack, destPos->second.second + dynamic_cast<sysy::ConstantValue*>(inst->getOffset())->getInt()};
+          return instruction;
+        }
+        else {
+          // offset is var
+          auto offname = inst->getOffset()->getName();
+          assert(regManager.varIRegMap.find(offname) != regManager.varIRegMap.end());
+          if (regManager.varIRegMap.find(offname)->second.first == RegisterManager::VarPos::InIReg) {
+            // offset is in reg
+            instruction += space + "add " + regManager.intRegs[regManager.varIRegMap.find(offname)->second.second].second + ", " + regManager.intRegs[regManager.varIRegMap.find(offname)->second.second].second + ", sp" + endl;
+            instruction += space + "sw " + regManager.intRegs[srcReg].second + ", 0(" + regManager.intRegs[regManager.varIRegMap.find(offname)->second.second].second + ")" + endl;
+            regManager.varIRegMap[src->getName()] = {RegisterManager::VarPos::OnStack, -1}; // todo: actually this is unnecessary
+            return instruction;
+          }
+          else {
+            // offset is on stack
+            assert(0);
+          }
+        }
+      }
+    }
+  } 
   return instruction;
 }
 
@@ -361,6 +508,15 @@ int RegisterManager::requestReg(RegType rtype, RegHint hint, int last_used) {
       return 0;
     case saved:
       for (auto i: this->IsavedRegList) {
+        if (this->intRegTaken[i].first == false) {
+          this->intRegTaken[i].first = true;
+          this->intRegTaken[i].second = last_used;
+          return i;
+        }
+      }
+      return 0;
+    case dontCare:
+      for (auto i: this->IdontCareRegList) {
         if (this->intRegTaken[i].first == false) {
           this->intRegTaken[i].first = true;
           this->intRegTaken[i].second = last_used;

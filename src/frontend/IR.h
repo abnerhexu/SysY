@@ -764,6 +764,9 @@ public:
 class StoreInst : public Instruction {
   friend class IRBuilder;
 
+public:
+  bool inarray = false;
+  std::vector<Value *> indices;
 protected:
   StoreInst(Value *value, Value *pointer,
             const std::vector<Value *> &indices = {},
@@ -772,6 +775,9 @@ protected:
     addOperand(value);
     addOperand(pointer);
     addOperands(indices);
+    for (auto &it: indices) {
+      this->indices.push_back(it);
+    }
   }
 
 public:
@@ -783,6 +789,9 @@ public:
   Value *getPointer() const { return getOperand(1); }
   auto getIndices() const {
     return make_range(operand_begin() + 2, operand_end());
+  }
+  auto getOffset() const {
+    return this->indices[0];
   }
   Value *getIndex(int index) const { return getOperand(index + 2); }
 

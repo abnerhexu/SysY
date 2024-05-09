@@ -244,10 +244,14 @@ public:
   }
   StoreInst *createStoreInst(Value *value, Value *pointer,
                              const std::vector<Value *> &indices = {},
-                             const std::string &name = "") {
+                             const std::string &name = "",
+                             const std::string &inarray = "false") {
     auto inst = new StoreInst(value, pointer, indices, block, name);
     assert(inst);
     block->getInstructions().emplace(position, inst);
+    if (inarray != "false") {
+      inst->inarray = true;
+    }
     return inst;
   }
 };
