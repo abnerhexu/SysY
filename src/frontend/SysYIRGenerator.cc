@@ -210,10 +210,11 @@ std::any SysYIRGenerator::visitAssignStmt(SysYParser::AssignStmtContext *ctx) {
       j++;
     }
   }
-  indices.push_back(add_results[add_results.size()-1]);
+  if (!irs.empty())
+    indices.push_back(add_results[add_results.size()-1]);
   Value *store;
-  // std::cout << name << " " << dynamic_cast<AllocaInst*>(pointer)->getNumDims() << std::endl;
-  if (dynamic_cast<AllocaInst*>(pointer)->getNumDims() > 0) {
+  //std::cout << name << " " << dynamic_cast<AllocaInst*>(pointer)->getNumDims() << std::endl;
+  if (indices.size() > 0){
     store = builder.createStoreInst(rhs, pointer, indices, "", "true"); // stores in an array
     // std::cout << rhs->getName() << std::endl;
     // assert(0);

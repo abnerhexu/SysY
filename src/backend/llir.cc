@@ -33,11 +33,17 @@ void LLIRGen::function_gen_Pass1(sysy::Function* func) {
     for (auto &inst: bb->getInstructions()) {
       //it->print(std::cout);
       if (inst->getKind() == sysy::Value::Kind::kAlloca){
-        cnt++;
+        int value_size = 1;
+        auto inst_release = inst.release();
+        for (int i = 0; i < dynamic_cast<sysy::AllocaInst*>(inst_release)->getNumDims(); i++){
+          // std::cout << dynamic_cast<sysy::ConstantValue*>(dynamic_cast<sysy::AllocaInst*>(inst_release)->getDim(i))->getInt() << std::endl;
+          value_size *= dynamic_cast<sysy::ConstantValue*>(dynamic_cast<sysy::AllocaInst*>(inst_release)->getDim(i))->getInt();
+        }
+        cnt += value_size;
       }
     }
   }
-  regManager.spOffset.insert({func, cnt*4}); //TODO array support needed
+  regManager.spOffset.insert({func, cnt*4});
   //std::cout << func->getName() << ' ' << cnt << std::endl;
 }
 

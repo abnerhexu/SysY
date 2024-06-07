@@ -459,7 +459,7 @@ std::string GenReturnInst(sysy::ReturnInst* inst) {
 
 std::string CodeGen::GenCondBrInst(sysy::CondBrInst* inst) {
   // std::cout << *inst->getCondition() << std::endl; 
-  assert(0);
+  // assert(0);
   std::string instruction = space + inst->getName() + endl;
   return instruction;
 }
