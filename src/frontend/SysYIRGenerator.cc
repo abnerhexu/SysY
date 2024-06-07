@@ -175,22 +175,20 @@ std::any SysYIRGenerator::visitAssignStmt(SysYParser::AssignStmtContext *ctx) {
   auto lValue = ctx->lValue();
   auto name = lValue->ID()->getText();
   auto pointer = symbols.lookup(name);
-  auto shape = usedarrays[name];
+  auto shape = usedarrays.find(name);
   std::vector<Value *> irs;
   std::vector<Value *> add_results;
   // std::cout << pointer << name << std::endl;
   std::vector <Value *> indices;
-  // for (auto exp : ctx->lValue()->exp())
-  //     indices.push_back(std::any_cast<Value *>(exp->accept(this)));
-  // int i = 0;
-  // for (int j = shape.size() - 1; j > 0; j--) {
-  //   irs.push_back(builder.createMulInst(shape[j], shape[j - 1]));
-  // }
-  if (shape.size() > 1){
-    irs.push_back(shape[shape.size()-1]);
-    // std::cout << dynamic_cast<ConstantValue*>(irs[0])->getInt() << std::endl;
-    for (int i = 1; i < shape.size()-1; i++){
-      irs.push_back(builder.createMulInst(irs[i-1], shape[shape.size()-i-1]));
+  // handle store a number into a scalar var
+  if (shape == usedarrays.end()) {
+    return builder.createStoreInst(rhs, pointer);
+  }
+  // array
+  if (shape->second.size() > 1){
+    irs.push_back(shape->second[shape->second.size()-1]);
+    for (int i = 1; i < shape->second.size()-1; i++){
+      irs.push_back(builder.createMulInst(irs[i-1], shape->second[shape->second.size()-i-1]));
     }
   }
   int j = 0;
@@ -200,10 +198,10 @@ std::any SysYIRGenerator::visitAssignStmt(SysYParser::AssignStmtContext *ctx) {
       indices.push_back(std::any_cast<Value *>(exp->accept(this)));
     }
     else {
-      if (j == shape.size()-1){
+      if (j == shape->second.size()-1){
         add_results.push_back(builder.createAddInst(add_results[j-1], std::any_cast<Value *>(exp->accept(this))));
       }else{
-        Value * mul_result = builder.createMulInst(std::any_cast<Value*>(exp->accept(this)), irs[shape.size()-j-2]);
+        Value * mul_result = builder.createMulInst(std::any_cast<Value*>(exp->accept(this)), irs[shape->second.size()-j-2]);
         if (j == 0)
           add_results.push_back(mul_result);
         else

@@ -457,6 +457,14 @@ std::string GenReturnInst(sysy::ReturnInst* inst) {
   return instruction;
 }
 
+std::string CodeGen::GenCondBrInst(sysy::CondBrInst* inst) {
+  // std::cout << *inst->getCondition() << std::endl; 
+  assert(0);
+  std::string instruction = space + inst->getName() + endl;
+  return instruction;
+}
+
+
 std::string CodeGen::instruction_gen(sysy::Instruction *inst) {
   std::string instruction;
   std::string instName = inst->getName();
@@ -479,6 +487,9 @@ std::string CodeGen::instruction_gen(sysy::Instruction *inst) {
       break;
     case sysy::Value::Kind::kReturn:
       instruction = GenReturnInst(dynamic_cast<sysy::ReturnInst *>(inst));
+    case sysy::Value::Kind::kCondBr:
+      instruction = GenCondBrInst(dynamic_cast<sysy::CondBrInst *>(inst));
+      break;
     default:
       break;
   }
