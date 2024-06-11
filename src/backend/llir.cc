@@ -9,7 +9,7 @@ void LLIRGen::llir_gen() {
 
 void LLIRGen::module_gen(sysy::Module* module) {
   this->clearModuleLabels(module);
-  //TODO GlobalData handle
+  // this->globalData_gen(module); // This function has been moved to the backend
   std::map<std::string, sysy::Function*> *funcs = module->getFunctions();
   for (auto it = funcs->begin(); it != funcs->end(); it++) {
     sysy::Function *func = it->second;
@@ -34,7 +34,7 @@ void LLIRGen::function_gen_Pass1(sysy::Function* func) {
       //it->print(std::cout);
       if (inst->getKind() == sysy::Value::Kind::kAlloca){
         int value_size = 1;
-        auto inst_release = inst.release();
+        auto inst_release = inst.get(); // inst.release();
         for (int i = 0; i < dynamic_cast<sysy::AllocaInst*>(inst_release)->getNumDims(); i++){
           // std::cout << dynamic_cast<sysy::ConstantValue*>(dynamic_cast<sysy::AllocaInst*>(inst_release)->getDim(i))->getInt() << std::endl;
           value_size *= dynamic_cast<sysy::ConstantValue*>(dynamic_cast<sysy::AllocaInst*>(inst_release)->getDim(i))->getInt();
@@ -66,11 +66,10 @@ int LLIRGen::basicBlock_gen(sysy::BasicBlock* bb, int alloca_offset) {
   this->curBBlock = bb;
   int tot_offset = alloca_offset;
   for (auto &inst: bb->getInstructions()) {
-    // auto instType = inst->getKind();
     if (inst->getKind() == sysy::Value::Kind::kAlloca){
       auto allocateType = static_cast<const sysy::PointerType*>(inst->getType())->getBaseType();
       if (allocateType->isInt()){
-        tot_offset += 4;
+        tot_offset += dynamic_cast<sysy::AllocaInst*>(inst.get())->getNumDims() * 4;
       }
       else if (allocateType->isFloat()) {
         tot_offset += 4;
@@ -89,6 +88,7 @@ int LLIRGen::basicBlock_gen(sysy::BasicBlock* bb, int alloca_offset) {
 void LLIRGen::instruction_gen(sysy::Instruction* inst, int alloca_offset) {
   auto instType = inst->getKind();
   this->inst_index += 1;
+  // std::cout << inst->getName() << std::endl;
   switch (instType) {
     case sysy::Value::Kind::kAdd:
     case sysy::Value::Kind::kSub:
@@ -116,6 +116,7 @@ void LLIRGen::instruction_gen(sysy::Instruction* inst, int alloca_offset) {
       break;
     case sysy::Value::Kind::kAlloca:
       this->GenAllocaInst(dynamic_cast<sysy::AllocaInst *>(inst), alloca_offset);
+      // std::cout << inst->getName() << std::endl;
       break;
     case sysy::Value::Kind::kStore:
       this->GenStoreInst(dynamic_cast<sysy::StoreInst *>(inst));

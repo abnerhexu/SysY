@@ -29,6 +29,7 @@ public:
   }
   int basicBlock_gen(sysy::BasicBlock *bb, int alloca_index);
   void instruction_gen(sysy::Instruction *inst, int alloca_index);
+  void globalData_gen(sysy::Module *module);
   void GenBinaryInst(sysy::BinaryInst *inst);
   void GenAllocaInst(sysy::AllocaInst *inst, int alloca_index);
 

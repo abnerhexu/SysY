@@ -61,19 +61,19 @@ std::any SysYIRGenerator::visitGlobalDecl(SysYParser::DeclContext *ctx) {
     }
     symbols.insert(name, GlobalValue);
   }
-  
   return values;
 }
 
 std::any SysYIRGenerator::visitLocalDecl(SysYParser::DeclContext *ctx) {
   std::vector<Value *> values;
+  sysy::AllocaInst *alloca;
   auto type = Type::getPointerType(std::any_cast<Type *>(visitBtype(ctx->btype())));
   for (auto varDef : ctx->varDef()) {
     auto name = varDef->lValue()->ID()->getText();
     std::vector<Value *> dims;
     for (auto exp : varDef->lValue()->exp())
       dims.push_back(std::any_cast<Value *>(exp->accept(this)));
-    auto alloca = builder.createAllocaInst(type, dims, name);
+    alloca = builder.createAllocaInst(type, dims, name);
     symbols.insert(name, alloca);
     if (varDef->lValue()->exp(0) == 0){
       // scalar
@@ -102,7 +102,7 @@ std::any SysYIRGenerator::visitLocalDecl(SysYParser::DeclContext *ctx) {
     }
     values.push_back(alloca);
   }
-  return values;
+  return alloca;
 }
 
 std::any SysYIRGenerator::visitFunc(SysYParser::FuncContext *ctx) {

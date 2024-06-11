@@ -134,6 +134,7 @@ std::string CodeGen::basicBlock_gen(sysy::BasicBlock *bb) {
   std::string assemblyCode;
   assemblyCode += bbLabel + ":" + endl;
   for (auto &inst: bb->getInstructions()) {
+    // if (!inst) { continue; }
     // auto instType = inst->getKind();
     assemblyCode += instruction_gen(inst.get());
     // std::cout << assemblyCode << std::endl;
@@ -144,6 +145,7 @@ std::string CodeGen::basicBlock_gen(sysy::BasicBlock *bb) {
 }
 
 std::string CodeGen::GenBinaryInst(sysy::BinaryInst *inst) {
+  // std::cout << inst->getName() << std::endl;
   std::string instruction;
   auto lhs = inst->getLhs();
   auto rhs = inst->getRhs();
@@ -294,6 +296,8 @@ std::string CodeGen::GenStoreInst(sysy::StoreInst *inst) {
       auto constSrc = dynamic_cast<sysy::ConstantValue *>(src);
       // handle IR like store 1, %a
       if (constSrc->isInt()) {
+        // std::cout << destName << " " << (destPos == regManager.varIRegMap.end()) << std::endl;
+        // assert(0);
         int tmpRegID = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::temp);
         instruction += space + "li " + regManager.intRegs[tmpRegID].second + ", " + std::to_string(constSrc->getInt()) + endl;
         if (destPos->second.first == RegisterManager::VarPos::OnStack) {
@@ -348,7 +352,7 @@ std::string CodeGen::GenStoreInst(sysy::StoreInst *inst) {
         if (destPos->second.first == RegisterManager::VarPos::OnStack) {
           if (inst->getOffset()->isConstant()) {
             // offset is const
-            instruction += space + "sw" + regManager.intRegs[tmpRegID].second + ", " + std::to_string(destPos->second.second + dynamic_cast<sysy::ConstantValue*>(inst->getOffset())->getInt()) + "(sp)" + endl;
+            instruction += space + "sw " + regManager.intRegs[tmpRegID].second + ", " + std::to_string(destPos->second.second + dynamic_cast<sysy::ConstantValue*>(inst->getOffset())->getInt()*4) + "(sp)" + endl;
             regManager.varIRegMap[src->getName()] = {RegisterManager::VarPos::OnStack, destPos->second.second + dynamic_cast<sysy::ConstantValue*>(inst->getOffset())->getInt()};
             regManager.releaseReg(RegisterManager::RegType::IntReg, tmpRegID);
             return instruction;
@@ -487,6 +491,7 @@ std::string CodeGen::instruction_gen(sysy::Instruction *inst) {
       break;
     case sysy::Value::Kind::kReturn:
       instruction = GenReturnInst(dynamic_cast<sysy::ReturnInst *>(inst));
+      break;
     case sysy::Value::Kind::kCondBr:
       instruction = GenCondBrInst(dynamic_cast<sysy::CondBrInst *>(inst));
       break;
