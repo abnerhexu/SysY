@@ -222,6 +222,7 @@ public:
   std::string GenRetuenInst(sysy::ReturnInst* inst);
   std::pair<int, std::string> GenCallInst(sysy::CallInst* inst, int dstRegID);
   std::string GenBinaryInst(sysy::BinaryInst* inst);
+  std::string GenBinaryCmpInst(sysy::BinaryInst *inst);
   std::pair<int, std::string> GenUnaryInst(sysy::UnaryInst* inst, int dstRegID);
   std::string GenUncondBrInst(sysy::UncondBrInst* inst);
   std::string GenCondBrInst(sysy::CondBrInst* inst);
@@ -239,8 +240,8 @@ public:
     auto t = this->bblockLabels.find(bb);
     std::string label;
     if (t == this->bblockLabels.end()) {
-      label = ".block_" + std::to_string(this->bblabelId++);
-      bblockLabels.emplace(bb, label);
+      label = ".block_" + std::to_string(this->bblabelId++) + "_" + bb->getName();
+      bblockLabels[bb] = label;
     }
     else {
       label = t->second;

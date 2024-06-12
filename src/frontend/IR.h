@@ -638,7 +638,7 @@ class UncondBrInst : public Instruction {
 protected:
   UncondBrInst(BasicBlock *block, std::vector<Value *> args,
                BasicBlock *parent = nullptr)
-      : Instruction(kCondBr, Type::getVoidType(), parent, "") {
+      : Instruction(kBr, Type::getVoidType(), parent, "") {
     assert(block->getNumArguments() == args.size());
     addOperand(block);
     addOperands(args);

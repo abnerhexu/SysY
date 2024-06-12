@@ -144,6 +144,32 @@ std::string CodeGen::basicBlock_gen(sysy::BasicBlock *bb) {
   return assemblyCode;
 }
 
+std::string CodeGen::GenBinaryCmpInst(sysy::BinaryInst *inst) {
+  std::string instruction;
+  auto lhs = inst->getLhs();
+  auto rhs = inst->getRhs();
+  auto op = inst->getKind();
+  std::string optype;
+  std::string optypei;
+  switch (op) {
+  case sysy::Value::Kind::kICmpEQ:
+    optype = "sub";
+    break;
+  default:
+    break;
+  }
+  auto lhsReg = regManager.varIRegMap.find(lhs->getName());
+  auto rhsReg = regManager.varIRegMap.find(rhs->getName());
+  if (lhsReg == regManager.varIRegMap.end() || rhsReg == regManager.varIRegMap.end()) {
+    std::cerr << "Error: unsupported binary op" << std::endl;
+    assert(0);
+  }
+  auto cmpResult = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::dontCare, 0);
+  regManager.varIRegMap[inst->getName()] = {RegisterManager::VarPos::InIReg, cmpResult};
+  instruction += space + optype + " " + regManager.intRegs[cmpResult].second + ", " + regManager.intRegs[lhsReg->second.second].second + ", " + regManager.intRegs[rhsReg->second.second].second + endl;
+  return instruction;
+}
+
 std::string CodeGen::GenBinaryInst(sysy::BinaryInst *inst) {
   // std::cout << inst->getName() << std::endl;
   std::string instruction;
@@ -363,10 +389,13 @@ std::string CodeGen::GenStoreInst(sysy::StoreInst *inst) {
             assert(regManager.varIRegMap.find(offname) != regManager.varIRegMap.end());
             if (regManager.varIRegMap.find(offname)->second.first == RegisterManager::VarPos::InIReg) {
               // offset is in reg
-              instruction += space + "add " + regManager.intRegs[regManager.varIRegMap.find(offname)->second.second].second + ", " + regManager.intRegs[regManager.varIRegMap.find(offname)->second.second].second + ", sp" + endl;
+              auto addrReg = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::dontCare);
+              instruction += space + "addi " + regManager.intRegs[addrReg].second + ", sp, " + std::to_string(regManager.varIRegMap.find(destName)->second.second) + endl;
+              instruction += space + "add " + regManager.intRegs[regManager.varIRegMap.find(offname)->second.second].second + ", " + regManager.intRegs[regManager.varIRegMap.find(offname)->second.second].second + ", " + regManager.intRegs[addrReg].second + endl;
               instruction += space + "sw " + regManager.intRegs[tmpRegID].second + ", 0(" + regManager.intRegs[regManager.varIRegMap.find(offname)->second.second].second + ")" + endl;
               regManager.varIRegMap[src->getName()] = {RegisterManager::VarPos::OnStack, -1}; // todo: actually this is unnecessary
               regManager.releaseReg(RegisterManager::RegType::IntReg, tmpRegID);
+              regManager.releaseReg(RegisterManager::RegType::IntReg, addrReg);
               return instruction;
             }
             else {
@@ -464,10 +493,30 @@ std::string GenReturnInst(sysy::ReturnInst* inst) {
 std::string CodeGen::GenCondBrInst(sysy::CondBrInst* inst) {
   // std::cout << *inst->getCondition() << std::endl; 
   // assert(0);
-  std::string instruction = space + inst->getName() + endl;
+  std::string instruction;
+  auto cond = inst->getCondition();
+  auto condName = cond->getName();
+  // std::cout << regManager.varIRegMap.find(condName)->second.second << std::endl;
+  assert(regManager.varIRegMap.find(condName) != regManager.varIRegMap.end());
+  auto thenBlockName = this->getBasicBlocksLabel(inst->getThenBlock());
+  auto elseBlockName = this->getBasicBlocksLabel(inst->getElseBlock());
+  if (cond->isConstant()) {
+    //TODO
+  }
+  else {
+    instruction += space + "beqz " + regManager.intRegs[regManager.varIRegMap.find(condName)->second.second].second + ", " + thenBlockName + endl;
+    instruction += space + "j " + elseBlockName + endl;
+  }
+  // std::cout << instruction << std::endl;
+  // assert(0);
   return instruction;
 }
 
+std::string CodeGen::GenUncondBrInst(sysy::UncondBrInst* inst) {
+  std::string instruction;
+  instruction += space + "j " + this->getBasicBlocksLabel(inst->getBlock()) + endl;
+  return instruction;
+}
 
 std::string CodeGen::instruction_gen(sysy::Instruction *inst) {
   std::string instruction;
@@ -494,6 +543,12 @@ std::string CodeGen::instruction_gen(sysy::Instruction *inst) {
       break;
     case sysy::Value::Kind::kCondBr:
       instruction = GenCondBrInst(dynamic_cast<sysy::CondBrInst *>(inst));
+      break;
+    case sysy::Value::Kind::kBr:
+      instruction = GenUncondBrInst(dynamic_cast<sysy::UncondBrInst *>(inst));
+      break;
+    case sysy::Value::Kind::kICmpEQ:
+      instruction = GenBinaryCmpInst(dynamic_cast<sysy::BinaryInst *>(inst));
       break;
     default:
       break;
