@@ -23,7 +23,7 @@ public:
   {"f23", "fs7"}, {"f24", "fs8"}, {"f25", "fs9"}, {"f26", "fs10"}, {"f27", "fs11"}, {"f28", "ft8"}, {"f29", "ft9"}, {"f30", "ft10"}, {"f31", "ft11"}};
 
   enum VarPos {
-    Globals, OnStack, InIReg, InFReg
+    Globals, OnStack, InIReg, InFReg, Imm
   };
   // string: name
   // varPos: indication the var position
@@ -223,9 +223,10 @@ public:
   std::pair<int, std::string> GenCallInst(sysy::CallInst* inst, int dstRegID);
   std::string GenBinaryInst(sysy::BinaryInst* inst);
   std::string GenBinaryCmpInst(sysy::BinaryInst *inst);
-  std::pair<int, std::string> GenUnaryInst(sysy::UnaryInst* inst, int dstRegID);
+  // std::pair<int, std::string> GenUnaryInst(sysy::UnaryInst* inst, int dstRegID);
   std::string GenUncondBrInst(sysy::UncondBrInst* inst);
   std::string GenCondBrInst(sysy::CondBrInst* inst);
+  std::string GenUnaryInst(sysy::UnaryInst* inst);
 
   std::string SaveReg2Stack(int regID, Kind kind, sysy::Instruction* inst);
   void clearFuncInfo(sysy::Function *func) {

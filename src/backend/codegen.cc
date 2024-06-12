@@ -319,6 +319,7 @@ std::string CodeGen::GenStoreInst(sysy::StoreInst *inst) {
   auto destPos = regManager.varIRegMap.find(destName);
   if (!inst->inarray) {
     if (src->isConstant()) {
+      // constant, but in Value form
       auto constSrc = dynamic_cast<sysy::ConstantValue *>(src);
       // handle IR like store 1, %a
       if (constSrc->isInt()) {
@@ -364,7 +365,16 @@ std::string CodeGen::GenStoreInst(sysy::StoreInst *inst) {
           regManager.varIRegMap[src->getName()] = {RegisterManager::VarPos::OnStack, destPos->second.second};
           return instruction;
         }
+        else { assert(0); }
       }
+      else if (srcReg->second.first == RegisterManager::VarPos::Imm) {
+        if (destPos->second.first == RegisterManager::VarPos::OnStack) {
+          int tmpRegID = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::temp, 0);
+          instruction += space + "li " + regManager.intRegs[tmpRegID].second + ", " + std::to_string(srcReg->second.second) + endl;
+          instruction += space + "sw " + regManager.intRegs[tmpRegID].second + ", " + std::to_string(destPos->second.second) + "(sp)" + endl;
+        }
+      }
+      else { assert(0); }
     }
   }
   else {
@@ -501,7 +511,8 @@ std::string CodeGen::GenCondBrInst(sysy::CondBrInst* inst) {
   auto thenBlockName = this->getBasicBlocksLabel(inst->getThenBlock());
   auto elseBlockName = this->getBasicBlocksLabel(inst->getElseBlock());
   if (cond->isConstant()) {
-    //TODO
+    std::cerr << "do not support constant cond now" << std::endl;
+    assert(0);
   }
   else {
     instruction += space + "beqz " + regManager.intRegs[regManager.varIRegMap.find(condName)->second.second].second + ", " + thenBlockName + endl;
@@ -516,6 +527,40 @@ std::string CodeGen::GenUncondBrInst(sysy::UncondBrInst* inst) {
   std::string instruction;
   instruction += space + "j " + this->getBasicBlocksLabel(inst->getBlock()) + endl;
   return instruction;
+}
+
+std::string CodeGen::GenUnaryInst(sysy::UnaryInst* inst) {
+  std::string instruction;
+  auto op = inst->getKind();
+  if (op == sysy::Value::Kind::kNeg) {
+    if (inst->getOperand()->isConstant()) {
+      regManager.varIRegMap[inst->getName()] = {RegisterManager::VarPos::Imm, dynamic_cast<sysy::ConstantValue *>(inst->getOperand())->getInt()*-1};
+      return "";
+    }
+    auto srcName = inst->getOperand()->getName();
+    assert(regManager.varIRegMap.find(srcName) != regManager.varIRegMap.end());
+    auto src = regManager.varIRegMap.find(srcName);
+    if (src->second.first == RegisterManager::VarPos::OnStack) {
+      auto tempReg = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::dontCare, 0);
+      instruction += space + "lw " + regManager.intRegs[tempReg].second + ", " + std::to_string(src->second.second) + "(sp)" + endl;
+      instruction += space + "neg " + regManager.intRegs[tempReg].second + ", " + regManager.intRegs[tempReg].second + endl;
+      instruction += space + "sw " + regManager.intRegs[tempReg].second + ", " + std::to_string(src->second.second) + "(sp)" + endl;
+      regManager.releaseReg(RegisterManager::RegType::IntReg, tempReg);
+      return instruction;
+    }
+    else if (src->second.first == RegisterManager::VarPos::InIReg){
+      instruction += space + "neg " + regManager.intRegs[src->second.second].second + ", " + regManager.intRegs[src->second.second].second + endl;
+      return instruction;
+    }
+    else {
+      // on global
+      std::cerr << " do not support global" << std::endl;
+      assert(0);
+    }
+  }
+  else {
+    assert(0);
+  }
 }
 
 std::string CodeGen::instruction_gen(sysy::Instruction *inst) {
@@ -549,6 +594,9 @@ std::string CodeGen::instruction_gen(sysy::Instruction *inst) {
       break;
     case sysy::Value::Kind::kICmpEQ:
       instruction = GenBinaryCmpInst(dynamic_cast<sysy::BinaryInst *>(inst));
+      break;
+    case sysy::Value::Kind::kNeg:
+      instruction = GenUnaryInst(dynamic_cast<sysy::UnaryInst *>(inst));
       break;
     default:
       break;
