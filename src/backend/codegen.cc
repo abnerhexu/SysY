@@ -558,7 +558,4 @@ void RegisterManager::gc(int inst_index) {
     }
   }
 }
-
-
-
 }

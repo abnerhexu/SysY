@@ -69,7 +69,10 @@ int LLIRGen::basicBlock_gen(sysy::BasicBlock* bb, int alloca_offset) {
     if (inst->getKind() == sysy::Value::Kind::kAlloca){
       auto allocateType = static_cast<const sysy::PointerType*>(inst->getType())->getBaseType();
       if (allocateType->isInt()){
-        tot_offset += dynamic_cast<sysy::AllocaInst*>(inst.get())->getNumDims() * 4;
+        // for (auto &it: dynamic_cast<sysy::AllocaInst*>(inst.get())->getDims()) {
+        //   tot_offset += dynamic_cast<sysy::ConstantValue*>(it)->getInt() * 4;
+        // }
+        // TODO
       }
       else if (allocateType->isFloat()) {
         tot_offset += 4;
