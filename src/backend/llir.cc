@@ -1,4 +1,5 @@
 #include "llir.h"
+#include "../frontend/SysYIRGenerator.h"
 
 namespace codegen {
 
@@ -50,7 +51,7 @@ void LLIRGen::function_gen_Pass1(sysy::Function* func) {
 void LLIRGen::function_gen_Pass2(sysy::Function* func) {
   // Pass 2: map the vars to offs
   this->curFunc = func;
-  int alloca_offset = 0;
+  int alloca_offset = 4-regManager.spOffset[func];
   clearFuncInfo(func);
   auto bbs = func->getBasicBlocks();
   for (auto it = bbs.begin(); it != bbs.end(); it++){
@@ -66,13 +67,21 @@ int LLIRGen::basicBlock_gen(sysy::BasicBlock* bb, int alloca_offset) {
   this->curBBlock = bb;
   int tot_offset = alloca_offset;
   for (auto &inst: bb->getInstructions()) {
+    instruction_gen(inst.get(), tot_offset);
     if (inst->getKind() == sysy::Value::Kind::kAlloca){
       auto allocateType = static_cast<const sysy::PointerType*>(inst->getType())->getBaseType();
       if (allocateType->isInt()){
-        // for (auto &it: dynamic_cast<sysy::AllocaInst*>(inst.get())->getDims()) {
-        //   tot_offset += dynamic_cast<sysy::ConstantValue*>(it)->getInt() * 4;
-        // }
-        // TODO
+        if (dynamic_cast<sysy::AllocaInst*>(inst.get())->getNumDims()){
+          int arr_size = 1;
+          auto shape = sysy::usedarrays.find(dynamic_cast<sysy::AllocaInst*>(inst.get())->getName());
+          for (int i = 0; i < dynamic_cast<sysy::AllocaInst*>(inst.get())->getNumDims(); i++){
+            std::cout << dynamic_cast<sysy::ConstantValue*>(dynamic_cast<sysy::AllocaInst*>(inst.get())->getDim(i))->getInt() << std::endl;
+            arr_size *= dynamic_cast<sysy::ConstantValue*>(dynamic_cast<sysy::AllocaInst*>(inst.get())->getDim(i))->getInt();
+          }
+          tot_offset += 4*arr_size;
+        }else{
+          tot_offset += 4;
+        }
       }
       else if (allocateType->isFloat()) {
         tot_offset += 4;
@@ -83,7 +92,6 @@ int LLIRGen::basicBlock_gen(sysy::BasicBlock* bb, int alloca_offset) {
         exit(1);
       }
     }
-    instruction_gen(inst.get(), tot_offset);
   }
   return tot_offset;
 }

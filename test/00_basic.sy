@@ -2,8 +2,10 @@ int arr[4] = {0, 1, 2, 3};
 int c = 2;
 int d;
 int main() {
-  int arr1[4] = {0,1,2,3};
+  int arr1[4] = {4,5,6,7};
+  int arr2[2][3];
   int e = 1;
-  arr[c+e] = 1;
+  arr1[3] = 1;
+  arr2[1][2] = 10;
   return 0;
 }
