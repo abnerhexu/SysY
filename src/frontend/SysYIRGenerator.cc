@@ -243,11 +243,47 @@ std::any SysYIRGenerator::visitNumberExp(SysYParser::NumberExpContext *ctx) {
 std::any SysYIRGenerator::visitLValueExp(SysYParser::LValueExpContext *ctx) {
   auto name = ctx->lValue()->ID()->getText();
   Value *value = symbols.lookup(name);
-  std::vector <Value *> indices;
-  for (auto exp : ctx->lValue()->exp())
-      indices.push_back(std::any_cast<Value *>(exp->accept(this)));
-  if (isa<GlobalValue>(value) or isa<AllocaInst>(value))
-    value = builder.createLoadInst(value, indices);
+  auto shape = usedarrays.find(name);
+
+  //scalar
+  if (shape == usedarrays.end()){
+    value = builder.createLoadInst(value);
+  }
+  //array
+  else{
+    std::vector <Value *> indices;
+    std::vector<Value *> irs;
+    std::vector<Value *> add_results;
+    if (shape->second.size() > 1){
+      irs.push_back(shape->second[shape->second.size()-1]);
+      for (int i = 1; i < shape->second.size()-1; i++){
+        irs.push_back(builder.createMulInst(irs[i-1], shape->second[shape->second.size()-i-1]));
+      }
+    }
+    int j = 0;
+    for (auto exp : ctx->lValue()->exp()){
+      if (irs.empty()) {
+        // 1-dimensional array
+        indices.push_back(std::any_cast<Value *>(exp->accept(this)));
+      }
+      else {
+        if (j == shape->second.size()-1){
+          add_results.push_back(builder.createAddInst(add_results[j-1], std::any_cast<Value *>(exp->accept(this))));
+        }else{
+          Value * mul_result = builder.createMulInst(std::any_cast<Value*>(exp->accept(this)), irs[shape->second.size()-j-2]);
+          if (j == 0)
+            add_results.push_back(mul_result);
+          else
+            add_results.push_back(builder.createAddInst(add_results[j-1], mul_result));
+        }
+        j++;
+      }
+    }
+    if (!irs.empty())
+      indices.push_back(add_results[add_results.size()-1]);
+    if (isa<GlobalValue>(value) or isa<AllocaInst>(value))
+      value = builder.createLoadInst(value, indices);
+  }
   return value;
 }
 

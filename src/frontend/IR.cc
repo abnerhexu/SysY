@@ -367,11 +367,7 @@ void LoadInst::print(std::ostream &os) const {
     int len = 1;
     int offset = 0;
     std::string name = getPointer()->getName();
-    for (int i = getNumIndices()-1; i >= 0; i--){
-      offset += (dynamicCast<ConstantValue>(getIndex(i)))->getInt() * len;
-      len *= (dynamicCast<ConstantValue>(usedarrays[name][i]))->getInt();
-    }
-    printOperand(os, getPointer()) << "+" << offset << "(" << *getPointer()->getType() << ") : " << *getType();
+    printOperand(os, getPointer()) << "+" << getIndex(0)->getName() << "(" << *getPointer()->getType() << ") : " << *getType();
   }else{
     printOperand(os, getPointer()) << " : " << *getType();
   }
