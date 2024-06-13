@@ -1,32 +1,33 @@
-#include<stdio.h>
-#include<unistd.h>
-#include<sys/types.h>
-#include<sys/wait.h>
+#include <linux/sched.h>    /* Definition of struct clone_args */
+#include <sched.h>          /* Definition of CLONE_* constants */
+#include <sys/syscall.h>    /* Definition of SYS_* constants */
+#include <unistd.h>
+#include <sys/wait.h>
+#include <signal.h>
+#include <sys/types.h>
 
-int t4_create() {
-    int pid1, pid2, pid3, pid4;
-    // Parent is pid0
-    pid1 = fork();
-    if (pid1 == 0) {
-        // thread 1
-        pid2 = fork();
-        if (pid2 == 0) {
-            // thread 2
-        }
-        else {
-            // thread 1
-        }
+#define NUM_THREADS 4
+#define STACK_SIZE 4096
+char stacks[NUM_THREADS][STACK_SIZE];
+
+int thread_create(int num_threads, void *func) {
+    int n = num_threads;
+    while (n > 0) {
+        void *stack_top = stacks[n-1] + STACK_SIZE;
+        int pid = clone(func, stack_top, CLONE_VM|CLONE_VFORK, 0);
+        n--;
     }
-    else {
-        // thread 0
-        pid3 = fork();
+    int n = 0;
+    while (n < num_threads) {
+        wait(NULL);
     }
 }
 
-int t_wait() {
-
-}
-
-int t_join() {
-
+void thread_join(int i, int n) {
+    if (i != n) {
+        waitid(P_ALL, 0, NULL, WEXITED);
+    }
+    if (i != 0) {
+        _exit(0);
+    }
 }

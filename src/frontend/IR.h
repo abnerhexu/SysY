@@ -388,6 +388,7 @@ protected:
   arg_list arguments;
   block_list successors;
   block_list predecessors;
+  bool inPragma;
 
 protected:
   explicit BasicBlock(Function *parent, const std::string &name = "");
@@ -416,6 +417,8 @@ public:
     arguments.emplace_back(arg);
     return arguments.back().get();
   };
+  bool isInPragma() { return this->inPragma; }
+  void setInPragma(bool inPragma) { this->inPragma = inPragma; }
 
 public:
   void print(std::ostream &os);

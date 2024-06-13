@@ -145,15 +145,19 @@ std::any SysYIRGenerator::visitFuncType(SysYParser::FuncTypeContext *ctx) {
              : (ctx->FLOAT() ? Type::getFloatType() : Type::getVoidType());
 }
 
-std::any SysYIRGenerator::visitBlockStmt(SysYParser::BlockStmtContext *ctx) {
-  for (auto item : ctx->blockItem()) {
-    // if (1) {
-    //   std::cout << (item->decl()? "decl": "no decl") << (item->stmt()? "stmt": "no stmt") << std::endl;
-    // }
-    visitBlockItem(item);
-  }
-  return builder.getBasicBlock();
-}
+// std::any SysYIRGenerator::visitBlockStmt(SysYParser::BlockStmtContext *ctx, bool parallelized = false) {
+//   for (auto item : ctx->blockItem()) {
+//     // if (1) {
+//     //   std::cout << (item->decl()? "decl": "no decl") << (item->stmt()? "stmt": "no stmt") << std::endl;
+//     // }
+//     visitBlockItem(item);
+//   }
+//   if(parallelized) {
+//     auto *curBb = builder.getBasicBlock();
+//     curBb->setInPragma(true);
+//   }
+//   return builder.getBasicBlock();
+// }
 
 std::any SysYIRGenerator::visitScalarInitValue(SysYParser::ScalarInitValueContext *ctx) {
   // Value *value =  std::any_cast<Value *>(ctx->exp()->accept(this));
@@ -542,4 +546,10 @@ std::any SysYIRGenerator::visitWhileStmt(SysYParser::WhileStmtContext *ctx) {
   return builder.getBasicBlock();
 }
 
+std::any SysYIRGenerator::visitPragmaStmt(SysYParser::PragmaStmtContext *ctx) {
+  auto *parallelBlock = ctx->blockStmt();
+  visitBlockStmt(parallelBlock, true);
+  std::cout << "find pragma" << std::endl;
+  return builder.getBasicBlock();
+}
 } // namespace sysy
