@@ -19,12 +19,12 @@ std::string CodeGen::globalData_gen(sysy::Module* module){
       // int
       if (it.second->getNumDims() > 0) {
         regManager.varIRegMap.insert({name, {RegisterManager::VarPos::Globals, 0}});
-        data += ".gblock_" + name + ":" + endl;
+        data += name + ":" + endl;
+        int totSize = 1;
+        for (int k = 0; k < it.second->getNumDims(); k++) {
+          totSize *= dynamic_cast<sysy::ConstantValue*>(it.second->getDim(k))->getInt();
+        }
         if (it.second->getNumInitVals() > 0) {
-          int totSize = 1;
-          for (int k = 0; k < it.second->getNumDims(); k++) {
-            totSize *= dynamic_cast<sysy::ConstantValue*>(it.second->getDim(k))->getInt();
-          }
           for (int k = 0; k < it.second->getNumInitVals(); k++) {
             data += space + ".word  " + std::to_string(dynamic_cast<sysy::ConstantValue*>(it.second->getInitVals(k))->getInt()) + endl;
           }
@@ -33,10 +33,13 @@ std::string CodeGen::globalData_gen(sysy::Module* module){
             data += space + ".zero  " + std::to_string(totSize*4) + endl;
           }
         }
+        else {
+            data += space + ".zero " + std::to_string(totSize*4) + endl; 
+        }
       } // array
       else {
         regManager.varIRegMap.insert({name, {RegisterManager::VarPos::Globals, 0}});
-        data += ".gblock_" + name + ":" + endl;
+        data += name + ":" + endl;
         if (it.second->getNumInitVals() > 0) {
           data += space + ".word  " + std::to_string(dynamic_cast<sysy::ConstantValue*>(it.second->init())->getInt()) + endl;
         } // with init

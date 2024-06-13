@@ -1,6 +1,6 @@
+int a[6][5];
 int main() {
-  int a[6][5][4];
   int b = 3;
-  a[3][2][1] = 1;
+  a[b][2] = 1;
   return 0;
 }

@@ -58,6 +58,9 @@ std::any SysYIRGenerator::visitGlobalDecl(SysYParser::DeclContext *ctx) {
     else {
       GlobalValue = module->createGlobalValue(name, type->getPointerType(type), dims, init);
       values.push_back(GlobalValue);
+      if (dims.size() > 0) {
+        usedarrays.insert({name, dims});
+      }
     }
     symbols.insert(name, GlobalValue);
   }

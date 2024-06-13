@@ -75,7 +75,7 @@ int LLIRGen::basicBlock_gen(sysy::BasicBlock* bb, int alloca_offset) {
           int arr_size = 1;
           auto shape = sysy::usedarrays.find(dynamic_cast<sysy::AllocaInst*>(inst.get())->getName());
           for (int i = 0; i < dynamic_cast<sysy::AllocaInst*>(inst.get())->getNumDims(); i++){
-            std::cout << dynamic_cast<sysy::ConstantValue*>(dynamic_cast<sysy::AllocaInst*>(inst.get())->getDim(i))->getInt() << std::endl;
+            // std::cout << dynamic_cast<sysy::ConstantValue*>(dynamic_cast<sysy::AllocaInst*>(inst.get())->getDim(i))->getInt() << std::endl;
             arr_size *= dynamic_cast<sysy::ConstantValue*>(dynamic_cast<sysy::AllocaInst*>(inst.get())->getDim(i))->getInt();
           }
           tot_offset += 4*arr_size;
