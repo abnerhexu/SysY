@@ -1,0 +1,7 @@
+int arr[4][4] = {1, 2, 3, 4};
+int main() {
+    int b;
+    int c = 3;
+    arr[2][1] = arr[2][c];
+    return 0;
+}
