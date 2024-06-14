@@ -549,7 +549,8 @@ std::any SysYIRGenerator::visitWhileStmt(SysYParser::WhileStmtContext *ctx) {
   auto *bb2 = builder.getBasicBlock();
   builder.setPosition(thenBlock, thenBlock->end());
   if (bb1 != bb2) {
-    builder.createUncondBrInst(bb2->getPredecessors()[bb2->getNumPredecessors() - 1], {});
+    std::cout << bb2->getNumPredecessors() << std::endl;
+    builder.createUncondBrInst(bb2->getPredecessors()[0]->getPredecessors()[0], {});
   }
   
   // builder.setPosition(thenBlock, thenBlock->end());

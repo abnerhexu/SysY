@@ -1,9 +1,13 @@
 int main(){
     int i = 0;
     int j = 0;
+    int k = 0;
     while(i < 10){
         while(j<10) {
             j = j + 2;
+            while (k < 10) {
+                k = k+3;
+            }
         }
         i = i + 1;
     }
