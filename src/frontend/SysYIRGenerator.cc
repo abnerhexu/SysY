@@ -528,8 +528,11 @@ std::any SysYIRGenerator::visitWhileStmt(SysYParser::WhileStmtContext *ctx) {
   auto* func = curBlock->getParent();
   auto allocatedAnyID = AllocateNamedBlockID("while.cond.");
   auto* headerBlock = func->addBasicBlock(emitBlockName("while.cond.", allocatedAnyID));
+  headerBlock->setKind(BasicBlock::BBKind::kWhileHeader);
   auto* thenBlock = func->addBasicBlock(emitBlockName("while.body.", allocatedAnyID));
+  thenBlock->setKind(BasicBlock::BBKind::kWhileBody);
   auto* exitBlock = func->addBasicBlock(emitBlockName("while.end.", allocatedAnyID));
+  exitBlock->setKind(BasicBlock::BBKind::kWhileEnd);
   curBlock->getSuccessors().push_back(headerBlock);
   headerBlock->getPredecessors().push_back(curBlock);
   builder.setPosition(headerBlock, headerBlock->end());
@@ -540,16 +543,19 @@ std::any SysYIRGenerator::visitWhileStmt(SysYParser::WhileStmtContext *ctx) {
   thenBlock->getSuccessors().push_back(exitBlock);
   exitBlock->getPredecessors().push_back(thenBlock);
   builder.setPosition(thenBlock, thenBlock->end());
+  auto *bb1 = builder.getBasicBlock();
   visitStmt(ctx->stmt());
   builder.createUncondBrInst(headerBlock, {});
+  auto *bb2 = builder.getBasicBlock();
+  builder.setPosition(thenBlock, thenBlock->end());
+  if (bb1 != bb2) {
+    builder.createUncondBrInst(bb2->getPredecessors()[bb2->getNumPredecessors() - 1], {});
+  }
+  
+  // builder.setPosition(thenBlock, thenBlock->end());
+  // builder.createUncondBrInst(thenBlock->getSuccessors()[thenBlock->getSuccessors().size() - 1], {});
+  // builder.createUncondBrInst()
   builder.setPosition(exitBlock, exitBlock->end());
-  return builder.getBasicBlock();
-}
-
-std::any SysYIRGenerator::visitPragmaStmt(SysYParser::PragmaStmtContext *ctx) {
-  auto *parallelBlock = ctx->blockStmt();
-  visitBlockStmt(parallelBlock, true);
-  std::cout << "find pragma" << std::endl;
   return builder.getBasicBlock();
 }
 } // namespace sysy

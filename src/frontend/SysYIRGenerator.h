@@ -49,8 +49,7 @@ public:
 
   virtual std::any visitFuncType(SysYParser::FuncTypeContext *ctx) override;
 
-  virtual std::any
-  visitFuncFParams(SysYParser::FuncFParamsContext *ctx) override {
+  virtual std::any visitFuncFParams(SysYParser::FuncFParamsContext *ctx) override {
     return visitChildren(ctx);
   }
 
@@ -58,21 +57,29 @@ public:
     return visitChildren(ctx);
   }
 
-  // virtual std::any visitBlockStmt(SysYParser::BlockStmtContext *ctx) override;
-
-  std::any visitBlockStmt(SysYParser::BlockStmtContext *ctx, bool parallelized = false) {
+  virtual std::any visitBlockStmt(SysYParser::BlockStmtContext *ctx) override {
     for (auto item : ctx->blockItem()) {
       // if (1) {
       //   std::cout << (item->decl()? "decl": "no decl") << (item->stmt()? "stmt": "no stmt") << std::endl;
       // }
       visitBlockItem(item);
     }
-    if(parallelized) {
-      auto *curBb = builder.getBasicBlock();
-      curBb->setInPragma(true);
-    }
     return builder.getBasicBlock();
-  }
+  };
+
+  // std::any visitBlockStmt(SysYParser::BlockStmtContext *ctx, bool parallelized = false) {
+  //   for (auto item : ctx->blockItem()) {
+  //     // if (1) {
+  //     //   std::cout << (item->decl()? "decl": "no decl") << (item->stmt()? "stmt": "no stmt") << std::endl;
+  //     // }
+  //     visitBlockItem(item);
+  //   }
+  //   if(parallelized) {
+  //     auto *curBb = builder.getBasicBlock();
+  //     curBb->setInPragma(true);
+  //   }
+  //   return builder.getBasicBlock();
+  // }
 
   // virtual std::any visitBlockItem(SysYParser::BlockItemContext *ctx)
   // override;
@@ -113,7 +120,7 @@ public:
 
   virtual std::any visitUnaryExp(SysYParser::UnaryExpContext *ctx) override;
 
-  virtual std::any visitPragmaStmt(SysYParser::PragmaStmtContext *ctx) override;
+  // virtual std::any visitPragmaStmt(SysYParser::PragmaStmtContext *ctx) override;
 
   virtual std::any visitParenExp(SysYParser::ParenExpContext *ctx) override {
     return visitChildren(ctx);

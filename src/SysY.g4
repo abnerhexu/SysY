@@ -17,7 +17,6 @@ WHILE: 'while';
 BREAK: 'break';
 CONTINUE: 'continue';
 RETURN: 'return';
-PRAGMA: 'parallel';
 
 // operators
 ASSIGN: '=';
@@ -105,9 +104,7 @@ initValue:
 	exp											# scalarInitValue
 	| LBRACE (initValue (COMMA initValue)*)? RBRACE	# arrayInitValue;
 
-pragmaStmt: SHARP PRAGMA blockStmt;
-
-func: funcType ID LPAREN funcFParams? RPAREN (blockStmt|pragmaStmt);
+func: funcType ID LPAREN funcFParams? RPAREN blockStmt;
 
 funcType: VOID | INT | FLOAT;
 
@@ -129,8 +126,7 @@ stmt:
 	| continueStmt
 	| returnStmt
 	| blockStmt
-	| emptyStmt
-	| pragmaStmt;
+	| emptyStmt;
 
 assignStmt: lValue ASSIGN exp SEMICOLON;
 

@@ -382,6 +382,15 @@ public:
   using arg_list = std::vector<std::unique_ptr<Argument>>;
   using block_list = std::vector<BasicBlock *>;
 
+public:
+  enum BBKind {
+    kNormal,
+    kEntry,
+    kWhileHeader,
+    kWhileBody,
+    kWhileEnd
+  };
+
 protected:
   Function *parent;
   inst_list instructions;
@@ -389,6 +398,7 @@ protected:
   block_list successors;
   block_list predecessors;
   bool inPragma;
+  BBKind kind;
 
 protected:
   explicit BasicBlock(Function *parent, const std::string &name = "");
@@ -419,6 +429,8 @@ public:
   };
   bool isInPragma() { return this->inPragma; }
   void setInPragma(bool inPragma) { this->inPragma = inPragma; }
+  void setKind(BBKind kind) { this->kind = kind ;}
+  BBKind getKind() { return kind; }
 
 public:
   void print(std::ostream &os);
