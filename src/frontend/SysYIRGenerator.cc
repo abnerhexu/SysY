@@ -251,7 +251,10 @@ std::any SysYIRGenerator::visitLValueExp(SysYParser::LValueExpContext *ctx) {
 
   //scalar
   if (shape == usedarrays.end()){
-    value = builder.createLoadInst(value);
+    // function params
+    if (isa<GlobalValue>(value) or isa<AllocaInst>(value)) {
+      value = builder.createLoadInst(value);
+    }
   }
   //array
   else{
@@ -549,7 +552,7 @@ std::any SysYIRGenerator::visitWhileStmt(SysYParser::WhileStmtContext *ctx) {
   auto *bb2 = builder.getBasicBlock();
   builder.setPosition(thenBlock, thenBlock->end());
   if (bb1 != bb2) {
-    std::cout << bb2->getNumPredecessors() << std::endl;
+    // std::cout << bb2->getNumPredecessors() << std::endl;
     builder.createUncondBrInst(bb2->getPredecessors()[0]->getPredecessors()[0], {});
   }
   
