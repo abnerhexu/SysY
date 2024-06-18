@@ -104,6 +104,7 @@ std::string CodeGen::CalleeRegRestore_gen(sysy::Function* func){
 std::string CodeGen::function_gen(sysy::Function *func) {
   this->curFunc = func;
   clearFuncInfo(func);
+  auto paramTypes = func->getParamTypes();
   std::string bbCode;
   auto bbs = func->getBasicBlocks();
   for (auto it = bbs.begin(); it != bbs.end(); it++){
@@ -132,6 +133,13 @@ std::string CodeGen::function_gen(sysy::Function *func) {
 }
 
 std::string CodeGen::basicBlock_gen(sysy::BasicBlock *bb) {
+  if (bb->getArguments().size() > 8) { assert(0); } // do not support over 8 args
+  else {
+    for (auto &it: bb->getArguments()) { // formula args
+      auto requestReg = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::arg, -1);
+      regManager.varIRegMap[it.get()->getName()] = {RegisterManager::VarPos::InIReg, requestReg};
+    }
+  }
   this->curBBlock = bb;
   std::string bbLabel = this->getBasicBlocksLabel(bb);
   std::string assemblyCode;
@@ -244,6 +252,9 @@ std::string CodeGen::GenBinaryInst(sysy::BinaryInst *inst) {
       regManager.releaseReg(RegisterManager::IntReg, src1ID);
     }
     regManager.intRegTaken[src2ID].second = inst->last_used;
+    // std::cout << instruction << std::endl;
+    // std::cout << inst->getName() << std::endl;
+    // std::cout << (regManager.varIRegMap.find(inst->getName()) != regManager.varIRegMap.end()) << std::endl;
     return instruction;
   }
   if (!lhs->isConstant() && rhs->isConstant()) {
@@ -361,6 +372,10 @@ std::string CodeGen::GenStoreInst(sysy::StoreInst *inst) {
       // src is var in reg
       auto srcReg = regManager.varIRegMap.find(src->getName());
       assert(srcReg != regManager.varIRegMap.end());
+      // if (srcReg == regManager.varIRegMap.end()) {
+      //   std::cout << src->getName() << " " << src->getKind() << std::endl;
+      //   assert(0);
+      // }
       if (srcReg->second.first == RegisterManager::VarPos::InIReg) {
         if (destPos->second.first == RegisterManager::VarPos::OnStack) {
           instruction += space + "sw " + regManager.intRegs[srcReg->second.second].second + ", " + std::to_string(destPos->second.second) + "(sp)" + endl;
@@ -566,6 +581,24 @@ std::string CodeGen::GenUnaryInst(sysy::UnaryInst* inst) {
   }
 }
 
+std::pair<int, std::string> CodeGen::GenCallInst(sysy::CallInst* inst, int dstRegID) {
+  std::string instruction;
+  if (inst->getArguments().size() > 8) { assert(0); } // do not support over 8 args
+  else {
+    for (auto &it: inst->getArguments()) {
+      // std::cout << it.getValue()->getName() << std::endl;
+      auto requestReg = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::arg, -1);
+      auto srcArgReg = regManager.varIRegMap.find(it.getValue()->getName())->second.second;
+      instruction += space + "mv " + regManager.intRegs[requestReg].second + ", " + regManager.intRegs[srcArgReg].second + endl;
+      regManager.varIRegMap[it.getValue()->getName()] = {RegisterManager::VarPos::InIReg, requestReg};
+    }
+  }
+  // actually, just a simple call
+  instruction += space + "call " + inst->getCallee()->getName() + endl;
+  regManager.varIRegMap[inst->getName()] = {RegisterManager::VarPos::InIReg, 10};
+  return {10, instruction};
+}
+
 std::string CodeGen::instruction_gen(sysy::Instruction *inst) {
   std::string instruction;
   std::string instName = inst->getName();
@@ -600,6 +633,9 @@ std::string CodeGen::instruction_gen(sysy::Instruction *inst) {
       break;
     case sysy::Value::Kind::kNeg:
       instruction = GenUnaryInst(dynamic_cast<sysy::UnaryInst *>(inst));
+      break;
+    case sysy::Value::Kind::kCall:
+      instruction = GenCallInst(dynamic_cast<sysy::CallInst *>(inst), 10).second;
       break;
     default:
       break;
@@ -646,6 +682,15 @@ int RegisterManager::requestReg(RegType rtype, RegHint hint, int last_used) {
         }
       }
       return 0;
+    case arg:
+    for (auto i: this->IArgRegList) {
+      if (this->intRegTaken[i].first == false) {
+        this->intRegTaken[i].first = true;
+        this->intRegTaken[i].second = last_used;
+        return i;
+      }
+    }
+    return 0;
     default:
       std::cerr << "Error: invalid reg hint" << std::endl;
       exit(1);

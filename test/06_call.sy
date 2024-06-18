@@ -1,10 +1,7 @@
 int foo(int x, int y){
-  if (x > y) {
-    return x + y;
-  }
-  else {
-    return x - y;
-  }
+  int z;
+  z = x + y;
+  return z;
 }
 
 int main(){
