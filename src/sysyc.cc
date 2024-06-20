@@ -8,6 +8,7 @@
 #include "debug.h"
 #include "backend/codegen.h"
 #include "backend/llir.h"
+#include "backend/assembly.h"
 
 struct ArgsOptions {
   std::string srcfile;
@@ -72,5 +73,10 @@ int main(int argc, char *argv[]) {
 
   codegen::CodeGen codeGenerator(moduleIR);
   codeGenerator.code_gen();
+
+  if (args.emitAs) {
+    codegen::AssemblyCode assemblyCode(moduleIR);
+    assemblyCode.emitModule(std::cout);
+  }
   return EXIT_SUCCESS;
 }
