@@ -9,6 +9,7 @@
 #include <memory>
 #include <string>
 #include <type_traits>
+#include <iostream>
 #include <vector>
 
 namespace sysy {
@@ -366,6 +367,49 @@ public:
 
 class Instruction;
 class Function;
+
+class RVInst {
+public:
+  const std::string space = "  ";
+  const std::string endl = "\n";
+  std::string op;
+  std::vector<std::string> fields;
+  RVInst(std::string op):
+    op(op) {};
+  RVInst(std::string op, std::string field1):
+    op(op) {
+      this->fields.push_back(field1);
+    };
+  RVInst(std::string op, std::string field1, std::string field2):
+    op(op) {
+      this->fields.push_back(field1);
+      this->fields.push_back(field2);
+    };
+  RVInst(std::string op, std::string field1, std::string field2, std::string field3):
+    op(op) {
+      this->fields.push_back(field1);
+      this->fields.push_back(field2);
+      this->fields.push_back(field3);
+    };
+  RVInst(std::string op, std::string field1, std::string field2, std::string field3, std::string field4):
+    op(op) {
+      this->fields.push_back(field1);
+      this->fields.push_back(field2);
+      this->fields.push_back(field3);
+      this->fields.push_back(field4);
+    };
+  void print(std::ostream &os) {
+    os << this->space << this->op << " ";
+    for (auto &it: this->fields) {
+      os << it;
+      if (it != this->fields.back()) {
+        os << ", ";
+      }
+    }
+    os << endl;
+  }
+};
+
 /*!
  * The container for `Instruction` sequence.
  *
@@ -391,6 +435,8 @@ public:
     kWhileEnd
   };
 
+  std::vector<RVInst> CoInst;
+  std::string bbLabel;
 protected:
   Function *parent;
   inst_list instructions;
@@ -830,6 +876,7 @@ public:
   static bool classof(const Value *value) {
     return value->getKind() == kFunction;
   }
+  std::vector<RVInst> MetaInst;
 
 public:
   using block_list = std::list<std::unique_ptr<BasicBlock>>;
@@ -910,6 +957,8 @@ protected:
 
 public:
   Module() = default;
+  std::string descriptionText;
+  std::string globalDataText;
 
 public:
   Function *createFunction(const std::string &name, Type *type) {

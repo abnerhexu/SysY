@@ -162,45 +162,6 @@ public:
   }
 }; // class InstOperand
 
-class RVInst {
-public:
-  std::string op;
-  std::vector<std::string> fields;
-  RVInst(std::string op):
-    op(op) {};
-  RVInst(std::string op, std::string field1):
-    op(op) {
-      this->fields.push_back(field1);
-    };
-  RVInst(std::string op, std::string field1, std::string field2):
-    op(op) {
-      this->fields.push_back(field1);
-      this->fields.push_back(field2);
-    };
-  RVInst(std::string op, std::string field1, std::string field2, std::string field3):
-    op(op) {
-      this->fields.push_back(field1);
-      this->fields.push_back(field2);
-      this->fields.push_back(field3);
-    };
-  RVInst(std::string op, std::string field1, std::string field2, std::string field3, std::string field4):
-    op(op) {
-      this->fields.push_back(field1);
-      this->fields.push_back(field2);
-      this->fields.push_back(field3);
-      this->fields.push_back(field4);
-    };
-  void print(std::ostream &os) {
-    os << space << op << " ";
-    for (auto &it: this->fields) {
-      os << it;
-      if (it != this->fields.back()) {
-        os << ", ";
-      }
-    }
-    os << endl;
-  }
-};
 
 class CodeGen {
 public:
@@ -214,7 +175,7 @@ private:
   sysy::Function* curFunc;
   sysy::BasicBlock* curBBlock;
   RegisterManager rmanager;
-  std::map<std::string, std::vector<RVInst>> CoInsts;
+  // std::map<std::string, std::vector<RVInst>> CoInsts;
 
   // global values
   bool loadGlobalValue = true;
@@ -236,16 +197,16 @@ private:
 
 public:
   CodeGen(sysy::Module* module, const std::string fname = ""): module(module), fname(fname) {};
-  std::string code_gen();
-  std::string module_gen(sysy::Module* module);
-  std::string function_gen(sysy::Function* func);
-  std::string basicBlock_gen(sysy::BasicBlock* bblock);
-  std::string instruction_gen(sysy::Instruction* inst);
+  void code_gen();
+  void module_gen(sysy::Module* module);
+  void function_gen(sysy::Function* func);
+  void basicBlock_gen(sysy::BasicBlock* bblock);
+  void instruction_gen(sysy::Instruction* inst);
   std::string globalData_gen(sysy::Module* module);
-  std::string CalleeRegSave_gen(sysy::Function *func);
-  std::string CalleeRegRestore_gen(sysy::Function *func);
-  std::string literalPoolsCode_gen(sysy::Function *func);
-  std::string functionHeader_gen(sysy::Function *func);
+  void CalleeRegSave_gen(sysy::Function *func);
+  void CalleeRegRestore_gen(sysy::Function *func);
+  void literalPoolsCode_gen(sysy::Function *func);
+  void functionHeader_gen(sysy::Function *func);
   std::string GAccessBB_gen() {
     GAccessBB++;
     return ".Lpcrel_hi" + std::to_string(this->GAccessBB);
@@ -256,17 +217,17 @@ public:
   }
 
   // instruction generator
-  std::string GenLoadInst(sysy::LoadInst* inst);
-  std::string GenStoreInst(sysy::StoreInst* inst);
-  std::string GenAllocaInst(sysy::AllocaInst* inst);
-  std::string GenReturnInst(sysy::ReturnInst* inst);
-  std::pair<int, std::string> GenCallInst(sysy::CallInst* inst, int dstRegID);
-  std::string GenBinaryInst(sysy::BinaryInst* inst);
-  std::string GenBinaryCmpInst(sysy::BinaryInst *inst);
+  void GenLoadInst(sysy::LoadInst* inst);
+  void GenStoreInst(sysy::StoreInst* inst);
+  void GenAllocaInst(sysy::AllocaInst* inst);
+  void GenReturnInst(sysy::ReturnInst* inst);
+  void GenCallInst(sysy::CallInst* inst, int dstRegID);
+  void GenBinaryInst(sysy::BinaryInst* inst);
+  void GenBinaryCmpInst(sysy::BinaryInst *inst);
   // std::pair<int, std::string> GenUnaryInst(sysy::UnaryInst* inst, int dstRegID);
-  std::string GenUncondBrInst(sysy::UncondBrInst* inst);
-  std::string GenCondBrInst(sysy::CondBrInst* inst);
-  std::string GenUnaryInst(sysy::UnaryInst* inst);
+  void GenUncondBrInst(sysy::UncondBrInst* inst);
+  void GenCondBrInst(sysy::CondBrInst* inst);
+  void GenUnaryInst(sysy::UnaryInst* inst);
 
   std::string SaveReg2Stack(int regID, Kind kind, sysy::Instruction* inst);
   void clearFuncInfo(sysy::Function *func) {

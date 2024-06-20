@@ -71,9 +71,6 @@ int main(int argc, char *argv[]) {
   llirgenerator.llir_gen();
 
   codegen::CodeGen codeGenerator(moduleIR);
-  std::string assemblyCode = codeGenerator.code_gen();
-  if (args.emitAs) {
-    std::cout << assemblyCode << std::endl;
-  }
+  codeGenerator.code_gen();
   return EXIT_SUCCESS;
 }
