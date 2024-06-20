@@ -1,0 +1,10 @@
+int arr[1024];
+int brr[1024];
+
+int main(){
+    int i = 0;
+    while (i < 1024) {
+        brr[i] = arr[i];
+    }
+    return 0;
+}

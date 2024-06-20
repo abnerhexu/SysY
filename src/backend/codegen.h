@@ -162,7 +162,45 @@ public:
   }
 }; // class InstOperand
 
-
+class RVInst {
+public:
+  std::string op;
+  std::vector<std::string> fields;
+  RVInst(std::string op):
+    op(op) {};
+  RVInst(std::string op, std::string field1):
+    op(op) {
+      this->fields.push_back(field1);
+    };
+  RVInst(std::string op, std::string field1, std::string field2):
+    op(op) {
+      this->fields.push_back(field1);
+      this->fields.push_back(field2);
+    };
+  RVInst(std::string op, std::string field1, std::string field2, std::string field3):
+    op(op) {
+      this->fields.push_back(field1);
+      this->fields.push_back(field2);
+      this->fields.push_back(field3);
+    };
+  RVInst(std::string op, std::string field1, std::string field2, std::string field3, std::string field4):
+    op(op) {
+      this->fields.push_back(field1);
+      this->fields.push_back(field2);
+      this->fields.push_back(field3);
+      this->fields.push_back(field4);
+    };
+  void print(std::ostream &os) {
+    os << space << op << " ";
+    for (auto &it: this->fields) {
+      os << it;
+      if (it != this->fields.back()) {
+        os << ", ";
+      }
+    }
+    os << endl;
+  }
+};
 
 class CodeGen {
 public:
@@ -176,6 +214,7 @@ private:
   sysy::Function* curFunc;
   sysy::BasicBlock* curBBlock;
   RegisterManager rmanager;
+  std::map<std::string, std::vector<RVInst>> CoInsts;
 
   // global values
   bool loadGlobalValue = true;
@@ -220,7 +259,7 @@ public:
   std::string GenLoadInst(sysy::LoadInst* inst);
   std::string GenStoreInst(sysy::StoreInst* inst);
   std::string GenAllocaInst(sysy::AllocaInst* inst);
-  std::string GenRetuenInst(sysy::ReturnInst* inst);
+  std::string GenReturnInst(sysy::ReturnInst* inst);
   std::pair<int, std::string> GenCallInst(sysy::CallInst* inst, int dstRegID);
   std::string GenBinaryInst(sysy::BinaryInst* inst);
   std::string GenBinaryCmpInst(sysy::BinaryInst *inst);
@@ -251,6 +290,7 @@ public:
     return label;
   }
 }; // class CodeGen
+
 
 }
 

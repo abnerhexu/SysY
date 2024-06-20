@@ -17,7 +17,7 @@ int thread_create(int num_threads, void *func) {
         int pid = clone(func, stack_top, CLONE_VM|CLONE_VFORK, 0);
         n--;
     }
-    int n = 0;
+    n = 0;
     while (n < num_threads) {
         wait(NULL);
     }

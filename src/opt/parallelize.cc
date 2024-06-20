@@ -3,19 +3,48 @@
 namespace optimization {
 
 bool Parallelize::pLoopDetect() {
-    std::map<std::string, sysy::Function*> *funcs = module->getFunctions();
-    for (auto it = funcs->begin(); it != funcs->end(); it++) {
-        sysy::Function *func = it->second;
-        auto bbs = func->getBasicBlocks();
-        if (bbs.empty()) {
-        continue;
+    sysy::BasicBlock* targetBB = nullptr;
+    bool parallelizable = false;
+    for (auto&bb: this->func->getBasicBlocks()) {
+        if (bb->getKind() == sysy::BasicBlock::BBKind::kWhileBody) {
+            targetBB = bb;
+            break;
         }
-        for (auto &bb: bbs) {
-            if (bb->getKind() == sysy::BasicBlock::BBKind::kWhileHeader) {
-                
+    }
+    if (targetBB == nullptr) {
+        // detect no while loop
+        return false;
+    }
+    std::vector<sysy::LoadInst*>loadInst;
+    std::vector<sysy::StoreInst*>storeInst;
+    for (auto &inst: targetBB->getInstructions()) {
+        if (inst->getType() == sysy::Value::kLoad) {
+            loadInst.push_back(dynamic_cast<sysy::LoadInst*>(inst.get()));
+        }
+        else if (inst->getType() == sysy::Value::kStore) {
+            storeInst.push_back(dynamic_cast<sysy::StoreInst*>(inst.get()));
+        }
+    }
+    bool SameAddr = false;
+    for (auto &it1: storeInst) {
+        for (auto &it2: loadInst) {
+            if (it1->getPointer() == it2->getPointer()) {
+                SameAddr = true;
+                // should take care of loop-carried dependencies
+                for (auto &a1 = it1->getIndices().begin(), &a2 = it2->getIndices().begin(); a1 != it1->getIndices().end(); a1++, a2++) {
+                    if (*a1 != *a2) {
+                        return false;
+                    }
+                }
+                break;
             }
         }
     }
+    if (SameAddr == false) {
+        // no write array is the same as the read, can be parallelized
+        return true;
+    }
+    
 }
 
 void Parallelize::pLoopTransform() {

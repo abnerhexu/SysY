@@ -1,4 +1,5 @@
 #include "../frontend/IR.h"
+#include <vector>
 
 namespace optimization {
 
@@ -6,10 +7,9 @@ class Parallelize {
 
 public:
     // ...
-    sysy::Module *module;
-    sysy::Function *curFunc;
+    sysy::Function *func;
     sysy::BasicBlock *curBB;
-    Parallelize(sysy::Module* module): module(module) {};
+    Parallelize(sysy::Function* func): func(func) {};
     
     bool pLoopDetect();
     void pLoopTransform();
