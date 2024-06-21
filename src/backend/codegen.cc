@@ -677,6 +677,11 @@ void CodeGen::GenCondBrInst(sysy::CondBrInst* inst) {
   }
   else {
     field1 = regManager.intRegs[regManager.varIRegMap.find(condName)->second.second].second;
+    // for (int i = 0; i < 10; i++){
+    //   std::cout << regManager.intRegs[i].first << ' ' << regManager.intRegs[i].second << std::endl;
+    // }
+    // std::cout << regManager.varIRegMap.find(condName)->second.first << std::endl;
+    // std::cout << "field1: " << field1 << std::endl;
     field2 = thenBlockName;
     // instruction += space + "beqz " + field1 + ", " + field2 + endl;
     this->curBBlock->CoInst.push_back(sysy::RVInst("beqz", field1, field2));

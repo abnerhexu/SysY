@@ -400,9 +400,15 @@ public:
     };
   void print(std::ostream &os) {
     os << this->space << this->op << " ";
-    for (auto &it: this->fields) {
-      os << it;
-      if (it != this->fields.back()) {
+    // for (auto &it: this->fields) {
+    //   os << it;
+    //   if (it != this->fields.back()) {
+    //     os << ", ";
+    //   }
+    // }
+    for (int i = 0; i < this->fields.size(); i++){
+      os << this->fields[i];
+      if (i != this->fields.size()-1){
         os << ", ";
       }
     }
