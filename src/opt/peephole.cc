@@ -16,12 +16,15 @@ void Hole::basicblockTransform(sysy::BasicBlock *bb) {
         sysy::RVInst curInst = bb->CoInst[curIndex];
         sysy::RVInst nextInst = bb->CoInst[nextIndex];
         if (curInst.op == "lw" && nextInst.op == "sw" && curInst.fields[0] == nextInst.fields[0] && curInst.fields[1] == nextInst.fields[1]) {
-            bb->CoInst.erase(bb->CoInst.begin() + nextIndex);
+            nextInst.valid = false;
+            nextIndex++;
             continue;
         }
         if (curInst.op == "sw" && nextInst.op == "lw" && curInst.fields[0] == nextInst.fields[0] && curInst.fields[1] == nextInst.fields[1]) {
-            bb->CoInst.erase(bb->CoInst.begin() + curIndex);
-            bb->CoInst.erase(bb->CoInst.begin() + nextIndex);
+            curInst.valid = false;
+            nextInst.valid = false;
+            curIndex += 2;
+            nextIndex += 2;
             continue;
         }
     }

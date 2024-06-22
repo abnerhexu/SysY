@@ -101,6 +101,9 @@ void CodeGen::function_gen(sysy::Function *func) {
   for (auto it = bbs.begin(); it != bbs.end(); it++){
     auto bb = it->get();
     basicBlock_gen(bb);
+    for (auto &inst: bb->CoInst) {
+      inst.valid = true;
+    }
   }
   functionHeader_gen(func);
   CalleeRegSave_gen(func);

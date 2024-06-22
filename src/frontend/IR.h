@@ -374,6 +374,8 @@ public:
   const std::string endl = "\n";
   std::string op;
   std::vector<std::string> fields;
+  bool valid;
+  RVInst() = default;
   RVInst(std::string op):
     op(op) {};
   RVInst(std::string op, std::string field1):
@@ -399,6 +401,7 @@ public:
       this->fields.push_back(field4);
     };
   void print(std::ostream &os) {
+    if (!this->valid) { return; }
     os << this->space << this->op << " ";
     // for (auto &it: this->fields) {
     //   os << it;
