@@ -18,6 +18,7 @@ add_executable(sysyc
   backend/codegen.cc
   backend/llir.cc
   backend/assembly.cc
+  opt/peephole.cc
 )
 target_include_directories(sysyc PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(sysyc PRIVATE SysYParser)

@@ -11,7 +11,7 @@ void Hole::functionTransform(sysy::Function *func) {
 
 void Hole::basicblockTransform(sysy::BasicBlock *bb) {
     int curIndex = 0;
-    int nextIndex = 0;
+    int nextIndex = 1;
     while (curIndex < bb->CoInst.size() && nextIndex < bb->CoInst.size()) {
         sysy::RVInst curInst = bb->CoInst[curIndex];
         sysy::RVInst nextInst = bb->CoInst[nextIndex];
