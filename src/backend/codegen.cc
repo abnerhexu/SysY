@@ -185,7 +185,7 @@ void CodeGen::GenBinaryCmpInst(sysy::BinaryInst *inst) {
     field2 = regManager.intRegs[cmpResult].second;
     this->curBBlock->CoInst.push_back(sysy::RVInst(optype, field1, field2));
     break;
-  case sysy::Value::kFCmpLT:
+  case sysy::Value::kICmpLT:
     optype = "sltz";
     field1 = regManager.intRegs[cmpResult].second;
     field2 = regManager.intRegs[lhsReg->second.second].second;
@@ -808,6 +808,7 @@ void CodeGen::instruction_gen(sysy::Instruction *inst) {
       break;
     case sysy::Value::Kind::kICmpEQ:
     case sysy::Value::Kind::kICmpGT:
+    case sysy::Value::Kind::kICmpLT:
       GenBinaryCmpInst(dynamic_cast<sysy::BinaryInst *>(inst));
       break;
     case sysy::Value::Kind::kNeg:
