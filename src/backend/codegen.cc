@@ -158,12 +158,28 @@ void CodeGen::GenBinaryCmpInst(sysy::BinaryInst *inst) {
   std::string optypei;
   auto lhsReg = regManager.varIRegMap.find(lhs->getName());
   auto rhsReg = regManager.varIRegMap.find(rhs->getName());
+  auto cmpResult = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::dontCare, 0);
+  regManager.varIRegMap[inst->getName()] = {RegisterManager::VarPos::InIReg, cmpResult};
+  // if rhs is imm
+  if (rhs->isConstant()) {
+    switch (op) {
+    case sysy::Value::Kind::kICmpLT:
+      optypei = "slti";
+      break;
+    default:
+      break;
+    }
+    field1 = regManager.intRegs[cmpResult].second;
+    field2 = regManager.intRegs[lhsReg->second.second].second;
+    field3 = std::to_string(dynamic_cast<sysy::ConstantValue *>(rhs)->getInt());
+    this->curBBlock->CoInst.push_back(sysy::RVInst(optypei, field1, field2, field3));
+    return;
+  }
   if (lhsReg == regManager.varIRegMap.end() || rhsReg == regManager.varIRegMap.end()) {
+    std::cout << lhs->getName() << " " << rhs->getName() << std::endl;
     std::cerr << "Error: unsupported binary op" << std::endl;
     assert(0);
   }
-  auto cmpResult = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::dontCare, 0);
-  regManager.varIRegMap[inst->getName()] = {RegisterManager::VarPos::InIReg, cmpResult};
   switch (op) {
   case sysy::Value::Kind::kICmpEQ:
     field1 = regManager.intRegs[cmpResult].second;
@@ -679,9 +695,9 @@ void CodeGen::GenCondBrInst(sysy::CondBrInst* inst) {
     assert(0);
   }
   else {
-    int destRegID = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::temp, inst->last_used);
-    field1 = regManager.intRegs[destRegID].second;
-    // field1 = regManager.intRegs[regManager.varIRegMap.find(condName)->second.second].second;
+    // int destRegID = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::temp, inst->last_used);
+    // field1 = regManager.intRegs[destRegID].second;
+    field1 = regManager.intRegs[regManager.varIRegMap.find(condName)->second.second].second;
     field2 = thenBlockName;
     // instruction += space + "beqz " + field1 + ", " + field2 + endl;
     this->curBBlock->CoInst.push_back(sysy::RVInst("beqz", field1, field2));
