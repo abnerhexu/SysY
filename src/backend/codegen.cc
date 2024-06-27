@@ -289,7 +289,7 @@ void CodeGen::GenBinaryInst(sysy::BinaryInst *inst) {
     break;
   case sysy::Value::Kind::kSub:
     optype = "sub";
-    optype = "addi";
+    optypei = "addi";
     break;
   case sysy::Value::Kind::kMul:
     optype = "mul";
