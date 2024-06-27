@@ -1,6 +1,6 @@
 #include "parallelize.h"
 
-namespace optimization {
+namespace transform {
 
 bool Parallelize::pLoopDetect() {
     sysy::BasicBlock* targetBB = nullptr;

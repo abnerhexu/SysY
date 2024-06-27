@@ -461,7 +461,7 @@ void CodeGen::GenStoreInst(sysy::StoreInst *inst) {
     if (destPos->second.first == RegisterManager::VarPos::OnStack) {
       field1 = regManager.intRegs[srcPos.second].second;
       field2 = std::to_string(-1*destPos->second.second) + "(sp)";
-      std::cout << destName << destPos->second.second << std::endl;
+      // std::cout << destName << destPos->second.second << std::endl;
       this->curBBlock->CoInst.push_back(sysy::RVInst("sw", field1, field2));
     }
     else if (destPos->second.first == RegisterManager::VarPos::Globals) {

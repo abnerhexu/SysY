@@ -1,7 +1,7 @@
 #include "../frontend/IR.h"
 #include<string>
 
-namespace Optimization {
+namespace transform {
 class Hole {
 private:
   sysy::Module *module;
@@ -9,6 +9,7 @@ public:
   sysy::BasicBlock *curBB;
 public:
   Hole(sysy::Module *module): module(module) {};
+  void moduleTransform();
   void functionTransform(sysy::Function *func);
   void basicblockTransform(sysy::BasicBlock *bb);
   void loadStoreEliminate(sysy::RVInst *inst1, sysy::RVInst *inst2);

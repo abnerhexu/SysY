@@ -1,7 +1,7 @@
 #include "../frontend/IR.h"
 #include <vector>
 
-namespace optimization {
+namespace transform {
 
 class Parallelize {
 

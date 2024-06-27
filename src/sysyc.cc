@@ -9,6 +9,7 @@
 #include "backend/codegen.h"
 #include "backend/llir.h"
 #include "backend/assembly.h"
+#include "opt/peephole.h"
 
 struct ArgsOptions {
   std::string srcfile;
@@ -18,38 +19,61 @@ struct ArgsOptions {
   bool outputBinary = false;
 };
 
-ArgsOptions parseArguments(int argc, char* argv[]) {
-  ArgsOptions options;
-  options.srcfile = argv[1];
-  for(int i = 2; i < argc; ++i) {
-    std::string arg = argv[i];
-    if (arg == "--emit-ir") {
-      options.emitIr = true;
-    } 
-    else if (arg == "--emit-as") {
-      options.emitAs = true;
-    } 
-    else if (arg == "--const-propagation") {
-      options.constPropagation = true;
-    } 
-    else if (arg == "--output-binary") {
-      options.outputBinary = true;
+class TransformFlags {
+public:
+  sysy::Module *module;
+  TransformFlags(sysy::Module* module): module(module) {};
+  std::map<std::string, bool> flags = {{"--emit-ir", false}, 
+                                       {"--emit-as", false},
+                                       {"--const-propagation", false},
+                                       {"--output-binary", false},
+                                       {"--fpeephole", false},
+                                       {"--verbose", false},
+                                       {"--fparallel", false},
+                                       {"--opt", false}};
+  std::string srcfile;
+  void parseFlags(int argc, char** argv) {
+    this->srcfile = argv[1];
+    for (int i = 2; i < argc; i++) {
+      std::string arg = argv[i];
+      if (flags.find(arg) != flags.end()) {
+        flags[arg] = true;
+      }
     }
-    else if (arg == "--verbose") {
-      options.emitIr = true;
-      options.emitAs = true;
-    } 
-    else {
-      std::cerr << "Unknown argument: " << arg << std::endl;
+    if (this->flags["--verbose"]) {
+      this->flags["--emit-ir"] = true;
+      this->flags["--emit-as"] = true;
+      this->flags["output-binary"] = true;
+    }
+    if (this->flags["--opt"]) {
+      this->flags["--emit-ir"] = true;
+      this->flags["--emit-as"] = true;
+      this->flags["--const-propagation"] = true;
+      this->flags["--fpeephole"] = true;
+      this->flags["--fparallel"] = true;
     }
   }
-  return options;
-}
-
+  void transformationPending() {
+    if (this->flags["--fpeephole"]) {
+      transform::Hole hole(this->module);
+      hole.moduleTransform();
+    }
+  }
+  void emit() {
+    if (this->flags["--emit-ir"]) {
+      this->module->print(std::cout);
+    }
+    if (this->flags["--emit-as"]) {
+      codegen::AssemblyCode assemblyCode(this->module);
+      assemblyCode.emitModule(std::cout);
+    }
+  }
+}; // class TransformFlags
 
 int main(int argc, char *argv[]) {
-  ArgsOptions args = parseArguments(argc, argv);
-  std::ifstream fin(args.srcfile);
+  TransformFlags tff(nullptr);
+  tff.parseFlags(argc, argv);
+  std::ifstream fin(tff.srcfile);
   if (not fin) {
     std::cerr << "Failed to open file " << argv[1];
     return EXIT_FAILURE;
@@ -64,19 +88,15 @@ int main(int argc, char *argv[]) {
   generator.visitModule(module);
 
   auto moduleIR = generator.get();
-  if (args.emitIr) {
-    moduleIR->print(std::cout);
-  }
-  
+  tff.module = moduleIR;
+
   codegen::LLIRGen llirgenerator(moduleIR);
   llirgenerator.llir_gen();
 
   codegen::CodeGen codeGenerator(moduleIR);
   codeGenerator.code_gen();
 
-  if (args.emitAs) {
-    codegen::AssemblyCode assemblyCode(moduleIR);
-    assemblyCode.emitModule(std::cout);
-  }
+  tff.transformationPending();
+  tff.emit();
   return EXIT_SUCCESS;
 }
