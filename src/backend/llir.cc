@@ -94,6 +94,8 @@ int LLIRGen::basicBlock_gen(sysy::BasicBlock* bb, int alloca_offset) {
         std::cerr << "Unsupported type in alloca" << std::endl;
         exit(1);
       }
+    }else{
+      instruction_gen(inst.get(), tot_offset);
     }
   }
   return tot_offset;
