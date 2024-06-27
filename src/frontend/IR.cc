@@ -363,11 +363,23 @@ void LoadInst::print(std::ostream &os) const {
   printVarName(os, this) << " = ";
   os << "load ";
   if (getNumIndices()) {
-    // std::cerr << "do not support arrays!" << std::endl;
-    int len = 1;
-    int offset = 0;
     std::string name = getPointer()->getName();
-    printOperand(os, getPointer()) << "+" << getIndex(0)->getName() << "(" << *getPointer()->getType() << ") : " << *getType();
+    printOperand(os, getPointer());
+    for (int i = 0; i < getNumIndices(); i++){
+      os << "+";
+      if (getIndex(i)->isConstant()) {
+        os << dynamic_cast<ConstantValue*>(getIndex(i))->getInt();
+      }
+      else {
+        os << "%" << getIndex(i)->getName();
+      }
+      for (int j = i + 1; j < getNumIndices(); j++) {
+        os << " * ";
+        if (usedarrays[name][j]->isConstant()) { os << dynamic_cast<ConstantValue*>(usedarrays[name][j])->getInt();}
+        else {os << usedarrays[name][j]->getName(); }
+      }
+    }
+    os << "(" << *getPointer()->getType() << ") : " << *getType();
   }else{
     printOperand(os, getPointer()) << " : " << *getType();
   }
