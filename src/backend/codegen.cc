@@ -738,16 +738,39 @@ void CodeGen::GenLoadInst(sysy::LoadInst *inst) {
   auto srcPos = regManager.varIRegMap.find(src->getName());
   // allocate a reg for dest
   if (inst->getType()->isInt()) {
-    destRegID = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::temp, inst->last_used);
-    regManager.varIRegMap[inst->getName()] = {RegisterManager::VarPos::InIReg, destRegID};
-    field1 = regManager.intRegs[destRegID].second;
-    field2 = std::to_string(srcPos->second.second) + "(" + "sp" + ")";
-    // instruction = space + "lw " + field1 + ", " + field2 + endl;
-    this->curBBlock->CoInst.push_back(sysy::RVInst("lw", field1, field2));
+    if (!inst->getNumIndices()) {
+      // case 1: load %v(dst, in reg), %a(src, scalar, on stack or in global)
+      destRegID = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::temp, inst->last_used);
+      regManager.varIRegMap[inst->getName()] = {RegisterManager::VarPos::InIReg, destRegID};
+      if (srcPos->second.first == RegisterManager::VarPos::OnStack) {
+        field1 = regManager.intRegs[destRegID].second;
+        field2 = std::to_string(srcPos->second.second) + "(sp)";
+        this->curBBlock->CoInst.push_back(sysy::RVInst("lw", field1, field2));
+      }
+      else {
+        assert(srcPos->second.first == RegisterManager::VarPos::Globals);
+        field1 = regManager.intRegs[destRegID].second;
+        field2 = "%hi(" + src->getName() + ")";
+        this->curBBlock->CoInst.push_back(sysy::RVInst("lui", field1, field2));
+        // field1 = regManager.intRegs[destRegID].second;
+        // field2 = regManager.intRegs[destRegID].second;
+        // field3 = "%lo(" + src->getName() + ")";
+        // this->curBBlock->CoInst.push_back(sysy::RVInst("addi", field1, field2, field3));
+        field1 = regManager.intRegs[destRegID].second;
+        field2 = "%lo(" + src->getName() + ")(" + regManager.intRegs[destRegID].second + ")";
+        this->curBBlock->CoInst.push_back(sysy::RVInst("lw", field1, field2)); 
+      }
+    }
+    // case 2: load %v (dst, in reg), %arr+%t(array, on stack or in global)
+    else {
+      destRegID = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::temp, inst->last_used);
+      regManager.varIRegMap[inst->getName()] = {RegisterManager::VarPos::InIReg, destRegID};
+      auto offset = inst->getIndex(0);
+    }
   }
   else {
     destRegID = regManager.requestReg(RegisterManager::RegType::FloatReg, RegisterManager::RegHint::temp, inst->last_used);
-    regManager.varIRegMap[inst->getName()] = {RegisterManager::VarPos::InIReg, destRegID};
+    regManager.varIRegMap[inst->getName()] = {RegisterManager::VarPos::InFReg, destRegID};
     field1 = regManager.floatRegs[destRegID].second;
     field2 = std::to_string(srcPos->second.second) + "(" + "sp" + ")";
     // instruction = space + "flw " + field1 + ", " + field2 + endl;
