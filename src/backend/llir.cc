@@ -67,7 +67,7 @@ int LLIRGen::basicBlock_gen(sysy::BasicBlock* bb, int alloca_offset) {
   this->curBBlock = bb;
   int tot_offset = alloca_offset;
   for (auto &inst: bb->getInstructions()) {
-    instruction_gen(inst.get(), tot_offset);
+    // instruction_gen(inst.get(), tot_offset);
     if (inst->getKind() == sysy::Value::Kind::kAlloca){
       auto allocateType = static_cast<const sysy::PointerType*>(inst->getType())->getBaseType();
       if (allocateType->isInt()){
@@ -79,11 +79,14 @@ int LLIRGen::basicBlock_gen(sysy::BasicBlock* bb, int alloca_offset) {
             arr_size *= dynamic_cast<sysy::ConstantValue*>(dynamic_cast<sysy::AllocaInst*>(inst.get())->getDim(i))->getInt();
           }
           tot_offset += 4*arr_size;
+          instruction_gen(inst.get(), tot_offset-4);
         }else{
+          instruction_gen(inst.get(), tot_offset);
           tot_offset += 4;
         }
       }
       else if (allocateType->isFloat()) {
+        instruction_gen(inst.get(), tot_offset);
         tot_offset += 4;
       }
       else {

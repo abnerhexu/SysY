@@ -2,7 +2,7 @@ int main(){
   int b;
   int array[4];
   int s = 7;
-  array[0] = s;
+  array[1] = s;
   b = array[1];
   return 0;
 }
