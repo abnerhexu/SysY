@@ -1,9 +1,6 @@
 int array[4];
 int main(){
-  int array[4];
-  int a = 1;
-  a = 2;
-  array[0] = a;
-  a = array[0];
+  int b = 2;
+  array[b] = 3;
   return 0;
 }
