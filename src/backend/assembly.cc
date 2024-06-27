@@ -11,6 +11,10 @@ void AssemblyCode::emitModule(std::ostream &os) {
 }
 
 void AssemblyCode::emitFunction(std::ostream &os, sysy::Function *func) {
+    os << func->getName() << ":\n";
+    for (auto &inst: func->MetaInst) {
+        inst.print(os);
+    }
     auto bbs = func->getBasicBlocks();
     for (auto &it: bbs) {
         this->emitBasicBlock(os, it.get());
