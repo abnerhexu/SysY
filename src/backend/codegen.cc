@@ -597,6 +597,22 @@ void CodeGen::GenLoadInst(sysy::LoadInst *inst) {
       }
       else if (srcPos->second.first == RegisterManager::VarPos::Globals) {
         // pass
+        auto destName = inst->getPointer()->getName();
+        auto offsetValue = inst->getIndex(0);
+        auto addrReg = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::arg, -1);
+        field1 = regManager.intRegs[addrReg].second;
+        field2 = "%hi(" + destName + ")";
+        this->curBBlock->CoInst.push_back(sysy::RVInst("lui", field1, field2));
+        field1 = regManager.intRegs[addrReg].second;
+        field2 = regManager.intRegs[addrReg].second;
+        field3 = "%lo(" + destName + ")";
+        this->curBBlock->CoInst.push_back(sysy::RVInst("addi", field1, field2, field3));
+        //TODO: find reg
+        auto destReg = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::arg, -1);
+        field1 = regManager.intRegs[destReg].second;
+        field2 = std::to_string(dynamic_cast<sysy::ConstantValue*>(offsetValue)->getInt()) + "(" + regManager.intRegs[addrReg].second + ")";
+        this->curBBlock->CoInst.push_back(sysy::RVInst("lw", field1, field2));
+        regManager.releaseReg(RegisterManager::RegType::IntReg, addrReg);
       }
       else { assert(0); }
     }
