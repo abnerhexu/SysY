@@ -242,7 +242,8 @@ public:
     auto t = this->bblockLabels.find(bb);
     std::string label;
     if (t == this->bblockLabels.end()) {
-      label = ".block_" + std::to_string(this->bblabelId++); // + "_" + bb->getName();
+      // label = ".block_" + std::to_string(this->bblabelId++); // + "_" + bb->getName();
+      label = ".L" + bb->getName();
       bblockLabels[bb] = label;
     }
     else {

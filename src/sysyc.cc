@@ -89,7 +89,7 @@ int main(int argc, char *argv[]) {
 
   auto moduleIR = generator.get();
   tff.module = moduleIR;
-
+  moduleIR->print(std::cout);
   codegen::LLIRGen llirgenerator(moduleIR);
   llirgenerator.llir_gen();
 

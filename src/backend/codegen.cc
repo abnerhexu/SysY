@@ -158,23 +158,33 @@ void CodeGen::GenBinaryCmpInst(sysy::BinaryInst *inst) {
   auto op = inst->getKind();
   std::string optype;
   std::string optypei;
+  int d2;
   auto lhsReg = regManager.varIRegMap.find(lhs->getName());
   auto rhsReg = regManager.varIRegMap.find(rhs->getName());
-  auto cmpResult = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::dontCare, 0);
+  auto cmpResult = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::dontCare, inst->last_used);
   regManager.varIRegMap[inst->getName()] = {RegisterManager::VarPos::InIReg, cmpResult};
   // if rhs is imm
   if (rhs->isConstant()) {
     switch (op) {
     case sysy::Value::Kind::kICmpLT:
       optypei = "slti";
+      field1 = regManager.intRegs[cmpResult].second;
+      field2 = regManager.intRegs[lhsReg->second.second].second;
+      field3 = std::to_string(dynamic_cast<sysy::ConstantValue *>(rhs)->getInt());
+      this->curBBlock->CoInst.push_back(sysy::RVInst(optypei, field1, field2, field3));
+      break;
+    case sysy::Value::Kind::kICmpNE:
+      field1 = regManager.intRegs[cmpResult].second;
+      field2 = regManager.intRegs[lhsReg->second.second].second;
+      field3 = std::to_string(-1*dynamic_cast<sysy::ConstantValue *>(rhs)->getInt());
+      this->curBBlock->CoInst.push_back(sysy::RVInst("addi", field1, field2, field3));
+      field1 = regManager.intRegs[cmpResult].second;
+      field2 = regManager.intRegs[cmpResult].second;
+      this->curBBlock->CoInst.push_back(sysy::RVInst("snez", field1, field2));
       break;
     default:
       break;
     }
-    field1 = regManager.intRegs[cmpResult].second;
-    field2 = regManager.intRegs[lhsReg->second.second].second;
-    field3 = std::to_string(dynamic_cast<sysy::ConstantValue *>(rhs)->getInt());
-    this->curBBlock->CoInst.push_back(sysy::RVInst(optypei, field1, field2, field3));
     return;
   }
   if (lhsReg == regManager.varIRegMap.end() || rhsReg == regManager.varIRegMap.end()) {
@@ -213,6 +223,46 @@ void CodeGen::GenBinaryCmpInst(sysy::BinaryInst *inst) {
     field2 = regManager.intRegs[cmpResult].second;
     this->curBBlock->CoInst.push_back(sysy::RVInst(optype, field1, field2));
     break;
+  case sysy::Value::kAnd:
+    optype = "and";
+    field1 = regManager.intRegs[cmpResult].second;
+    field2 = regManager.intRegs[lhsReg->second.second].second;
+    field3 = regManager.intRegs[rhsReg->second.second].second;
+    this->curBBlock->CoInst.push_back(sysy::RVInst(optype, field1, field2, field3));
+    break;
+  case sysy::Value::kICmpNE:
+    optype = "snez";
+    field1 = regManager.intRegs[cmpResult].second;
+    field2 = regManager.intRegs[lhsReg->second.second].second;
+    field3 = regManager.intRegs[rhsReg->second.second].second;
+    this->curBBlock->CoInst.push_back(sysy::RVInst("sub", field1, field2, field3));
+    field1 = regManager.intRegs[cmpResult].second;
+    field2 = regManager.intRegs[cmpResult].second;
+    this->curBBlock->CoInst.push_back(sysy::RVInst(optype, field1, field2));
+    break;
+  case sysy::Value::kOr:
+    optype = "or";
+    field1 = regManager.intRegs[cmpResult].second;
+    field2 = regManager.intRegs[lhsReg->second.second].second;
+    field3 = regManager.intRegs[rhsReg->second.second].second;
+    this->curBBlock->CoInst.push_back(sysy::RVInst(optype, field1, field2, field3));
+    break;
+  case sysy::Value::kICmpGE:
+    field1 = regManager.intRegs[cmpResult].second;
+    field2 = regManager.intRegs[lhsReg->second.second].second;
+    field3 = regManager.intRegs[rhsReg->second.second].second;
+    this->curBBlock->CoInst.push_back(sysy::RVInst("sub", field1, field2, field3));
+    d2 = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::arg, inst->last_used);
+    regManager.releaseReg(RegisterManager::RegType::IntReg, d2);
+    field1 = regManager.intRegs[d2].second;
+    field2 = regManager.intRegs[lhsReg->second.second].second;
+    field3 = regManager.intRegs[rhsReg->second.second].second;
+    this->curBBlock->CoInst.push_back(sysy::RVInst("slt", field1, field2, field3));
+    field1 = regManager.intRegs[cmpResult].second;
+    field2 = regManager.intRegs[cmpResult].second;
+    field3 = regManager.intRegs[d2].second;
+    this->curBBlock->CoInst.push_back(sysy::RVInst("or", field1, field2, field3));
+    break;
   default:
     break;
   }
@@ -221,12 +271,15 @@ void CodeGen::GenBinaryCmpInst(sysy::BinaryInst *inst) {
 }
 
 void CodeGen::GenBinaryInst(sysy::BinaryInst *inst) {
+  // std::cout << inst->getName() << " " << inst->getLhs()->getName() << " " << inst->getRhs()->getName() << std::endl;
   // std::cout << inst->getName() << std::endl;
   auto curbbName = this->getBasicBlocksLabel(this->curBBlock);
   std::string field1, field2, field3;
   auto lhs = inst->getLhs();
   auto rhs = inst->getRhs();
   auto op = inst->getKind();
+  auto dst = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::temp, inst->last_used);
+  regManager.varIRegMap[inst->getName()] = {RegisterManager::VarPos::InIReg, dst};
   std::string optype;
   std::string optypei;
   switch (op) {
@@ -244,158 +297,59 @@ void CodeGen::GenBinaryInst(sysy::BinaryInst *inst) {
   case sysy::Value::Kind::kDiv:
     optype = "div";
     break;
+  case sysy::Value::Kind::kRem:
+    optype = "rem";
+    break;
   default:
     std::cerr << "Error: unsupported binary op" << std::endl;
     exit(1);
   }
-  // if both sources are imm, go here
-  if (lhs->isConstant() && rhs->isConstant()) {
-    if (lhs->isInt() && rhs->isInt()) {
-      auto src1ID = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::dontCare, -1);
-      field1 = regManager.intRegs[src1ID].second;
-      field2 = std::to_string(dynamic_cast<sysy::ConstantValue*>(lhs)->getInt());
-      // instruction += space + "li " + field1 + ", " + field2 + endl;
-      this->curBBlock->CoInst.push_back(sysy::RVInst("li", field1, field2));
-      auto src2ID = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::dontCare, inst->last_used);
-      field1 = regManager.intRegs[src2ID].second;
-      field2 = std::to_string(dynamic_cast<sysy::ConstantValue*>(rhs)->getInt());
-      // instruction += space + "li " + field1 + ", " + field2 + endl;
-      this->curBBlock->CoInst.push_back(sysy::RVInst("li", field1, field2));
-      field1 = regManager.intRegs[src2ID].second;
-      field2 = regManager.intRegs[src2ID].second;
-      field3 = regManager.intRegs[src1ID].second;
-      // instruction += space + optype + " " + field1 + ", " + field2 + ", " + field3 + endl;
-      this->curBBlock->CoInst.push_back(sysy::RVInst(optype, field1, field2, field3));
-      regManager.releaseReg(RegisterManager::RegType::IntReg, src1ID);
-      regManager.varIRegMap[inst->getName()] = {RegisterManager::VarPos::InIReg, src2ID};
-      regManager.intRegTaken[src2ID].second = inst->last_used;
-      // std::cout << inst->getName() << " " << regManager.varIRegMap.find(inst->getName())->second.second << std::endl;
-      // assert(0);
-      return;
+  if (rhs->isConstant()) {
+    assert(!lhs->isConstant());
+    assert(regManager.varIRegMap.find(lhs->getName()) != regManager.varIRegMap.end());
+    auto constRhs = dynamic_cast<sysy::ConstantValue*>(rhs);
+    if (constRhs->getInt() < 2048) {
+      field1 = regManager.intRegs[dst].second;
+      field2 = regManager.intRegs[regManager.varIRegMap.find(lhs->getName())->second.second].second;
+      field3 = std::to_string(constRhs->getInt());
+      if (optype == "sub") {
+        field2 = std::to_string(-1*constRhs->getInt());
+      }
+      this->curBBlock->CoInst.push_back(sysy::RVInst(optypei, field1, field2, field3));
     }
     else {
-      assert(false);
+      assert(0);
     }
+    return ;
   }
-  // both are var
-  if (!lhs->isConstant() && !rhs->isConstant()) {
-    int src1ID, src2ID; // src2 serves as the dest reg
-    // src1 on stack, firstly load into regs
-    if (regManager.varIRegMap.find(lhs->getName())->second.first == RegisterManager::VarPos::OnStack) {
-      src1ID = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::dontCare, -1);
-      field1 = regManager.intRegs[src1ID].second;
-      field2 = std::to_string(regManager.varIRegMap.find(lhs->getName())->second.second) + "(sp)";
-      // instruction += space + "lw " + field1 + ", " + field2 + endl;
-      this->curBBlock->CoInst.push_back(sysy::RVInst("lw", field1, field2));
-    }
-    else if (regManager.varIRegMap.find(lhs->getName())->second.first == RegisterManager::VarPos::InIReg) {
-      src1ID = regManager.varIRegMap.find(lhs->getName())->second.second;
-    }
-    // src2 on stack, firstly load into regs
-    if (regManager.varIRegMap.find(rhs->getName())->second.first == RegisterManager::VarPos::OnStack) {
-      src2ID = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::dontCare, -1);
-      field1 = regManager.intRegs[src2ID].second;
-      field2 = std::to_string(regManager.varIRegMap.find(rhs->getName())->second.second) + "(sp)";
-      // instruction += space + "lw " + field1 + ", " + field2 + endl;
-      this->curBBlock->CoInst.push_back(sysy::RVInst("lw", field1, field2));
-    }
-    else if (regManager.varIRegMap.find(rhs->getName())->second.first == RegisterManager::VarPos::InIReg) {
-      src2ID = regManager.varIRegMap.find(rhs->getName())->second.second;
-    }
-    field1 = regManager.intRegs[src2ID].second;
-    field2 = regManager.intRegs[src1ID].second;
-    field3 = regManager.intRegs[src2ID].second;
-    // instruction += space + optype + " " + field1 + ", " + field2 + ", " + field3 + endl;
-    this->curBBlock->CoInst.push_back(sysy::RVInst(optype, field1, field2, field3));
-    regManager.varIRegMap[inst->getName()] = {RegisterManager::VarPos::InIReg, src2ID};
-    if (regManager.varIRegMap.find(lhs->getName())->second.first == RegisterManager::VarPos::OnStack) {
-      regManager.releaseReg(RegisterManager::IntReg, src1ID);
-    }
-    regManager.intRegTaken[src2ID].second = inst->last_used;
-    // std::cout << instruction << std::endl;
-    // std::cout << inst->getName() << std::endl;
-    // std::cout << (regManager.varIRegMap.find(inst->getName()) != regManager.varIRegMap.end()) << std::endl;
-    return;
-  }
-  if (!lhs->isConstant() && rhs->isConstant()) {
-    auto tmp = lhs;
-    lhs = rhs;
-    rhs = tmp;
-  }
-  // left is constant, right is var
-  if (lhs->isConstant() && !rhs->isConstant()) {
-    if (lhs->isInt() && rhs->isInt()) {
-      // src2 on stack, firstly load into regs
-      if (regManager.varIRegMap.find(rhs->getName())->second.first == RegisterManager::VarPos::OnStack) {
-        auto src1ID = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::dontCare, -1);
-        field1 = regManager.intRegs[src1ID].second;
-        field2 = std::to_string(dynamic_cast<sysy::ConstantValue*>(lhs)->getInt());
-        // instruction += space + "li " + field1 + ", " + field2 + endl;
-        this->curBBlock->CoInst.push_back(sysy::RVInst("li", field1, field2));
-        assert(regManager.varIRegMap.find(rhs->getName()) != regManager.varIRegMap.end());
-        auto destRegID = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::saved, inst->last_used);
-        field1 = regManager.intRegs[destRegID].second;
-        field2 = std::to_string(regManager.varIRegMap.find(rhs->getName())->second.second) + "(sp)";
-        // instruction += space + "lw " + field1 + ", " + field2 + endl;
-        this->curBBlock->CoInst.push_back(sysy::RVInst("lw", field1, field2));
-        field1 = regManager.intRegs[destRegID].second;
-        field2 = regManager.intRegs[src1ID].second;
-        field3 = regManager.intRegs[destRegID].second;
-        // instruction += space + optype + " " + field1 + ", " + field2 + ", " + field3 + endl;
-        this->curBBlock->CoInst.push_back(sysy::RVInst(optype, field1, field2, field3));
-        regManager.releaseReg(RegisterManager::IntReg, src1ID);
-        regManager.varIRegMap[inst->getName()] = {RegisterManager::VarPos::InIReg, destRegID};
-        return;
-      }
-      // addi
-      else if (dynamic_cast<sysy::ConstantValue*>(lhs)->getInt() < 2048 && op == sysy::Value::Kind::kAdd){
-        // if imm < 2048, simply addi
-        field1 = regManager.intRegs[regManager.varIRegMap.find(rhs->getName())->second.second].second;
-        field2 = regManager.intRegs[regManager.varIRegMap.find(rhs->getName())->second.second].second;
-        field3 = std::to_string(dynamic_cast<sysy::ConstantValue*>(lhs)->getInt());
-        // instruction += space + optypei + " " + field1 + ", " + field2 + ", " + field3 + endl;
-        this->curBBlock->CoInst.push_back(sysy::RVInst(optypei, field1, field2, field3));
-        regManager.varIRegMap[inst->getName()] = {RegisterManager::VarPos::InIReg, regManager.varIRegMap.find(rhs->getName())->second.second};
-        regManager.intRegTaken[regManager.varIRegMap.find(rhs->getName())->second.second].second = inst->last_used;
-        return;
-      }
-      // src2 in reg, use as the dest, but loading src1 into temp reg is needed to be done first
-      else if (regManager.varIRegMap.find(rhs->getName())->second.first == RegisterManager::VarPos::InIReg) {
-        auto src1ID = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::dontCare, -1);
-        field1 = regManager.intRegs[src1ID].second;
-        field2 = std::to_string(dynamic_cast<sysy::ConstantValue*>(lhs)->getInt());
-        // instruction += space + "li " + field1 + ", " + field2 + endl;
-        this->curBBlock->CoInst.push_back(sysy::RVInst("li", field1, field2));
-        // std::cout << rhs->getName() << " " << regManager.varIRegMap.find(rhs->getName())->second.second << std::endl;
-        // assert(0);
-        field1 = regManager.intRegs[regManager.varIRegMap.find(rhs->getName())->second.second].second;
-        field2 = regManager.intRegs[src1ID].second;
-        field3 = regManager.intRegs[regManager.varIRegMap.find(rhs->getName())->second.second].second;
-        // instruction += space + optype + " " + field1 + ", " + field2 + ", " + field3 + endl;
-        this->curBBlock->CoInst.push_back(sysy::RVInst(optype, field1, field2, field3));
-        regManager.releaseReg(RegisterManager::IntReg, src1ID);
-        regManager.varIRegMap[inst->getName()] = {RegisterManager::VarPos::InIReg, regManager.varIRegMap.find(rhs->getName())->second.second};
-        regManager.intRegTaken[regManager.varIRegMap.find(rhs->getName())->second.second].second = inst->last_used;
-        return;
+  else if (lhs->isConstant()) {
+    assert(!rhs->isConstant());
+    auto constLhs = dynamic_cast<sysy::ConstantValue*>(lhs);
+    if (constLhs->getInt() < 2048) {
+      field1 = regManager.intRegs[dst].second;
+      field2 = regManager.intRegs[regManager.varIRegMap.find(rhs->getName())->second.second].second;
+      field3 = std::to_string(constLhs->getInt());
+      if (optype == "sub") {
+        this->curBBlock->CoInst.push_back(sysy::RVInst("addi", field1, field2, std::to_string(-1*constLhs->getInt())));
+        this->curBBlock->CoInst.push_back(sysy::RVInst("neg", field1, field1));
       }
       else {
-        assert(false);
+        this->curBBlock->CoInst.push_back(sysy::RVInst(optypei, field1, field2, field3));
       }
+      return ;
     }
     else {
-      assert(false);
+      assert(0);
     }
   }
-  // else if (lhs->getType()->isInt()) {
-  //   auto destRegID = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::saved, inst->last_used);
-  //   instruction = space + optype + " " + regManager.intRegs[destRegID].second + ", " + regManager.intRegs[regManager.varIRegMap.find(lhs->getName())->second.second].second + ", " + regManager.intRegs[regManager.varIRegMap.find(rhs->getName())->second.second].second + endl;
-  //   regManager.varIRegMap[inst->getName()] = {RegisterManager::VarPos::InIReg, destRegID};
-  // }
   else {
-    std::cerr << "Error: unsupported binary op" << std::endl;
-    exit(1);
+    // both are var
+    field1 = regManager.intRegs[dst].second;
+    field2 = regManager.intRegs[regManager.varIRegMap.find(lhs->getName())->second.second].second;
+    field3 = regManager.intRegs[regManager.varIRegMap.find(rhs->getName())->second.second].second;
+    this->curBBlock->CoInst.push_back(sysy::RVInst(optype, field1, field2, field3));
+    return ;
   }
-  return;
 }
 
 void CodeGen::GenAllocaInst(sysy::AllocaInst *inst) {
@@ -553,6 +507,7 @@ void CodeGen::GenLoadInst(sysy::LoadInst *inst) {
     if (!inst->getNumIndices()) {
       // case 1: load %v(dst, in reg), %a(src, scalar, on stack or in global)
       destRegID = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::temp, inst->last_used);
+      std::cout << inst->last_used << std::endl;
       regManager.varIRegMap[inst->getName()] = {RegisterManager::VarPos::InIReg, destRegID};
       if (srcPos->second.first == RegisterManager::VarPos::OnStack) {
         field1 = regManager.intRegs[destRegID].second;
@@ -721,6 +676,37 @@ void CodeGen::GenUnaryInst(sysy::UnaryInst* inst) {
   auto curbbName = this->getBasicBlocksLabel(this->curBBlock);
   std::string field1, field2, field3;
   auto op = inst->getKind();
+  auto dstRegID = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::temp, inst->last_used);
+  regManager.varIRegMap[inst->getName()] = {RegisterManager::VarPos::InIReg, dstRegID};
+  // std::cout << "XXX" << inst->getName() << std::endl;
+  if (op == sysy::Value::Kind::kNeg) {
+    if (inst->getOperand()->isConstant()) {
+      this->curBBlock->CoInst.push_back(sysy::RVInst("li", regManager.intRegs[dstRegID].second, std::to_string(dynamic_cast<sysy::ConstantValue *>(inst->getOperand())->getInt()*-1)));
+    }
+    else {
+      field1 = regManager.intRegs[regManager.varIRegMap.find(inst->getOperand()->getName())->second.second].second;
+      field2 = field1;
+      // instruction += space + "neg " + field1 + ", " + field2 + endl;
+      this->curBBlock->CoInst.push_back(sysy::RVInst("neg", field1, field2));
+    }
+    return ;
+  }
+  else if (op == sysy::Value::Kind::kNot) {
+    if (inst->getOperand()->isConstant()) {
+      if (dynamic_cast<sysy::ConstantValue *>(inst->getOperand())->getInt() == 0) {
+        this->curBBlock->CoInst.push_back(sysy::RVInst("li", regManager.intRegs[dstRegID].second, std::to_string(1)));
+      }
+      else {
+        this->curBBlock->CoInst.push_back(sysy::RVInst("li", regManager.intRegs[dstRegID].second, std::to_string(0)));
+      }
+    }
+    else {
+      field1 = regManager.intRegs[regManager.varIRegMap.find(inst->getOperand()->getName())->second.second].second;
+      field2 = field1;
+      this->curBBlock->CoInst.push_back(sysy::RVInst("not", field1, field2));
+    }
+    return ;
+  }
   if (op == sysy::Value::Kind::kNeg) {
     if (inst->getOperand()->isConstant()) {
       regManager.varIRegMap[inst->getName()] = {RegisterManager::VarPos::Imm, dynamic_cast<sysy::ConstantValue *>(inst->getOperand())->getInt()*-1};
@@ -798,6 +784,7 @@ void CodeGen::instruction_gen(sysy::Instruction *inst) {
     case sysy::Value::Kind::kSub:
     case sysy::Value::Kind::kMul:
     case sysy::Value::Kind::kDiv: 
+    case sysy::Value::Kind::kRem:
       GenBinaryInst(dynamic_cast<sysy::BinaryInst *>(inst));
       break;
     case sysy::Value::Kind::kAlloca:
@@ -821,9 +808,14 @@ void CodeGen::instruction_gen(sysy::Instruction *inst) {
     case sysy::Value::Kind::kICmpEQ:
     case sysy::Value::Kind::kICmpGT:
     case sysy::Value::Kind::kICmpLT:
+    case sysy::Value::Kind::kAnd:
+    case sysy::Value::Kind::kICmpNE:
+    case sysy::Value::Kind::kOr:
+    case sysy::Value::Kind::kICmpGE:
       GenBinaryCmpInst(dynamic_cast<sysy::BinaryInst *>(inst));
       break;
     case sysy::Value::Kind::kNeg:
+    case sysy::Value::Kind::kNot:
       GenUnaryInst(dynamic_cast<sysy::UnaryInst *>(inst));
       break;
     case sysy::Value::Kind::kCall:
