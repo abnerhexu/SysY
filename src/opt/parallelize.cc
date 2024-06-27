@@ -7,7 +7,7 @@ bool Parallelize::pLoopDetect() {
     bool parallelizable = false;
     for (auto&bb: this->func->getBasicBlocks()) {
         if (bb->getKind() == sysy::BasicBlock::BBKind::kWhileBody) {
-            targetBB = bb;
+            targetBB = bb.get();
             break;
         }
     }
@@ -18,10 +18,10 @@ bool Parallelize::pLoopDetect() {
     std::vector<sysy::LoadInst*>loadInst;
     std::vector<sysy::StoreInst*>storeInst;
     for (auto &inst: targetBB->getInstructions()) {
-        if (inst->getType() == sysy::Value::kLoad) {
+        if (inst->getType()->getKind() == sysy::Value::kLoad) {
             loadInst.push_back(dynamic_cast<sysy::LoadInst*>(inst.get()));
         }
-        else if (inst->getType() == sysy::Value::kStore) {
+        else if (inst->getType()->getKind() == sysy::Value::kStore) {
             storeInst.push_back(dynamic_cast<sysy::StoreInst*>(inst.get()));
         }
     }
@@ -31,8 +31,8 @@ bool Parallelize::pLoopDetect() {
             if (it1->getPointer() == it2->getPointer()) {
                 SameAddr = true;
                 // should take care of loop-carried dependencies
-                for (auto &a1 = it1->getIndices().begin(), &a2 = it2->getIndices().begin(); a1 != it1->getIndices().end(); a1++, a2++) {
-                    if (*a1 != *a2) {
+                for (auto a1 = it1->getIndices().begin(), a2 = it2->getIndices().begin(); a1 != it1->getIndices().end(); a1++, a2++) {
+                    if (a1->getValue() != a2->getValue()) {
                         return false;
                     }
                 }
