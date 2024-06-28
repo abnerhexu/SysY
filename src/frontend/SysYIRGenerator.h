@@ -123,9 +123,7 @@ public:
 
   // virtual std::any visitPragmaStmt(SysYParser::PragmaStmtContext *ctx) override;
 
-  virtual std::any visitParenExp(SysYParser::ParenExpContext *ctx) override {
-    return visitChildren(ctx);
-  }
+  virtual std::any visitParenExp(SysYParser::ParenExpContext *ctx) override;
 
   virtual std::any visitStringExp(SysYParser::StringExpContext *ctx) override {
     return visitChildren(ctx);

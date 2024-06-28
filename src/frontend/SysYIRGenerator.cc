@@ -416,6 +416,11 @@ std::any SysYIRGenerator::visitUnaryExp(SysYParser::UnaryExpContext *ctx) {
   return result;
 }
 
+std::any SysYIRGenerator::visitParenExp(SysYParser::ParenExpContext *ctx) {
+    return std::any_cast<Value *>(ctx->exp()->accept(this));
+    // return visitChildren(ctx);
+}
+
 std::any SysYIRGenerator::visitMultiplicativeExp(
     SysYParser::MultiplicativeExpContext *ctx) {
   auto lhs = std::any_cast<Value *>(ctx->exp(0)->accept(this));
