@@ -500,30 +500,88 @@ void CodeGen::GenStoreInst(sysy::StoreInst *inst) {
       auto srcImm = std::to_string(dynamic_cast<sysy::ConstantValue*>(src)->getInt());
       this->curBBlock->CoInst.push_back(sysy::RVInst("li", regManager.intRegs[srcImmReg].second, srcImm));
       if (destPos->second.first == RegisterManager::VarPos::OnStack) {
-        field1 = regManager.intRegs[srcImmReg].second;
-        field2 = std::to_string(-1*destPos->second.second + 4*dynamic_cast<sysy::ConstantValue*>(offsetValue)->getInt()) + "(sp)";
-        this->curBBlock->CoInst.push_back(sysy::RVInst("sw", field1, field2));
+        if (offsetValue->isConstant()){
+          auto offRegID = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::arg, -1);
+          regManager.releaseReg(RegisterManager::RegType::IntReg, offRegID);
+          if (dynamic_cast<sysy::ConstantValue*>(offsetValue)->getInt() > -2048 && dynamic_cast<sysy::ConstantValue*>(offsetValue)->getInt() < 2048) {
+            field1 = regManager.intRegs[srcImmReg].second;
+            field2 = std::to_string(-1*destPos->second.second + 4*dynamic_cast<sysy::ConstantValue*>(offsetValue)->getInt()) + "(sp)";
+            this->curBBlock->CoInst.push_back(sysy::RVInst("sw", field1, field2));
+          }
+          else {
+            field1 = regManager.intRegs[offRegID].second;
+            field2 = std::to_string(-1*destPos->second.second + 4*dynamic_cast<sysy::ConstantValue*>(offsetValue)->getInt());
+            field3 = "sp";
+            this->curBBlock->CoInst.push_back(sysy::RVInst("add", field1, field2, field3));
+            field1 = regManager.intRegs[srcImmReg].second;
+            field2 = regManager.intRegs[offRegID].second;
+            this->curBBlock->CoInst.push_back(sysy::RVInst("sw", field1, field2));
+          }
+          return;
+        }
+        else {
+          // offset value is not const
+          auto offRegID = regManager.varIRegMap.find(offsetValue->getName())->second;
+          assert(offRegID.first == RegisterManager::VarPos::InIReg);
+          field1 = regManager.intRegs[offRegID.second].second;
+          field2 = regManager.intRegs[offRegID.second].second;
+          field3 = "sp";
+          this->curBBlock->CoInst.push_back(sysy::RVInst("add", field1, field2, field3));
+          field1 = regManager.intRegs[srcImmReg].second;
+          field2 = regManager.intRegs[offRegID.second].second;
+          this->curBBlock->CoInst.push_back(sysy::RVInst("sw", field1, field2));
+          return;
+        }
       }
       else if (destPos->second.first == RegisterManager::VarPos::Globals) {
-        auto addrReg = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::arg, -1);
-        field1 = regManager.intRegs[addrReg].second;
-        field2 = "%hi(" + destName + ")";
-        this->curBBlock->CoInst.push_back(sysy::RVInst("lui", field1, field2));
-        field1 = regManager.intRegs[addrReg].second;
-        field2 = regManager.intRegs[addrReg].second;
-        field3 = "%lo(" + destName + ")";
-        this->curBBlock->CoInst.push_back(sysy::RVInst("addi", field1, field2, field3));
-        field1 = regManager.intRegs[srcImmReg].second;
-        field2 = std::to_string(dynamic_cast<sysy::ConstantValue*>(offsetValue)->getInt()) + "(" + regManager.intRegs[addrReg].second + ")";
-        this->curBBlock->CoInst.push_back(sysy::RVInst("sw", field1, field2));
-        regManager.releaseReg(RegisterManager::RegType::IntReg, addrReg);
+        if (offsetValue->isConstant()) {
+          // offset Value is const
+          auto addrReg = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::arg, -1);
+          regManager.releaseReg(RegisterManager::RegType::IntReg, addrReg);
+          field1 = regManager.intRegs[addrReg].second;
+          field2 = "%hi(" + destName + ")";
+          this->curBBlock->CoInst.push_back(sysy::RVInst("lui", field1, field2));
+          field1 = regManager.intRegs[addrReg].second;
+          field2 = regManager.intRegs[addrReg].second;
+          field3 = "%lo(" + destName + ")";
+          this->curBBlock->CoInst.push_back(sysy::RVInst("addi", field1, field2, field3));
+          field1 = regManager.intRegs[srcImmReg].second;
+          // if (dynamic_cast<sysy::ConstantValue*>(offsetValue) == nullptr) {
+          //   std::cerr << "Error: offset of store is not constant" << std::endl;
+          //   std::cerr << "dest:" << destName << " src: " << offsetValue->getName() << std::endl;
+          //   exit(1);
+          // }
+          int constInt = dynamic_cast<sysy::ConstantValue*>(offsetValue)->getInt();
+          if (constInt < 2048 && constInt > -2048) {
+            field2 = std::to_string(dynamic_cast<sysy::ConstantValue*>(offsetValue)->getInt()) + "(" + regManager.intRegs[addrReg].second + ")";
+            this->curBBlock->CoInst.push_back(sysy::RVInst("sw", field1, field2));
+          }
+          else {
+            auto addrOffReg = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::arg, -1);
+            regManager.releaseReg(RegisterManager::RegType::IntReg, addrOffReg);
+            this->curBBlock->CoInst.push_back(sysy::RVInst("li", regManager.intRegs[addrOffReg].second, std::to_string(constInt)));
+            field1 = regManager.intRegs[addrReg].second;
+            field2 = regManager.intRegs[addrOffReg].second;
+            this->curBBlock->CoInst.push_back(sysy::RVInst("add", field1, field1, field2));
+            field1 = regManager.intRegs[srcImmReg].second;
+            field2 = regManager.intRegs[addrReg].second;
+            this->curBBlock->CoInst.push_back(sysy::RVInst("sw", field1, field2));
+            return;
+          }
+        }
+        else {
+          // offsetValue is not const
+        }
+        
       }
       return;
     }
     else {
+      // src is var 
       auto srcPos = regManager.varIRegMap.find(src->getName())->second;
       assert(srcPos.first == RegisterManager::VarPos::InIReg);
       if (offsetValue->isConstant()) {
+        // src is var and offsetvalue is const
         if (destPos->second.first == RegisterManager::VarPos::OnStack) {
           field1 = regManager.intRegs[srcPos.second].second;
           field2 = std::to_string(-1*destPos->second.second + 4*dynamic_cast<sysy::ConstantValue*>(offsetValue)->getInt()) + "(sp)";
@@ -546,6 +604,7 @@ void CodeGen::GenStoreInst(sysy::StoreInst *inst) {
         return;
       }
       else {
+        // src is var and offsetvalue is var
         auto addrReg = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::arg, -1);
         assert(regManager.varIRegMap.find(offsetValue->getName())->second.first == RegisterManager::VarPos::InIReg);
         if (destPos->second.first == RegisterManager::VarPos::OnStack) {
