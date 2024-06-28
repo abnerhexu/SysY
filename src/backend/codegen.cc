@@ -283,75 +283,7 @@ void CodeGen::GenBinaryInst(sysy::BinaryInst *inst) {
   auto op = inst->getKind();
   auto dst = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::temp, inst->last_used);
   regManager.varIRegMap[inst->getName()] = {RegisterManager::VarPos::InIReg, dst};
-  std::string optype;
-  std::string optypei;
-  switch (op) {
-  case sysy::Value::Kind::kAdd:
-    optype = "add";
-    optypei = "addi";
-    break;
-  case sysy::Value::Kind::kSub:
-    optype = "sub";
-    optypei = "addi";
-    break;
-  case sysy::Value::Kind::kMul:
-    optype = "mul";
-    break;
-  case sysy::Value::Kind::kDiv:
-    optype = "div";
-    break;
-  case sysy::Value::Kind::kRem:
-    optype = "rem";
-    break;
-  default:
-    std::cerr << "Error: unsupported binary op" << std::endl;
-    exit(1);
-  }
-  if (rhs->isConstant() && !lhs->isConstant()) {
-    // assert(!lhs->isConstant());
-    // assert(regManager.varIRegMap.find(lhs->getName()) != regManager.varIRegMap.end());
-    auto constRhs = dynamic_cast<sysy::ConstantValue*>(rhs);
-    if (constRhs->getInt() < 2048) {
-      field1 = regManager.intRegs[dst].second;
-      field2 = regManager.intRegs[regManager.varIRegMap.find(lhs->getName())->second.second].second;
-      field3 = std::to_string(constRhs->getInt());
-      if (optype == "sub") {
-        field2 = std::to_string(-1*constRhs->getInt());
-      }
-      this->curBBlock->CoInst.push_back(sysy::RVInst(optypei, field1, field2, field3));
-    }
-    else {
-      assert(0);
-    }
-    return ;
-  }
-  else if (lhs->isConstant() && !rhs->isConstant()) {
-    assert(!rhs->isConstant());
-    auto constLhs = dynamic_cast<sysy::ConstantValue*>(lhs);
-    if (constLhs->getInt() < 2048) {
-      field1 = regManager.intRegs[dst].second;
-      field2 = regManager.intRegs[regManager.varIRegMap.find(rhs->getName())->second.second].second;
-      field3 = std::to_string(constLhs->getInt());
-      if (optype == "sub") {
-        this->curBBlock->CoInst.push_back(sysy::RVInst("addi", field1, field2, std::to_string(-1*constLhs->getInt())));
-        this->curBBlock->CoInst.push_back(sysy::RVInst("neg", field1, field1));
-        return;
-      }
-      else if (optype == "mul") {
-        this->curBBlock->CoInst.push_back(sysy::RVInst("li", field1, std::to_string(constLhs->getInt())));
-        this->curBBlock->CoInst.push_back(sysy::RVInst(optype, field1, field1, field2));
-        return;
-      }
-      else {
-        this->curBBlock->CoInst.push_back(sysy::RVInst(optypei, field1, field2, field3));
-      }
-      return ;
-    }
-    else {
-      assert(0);
-    }
-  }
-  else if (lhs->isConstant() && rhs->isConstant()) {
+  if (lhs->isConstant() && rhs->isConstant()) {
     auto constInt1 = dynamic_cast<sysy::ConstantValue*>(lhs)->getInt();
     auto constInt2 = dynamic_cast<sysy::ConstantValue*>(rhs)->getInt();
     int res = 0;
@@ -376,13 +308,108 @@ void CodeGen::GenBinaryInst(sysy::BinaryInst *inst) {
     this->curBBlock->CoInst.push_back(sysy::RVInst("li", regManager.intRegs[dst].second, std::to_string(res)));
     return;
   }
-  else {
-    // both are var
+  std::string optype;
+  switch (op) {
+    case sysy::Value::Kind::kAdd:
+      optype = "add";
+      break;
+    case sysy::Value::Kind::kSub:
+      optype = "sub";
+      break;
+    case sysy::Value::Kind::kMul:
+      optype = "mul";
+      break;
+    case sysy::Value::Kind::kDiv:
+      optype = "div";
+      break;
+    case sysy::Value::Kind::kRem:
+      optype = "rem";
+      break;
+    default:
+      std::cerr << "unsupported optype!" << std::endl;
+      assert(0);
+      break;
+  }
+  if ((!lhs->isConstant()) && (!rhs->isConstant())) {
+    assert(regManager.varIRegMap.find(lhs->getName())->second.first == RegisterManager::VarPos::InIReg);
+    assert(regManager.varIRegMap.find(rhs->getName())->second.first == RegisterManager::VarPos::InIReg);
     field1 = regManager.intRegs[dst].second;
     field2 = regManager.intRegs[regManager.varIRegMap.find(lhs->getName())->second.second].second;
     field3 = regManager.intRegs[regManager.varIRegMap.find(rhs->getName())->second.second].second;
     this->curBBlock->CoInst.push_back(sysy::RVInst(optype, field1, field2, field3));
-    return ;
+    return;
+  }
+  if ((!lhs->isConstant()) && (rhs->isConstant())) {
+    assert(regManager.varIRegMap.find(lhs->getName())->second.first == RegisterManager::VarPos::InIReg);
+    field1 = regManager.intRegs[dst].second;
+    field2 = regManager.intRegs[regManager.varIRegMap.find(lhs->getName())->second.second].second;
+    int imm = dynamic_cast<sysy::ConstantValue*>(rhs)->getInt();
+    if (imm < 2048 && imm > -2048) {
+      switch (op) {
+      case sysy::Value::kAdd:
+        this->curBBlock->CoInst.push_back(sysy::RVInst("addi", field1, field2, std::to_string(imm)));
+        break;
+      case sysy::Value::kSub:
+        this->curBBlock->CoInst.push_back(sysy::RVInst("addi", field1, field2, std::to_string(-1*imm)));
+        break;
+      case sysy::Value::kMul:
+        this->curBBlock->CoInst.push_back(sysy::RVInst("li", field1, std::to_string(imm)));
+        this->curBBlock->CoInst.push_back(sysy::RVInst("mul", field1, field1, field2));
+        break;
+      case sysy::Value::kDiv:
+        this->curBBlock->CoInst.push_back(sysy::RVInst("li", field1, std::to_string(imm)));
+        this->curBBlock->CoInst.push_back(sysy::RVInst("div", field1, field2, field1));
+        break;
+      case sysy::Value::kRem:
+        this->curBBlock->CoInst.push_back(sysy::RVInst("li", field1, std::to_string(imm)));
+        this->curBBlock->CoInst.push_back(sysy::RVInst("rem", field1, field2, field1));
+        break;
+      default:
+        break;
+      }
+      return;
+    }
+    else {
+      this->curBBlock->CoInst.push_back(sysy::RVInst("li", field1, std::to_string(imm)));
+      this->curBBlock->CoInst.push_back(sysy::RVInst(optype, field1, field2, field1));
+      return;
+    }
+    return;
+  }
+  if ((lhs->isConstant()) && (!rhs->isConstant())) {
+    assert(regManager.varIRegMap.find(rhs->getName())->second.first == RegisterManager::VarPos::InIReg);
+    field1 = regManager.intRegs[dst].second;
+    field2 = regManager.intRegs[regManager.varIRegMap.find(lhs->getName())->second.second].second;
+    int imm = dynamic_cast<sysy::ConstantValue*>(lhs)->getInt();
+    if (imm < 2048 && imm > -2048 && op == sysy::Value::kAdd) {
+      this->curBBlock->CoInst.push_back(sysy::RVInst("addi", field1, field2, std::to_string(imm)));
+      return;
+    }
+    else {
+      switch (op) {
+        case sysy::Value::kAdd:
+          break;
+        case sysy::Value::kSub:
+          this->curBBlock->CoInst.push_back(sysy::RVInst("li", field1, std::to_string(imm)));
+          this->curBBlock->CoInst.push_back(sysy::RVInst("mul", field1, field1, field2));
+          break;
+        case sysy::Value::kMul:
+          this->curBBlock->CoInst.push_back(sysy::RVInst("li", field1, std::to_string(imm)));
+          this->curBBlock->CoInst.push_back(sysy::RVInst("mul", field1, field1, field2));
+          break;
+        case sysy::Value::kDiv:
+          this->curBBlock->CoInst.push_back(sysy::RVInst("li", field1, std::to_string(imm)));
+          this->curBBlock->CoInst.push_back(sysy::RVInst("div", field1, field1, field2));
+          break;
+        case sysy::Value::kRem:
+          this->curBBlock->CoInst.push_back(sysy::RVInst("li", field1, std::to_string(imm)));
+          this->curBBlock->CoInst.push_back(sysy::RVInst("rem", field1, field1, field2));
+          break;
+        default:
+          break;
+        return;
+      }
+    }
   }
 }
 
