@@ -413,6 +413,9 @@ std::any SysYIRGenerator::visitUnaryExp(SysYParser::UnaryExpContext *ctx) {
   else if (ctx->NOT()) {
     result = builder.createNotInst(v);
   }
+  else if (ctx->ADD()) {
+    result = v;
+  }
   return result;
 }
 
