@@ -26,6 +26,9 @@ void AssemblyCode::emitBasicBlock(std::ostream &os, sysy::BasicBlock *bb) {
     for (auto &inst: bb->CoInst) {
         inst.print(os);
     }
+    if (bb->CoInst.empty()) {
+        os << "  nop\n";
+    }
 }
 
 }

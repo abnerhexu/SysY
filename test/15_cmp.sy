@@ -1,0 +1,11 @@
+int main() {
+    int i = 0;
+    int b = 1;
+    int c = i + b;
+    if (i && c) {
+        return 1;
+    }
+    else {
+        return 0;
+    }
+}

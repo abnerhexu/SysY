@@ -159,118 +159,383 @@ void CodeGen::GenBinaryCmpInst(sysy::BinaryInst *inst) {
   auto lhs = inst->getLhs();
   auto rhs = inst->getRhs();
   auto op = inst->getKind();
-  std::string optype;
-  std::string optypei;
-  int d2;
-  auto lhsReg = regManager.varIRegMap.find(lhs->getName());
-  auto rhsReg = regManager.varIRegMap.find(rhs->getName());
-  auto cmpResult = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::dontCare, inst->last_used);
-  regManager.varIRegMap[inst->getName()] = {RegisterManager::VarPos::InIReg, cmpResult};
-  // if rhs is imm
-  if (rhs->isConstant()) {
-    switch (op) {
-    case sysy::Value::Kind::kICmpLT:
-      optypei = "slti";
-      field1 = regManager.intRegs[cmpResult].second;
-      field2 = regManager.intRegs[lhsReg->second.second].second;
-      field3 = std::to_string(dynamic_cast<sysy::ConstantValue *>(rhs)->getInt());
-      this->curBBlock->CoInst.push_back(sysy::RVInst(optypei, field1, field2, field3));
-      break;
-    case sysy::Value::Kind::kICmpNE:
-      field1 = regManager.intRegs[cmpResult].second;
-      field2 = regManager.intRegs[lhsReg->second.second].second;
-      field3 = std::to_string(-1*dynamic_cast<sysy::ConstantValue *>(rhs)->getInt());
-      this->curBBlock->CoInst.push_back(sysy::RVInst("addi", field1, field2, field3));
-      field1 = regManager.intRegs[cmpResult].second;
-      field2 = regManager.intRegs[cmpResult].second;
-      this->curBBlock->CoInst.push_back(sysy::RVInst("snez", field1, field2));
-      break;
-    default:
-      break;
+  auto resName = inst->getName();
+  auto resReg = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::temp, inst->last_used);
+  regManager.varIRegMap[resName] = {RegisterManager::VarPos::InIReg, resReg};
+
+  if (op == sysy::Value::Kind::kICmpEQ) {
+    if (lhs->isConstant() && rhs->isConstant()) {
+      if (dynamic_cast<sysy::ConstantValue*>(lhs)->getInt() == dynamic_cast<sysy::ConstantValue*>(rhs)->getInt()) {
+        this->curBBlock->CoInst.push_back(sysy::RVInst("li", regManager.intRegs[resReg].second, "1"));
+      }
+      else {
+        this->curBBlock->CoInst.push_back(sysy::RVInst("li", regManager.intRegs[resReg].second, "0"));
+      }
+      return;
     }
-    return;
+    else if (lhs->isConstant() && (!rhs->isConstant())) {
+      assert(regManager.varIRegMap.find(rhs->getName())->second.first == RegisterManager::VarPos::InIReg);
+      auto lhsInt = std::to_string(dynamic_cast<sysy::ConstantValue*>(lhs)->getInt());
+      auto rhsReg = regManager.varIRegMap[rhs->getName()].second;
+      this->curBBlock->CoInst.push_back(sysy::RVInst("li", regManager.intRegs[resReg].second, lhsInt));
+      this->curBBlock->CoInst.push_back(sysy::RVInst("sub", regManager.intRegs[resReg].second, regManager.intRegs[resReg].second, regManager.intRegs[rhsReg].second));
+      this->curBBlock->CoInst.push_back(sysy::RVInst("seqz", regManager.intRegs[resReg].second, regManager.intRegs[resReg].second));
+      return;
+    }
+    else if ((!lhs->isConstant()) && rhs->isConstant()) {
+      assert(regManager.varIRegMap.find(rhs->getName())->second.first == RegisterManager::VarPos::InIReg);
+      auto rhsInt = std::to_string(dynamic_cast<sysy::ConstantValue*>(rhs)->getInt());
+      auto lhsReg = regManager.varIRegMap[lhs->getName()].second;
+      this->curBBlock->CoInst.push_back(sysy::RVInst("li", regManager.intRegs[resReg].second, rhsInt));
+      this->curBBlock->CoInst.push_back(sysy::RVInst("sub", regManager.intRegs[resReg].second, regManager.intRegs[lhsReg].second, regManager.intRegs[resReg].second));
+      this->curBBlock->CoInst.push_back(sysy::RVInst("seqz", regManager.intRegs[resReg].second, regManager.intRegs[resReg].second));
+      return;
+    }
+    else if ((!lhs->isConstant()) && (!rhs->isConstant())) {
+      assert(regManager.varIRegMap.find(lhs->getName())->second.first == RegisterManager::VarPos::InIReg);
+      assert(regManager.varIRegMap.find(rhs->getName())->second.first == RegisterManager::VarPos::InIReg);
+      auto lhsReg = regManager.varIRegMap[lhs->getName()].second;
+      auto rhsReg = regManager.varIRegMap[rhs->getName()].second;
+      this->curBBlock->CoInst.push_back(sysy::RVInst("sub", regManager.intRegs[resReg].second, regManager.intRegs[lhsReg].second, regManager.intRegs[rhsReg].second));
+      this->curBBlock->CoInst.push_back(sysy::RVInst("seqz", regManager.intRegs[resReg].second, regManager.intRegs[resReg].second));
+      return;
+    }
+    else {
+      std::cerr << "lhs or rhs error!" << std::endl;
+      assert(0);
+    }
   }
-  if (lhsReg == regManager.varIRegMap.end() || rhsReg == regManager.varIRegMap.end()) {
-    std::cout << lhs->getName() << " " << rhs->getName() << std::endl;
-    std::cerr << "Error: unsupported binary op" << std::endl;
-    assert(0);
+
+  if (op == sysy::Value::Kind::kICmpNE) {
+    if (lhs->isConstant() && rhs->isConstant()) {
+      if (dynamic_cast<sysy::ConstantValue*>(lhs)->getInt() != dynamic_cast<sysy::ConstantValue*>(rhs)->getInt()) {
+        this->curBBlock->CoInst.push_back(sysy::RVInst("li", regManager.intRegs[resReg].second, "1"));
+      }
+      else {
+        this->curBBlock->CoInst.push_back(sysy::RVInst("li", regManager.intRegs[resReg].second, "0"));
+      }
+      return;
+    }
+    else if (lhs->isConstant() && (!rhs->isConstant())) {
+      assert(regManager.varIRegMap.find(rhs->getName())->second.first == RegisterManager::VarPos::InIReg);
+      auto lhsInt = std::to_string(dynamic_cast<sysy::ConstantValue*>(lhs)->getInt());
+      auto rhsReg = regManager.varIRegMap[rhs->getName()].second;
+      this->curBBlock->CoInst.push_back(sysy::RVInst("li", regManager.intRegs[resReg].second, lhsInt));
+      this->curBBlock->CoInst.push_back(sysy::RVInst("sub", regManager.intRegs[resReg].second, regManager.intRegs[resReg].second, regManager.intRegs[rhsReg].second));
+      this->curBBlock->CoInst.push_back(sysy::RVInst("snez", regManager.intRegs[resReg].second, regManager.intRegs[resReg].second));
+      return;
+    }
+    else if ((!lhs->isConstant()) && rhs->isConstant()) {
+      assert(regManager.varIRegMap.find(rhs->getName())->second.first == RegisterManager::VarPos::InIReg);
+      auto rhsInt = std::to_string(dynamic_cast<sysy::ConstantValue*>(rhs)->getInt());
+      auto lhsReg = regManager.varIRegMap[lhs->getName()].second;
+      this->curBBlock->CoInst.push_back(sysy::RVInst("li", regManager.intRegs[resReg].second, rhsInt));
+      this->curBBlock->CoInst.push_back(sysy::RVInst("sub", regManager.intRegs[resReg].second, regManager.intRegs[lhsReg].second, regManager.intRegs[resReg].second));
+      this->curBBlock->CoInst.push_back(sysy::RVInst("snez", regManager.intRegs[resReg].second, regManager.intRegs[resReg].second));
+      return;
+    }
+    else if ((!lhs->isConstant()) && (!rhs->isConstant())) {
+      assert(regManager.varIRegMap.find(lhs->getName())->second.first == RegisterManager::VarPos::InIReg);
+      assert(regManager.varIRegMap.find(rhs->getName())->second.first == RegisterManager::VarPos::InIReg);
+      auto lhsReg = regManager.varIRegMap[lhs->getName()].second;
+      auto rhsReg = regManager.varIRegMap[rhs->getName()].second;
+      this->curBBlock->CoInst.push_back(sysy::RVInst("sub", regManager.intRegs[resReg].second, regManager.intRegs[lhsReg].second, regManager.intRegs[rhsReg].second));
+      this->curBBlock->CoInst.push_back(sysy::RVInst("snez", regManager.intRegs[resReg].second, regManager.intRegs[resReg].second));
+      return;
+    }
+    else {
+      std::cerr << "lhs or rhs error!" << std::endl;
+      assert(0);
+    }
   }
-  switch (op) {
-  case sysy::Value::Kind::kICmpEQ:
-    field1 = regManager.intRegs[cmpResult].second;
-    field2 = regManager.intRegs[lhsReg->second.second].second;
-    field3 = regManager.intRegs[rhsReg->second.second].second;
-    this->curBBlock->CoInst.push_back(sysy::RVInst("sub", field1, field2, field3));
-    optype = "seqz";
-    field1 = regManager.intRegs[cmpResult].second;
-    field2 = regManager.intRegs[cmpResult].second;
-    this->curBBlock->CoInst.push_back(sysy::RVInst(optype, field1, field2));
-    break;
-  case sysy::Value::Kind::kICmpGT:
-    optype = "sgtz";
-    field1 = regManager.intRegs[cmpResult].second;
-    field2 = regManager.intRegs[lhsReg->second.second].second;
-    field3 = regManager.intRegs[rhsReg->second.second].second;
-    this->curBBlock->CoInst.push_back(sysy::RVInst("sub", field1, field2, field3));
-    field1 = regManager.intRegs[cmpResult].second;
-    field2 = regManager.intRegs[cmpResult].second;
-    this->curBBlock->CoInst.push_back(sysy::RVInst(optype, field1, field2));
-    break;
-  case sysy::Value::kICmpLT:
-    optype = "sltz";
-    field1 = regManager.intRegs[cmpResult].second;
-    field2 = regManager.intRegs[lhsReg->second.second].second;
-    field3 = regManager.intRegs[rhsReg->second.second].second;
-    this->curBBlock->CoInst.push_back(sysy::RVInst("sub", field1, field2, field3));
-    field1 = regManager.intRegs[cmpResult].second;
-    field2 = regManager.intRegs[cmpResult].second;
-    this->curBBlock->CoInst.push_back(sysy::RVInst(optype, field1, field2));
-    break;
-  case sysy::Value::kAnd:
-    optype = "and";
-    field1 = regManager.intRegs[cmpResult].second;
-    field2 = regManager.intRegs[lhsReg->second.second].second;
-    field3 = regManager.intRegs[rhsReg->second.second].second;
-    this->curBBlock->CoInst.push_back(sysy::RVInst(optype, field1, field2, field3));
-    break;
-  case sysy::Value::kICmpNE:
-    optype = "snez";
-    field1 = regManager.intRegs[cmpResult].second;
-    field2 = regManager.intRegs[lhsReg->second.second].second;
-    field3 = regManager.intRegs[rhsReg->second.second].second;
-    this->curBBlock->CoInst.push_back(sysy::RVInst("sub", field1, field2, field3));
-    field1 = regManager.intRegs[cmpResult].second;
-    field2 = regManager.intRegs[cmpResult].second;
-    this->curBBlock->CoInst.push_back(sysy::RVInst(optype, field1, field2));
-    break;
-  case sysy::Value::kOr:
-    optype = "or";
-    field1 = regManager.intRegs[cmpResult].second;
-    field2 = regManager.intRegs[lhsReg->second.second].second;
-    field3 = regManager.intRegs[rhsReg->second.second].second;
-    this->curBBlock->CoInst.push_back(sysy::RVInst(optype, field1, field2, field3));
-    break;
-  case sysy::Value::kICmpGE:
-    field1 = regManager.intRegs[cmpResult].second;
-    field2 = regManager.intRegs[lhsReg->second.second].second;
-    field3 = regManager.intRegs[rhsReg->second.second].second;
-    this->curBBlock->CoInst.push_back(sysy::RVInst("sub", field1, field2, field3));
-    d2 = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::arg, inst->last_used);
-    regManager.releaseReg(RegisterManager::RegType::IntReg, d2);
-    field1 = regManager.intRegs[d2].second;
-    field2 = regManager.intRegs[lhsReg->second.second].second;
-    field3 = regManager.intRegs[rhsReg->second.second].second;
-    this->curBBlock->CoInst.push_back(sysy::RVInst("slt", field1, field2, field3));
-    field1 = regManager.intRegs[cmpResult].second;
-    field2 = regManager.intRegs[cmpResult].second;
-    field3 = regManager.intRegs[d2].second;
-    this->curBBlock->CoInst.push_back(sysy::RVInst("or", field1, field2, field3));
-    break;
-  default:
-    break;
+
+  if (op == sysy::Value::Kind::kICmpGT) {
+    if (lhs->isConstant() && rhs->isConstant()) {
+      if (dynamic_cast<sysy::ConstantValue*>(lhs)->getInt() > dynamic_cast<sysy::ConstantValue*>(rhs)->getInt()) {
+        this->curBBlock->CoInst.push_back(sysy::RVInst("li", regManager.intRegs[resReg].second, "1"));
+      }
+      else {
+        this->curBBlock->CoInst.push_back(sysy::RVInst("li", regManager.intRegs[resReg].second, "0"));
+      }
+      return;
+    }
+    else if (lhs->isConstant() && (!rhs->isConstant())) {
+      assert(regManager.varIRegMap.find(rhs->getName())->second.first == RegisterManager::VarPos::InIReg);
+      auto lhsInt = std::to_string(dynamic_cast<sysy::ConstantValue*>(lhs)->getInt());
+      auto rhsReg = regManager.varIRegMap[rhs->getName()].second;
+      this->curBBlock->CoInst.push_back(sysy::RVInst("li", regManager.intRegs[resReg].second, lhsInt));
+      this->curBBlock->CoInst.push_back(sysy::RVInst("sub", regManager.intRegs[resReg].second, regManager.intRegs[resReg].second, regManager.intRegs[rhsReg].second));
+      this->curBBlock->CoInst.push_back(sysy::RVInst("sgtz", regManager.intRegs[resReg].second, regManager.intRegs[resReg].second));
+      return;
+    }
+    else if ((!lhs->isConstant()) && rhs->isConstant()) {
+      assert(regManager.varIRegMap.find(rhs->getName())->second.first == RegisterManager::VarPos::InIReg);
+      auto rhsInt = std::to_string(dynamic_cast<sysy::ConstantValue*>(rhs)->getInt());
+      auto lhsReg = regManager.varIRegMap[lhs->getName()].second;
+      this->curBBlock->CoInst.push_back(sysy::RVInst("li", regManager.intRegs[resReg].second, rhsInt));
+      this->curBBlock->CoInst.push_back(sysy::RVInst("sub", regManager.intRegs[resReg].second, regManager.intRegs[lhsReg].second, regManager.intRegs[resReg].second));
+      this->curBBlock->CoInst.push_back(sysy::RVInst("sgtz", regManager.intRegs[resReg].second, regManager.intRegs[resReg].second));
+      return;
+    }
+    else if ((!lhs->isConstant()) && (!rhs->isConstant())) {
+      assert(regManager.varIRegMap.find(lhs->getName())->second.first == RegisterManager::VarPos::InIReg);
+      assert(regManager.varIRegMap.find(rhs->getName())->second.first == RegisterManager::VarPos::InIReg);
+      auto lhsReg = regManager.varIRegMap[lhs->getName()].second;
+      auto rhsReg = regManager.varIRegMap[rhs->getName()].second;
+      this->curBBlock->CoInst.push_back(sysy::RVInst("sub", regManager.intRegs[resReg].second, regManager.intRegs[lhsReg].second, regManager.intRegs[rhsReg].second));
+      this->curBBlock->CoInst.push_back(sysy::RVInst("sgtz", regManager.intRegs[resReg].second, regManager.intRegs[resReg].second));
+      return;
+    }
+    else {
+      std::cerr << "lhs or rhs error!" << std::endl;
+      assert(0);
+    }
   }
-  // this->curBBlock->CoInst.push_back(sysy::RVInst(optype, field1, field2, field3));
-  return;
+
+  if (op == sysy::Value::Kind::kICmpGE) {
+    auto addiReg = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::temp, -1);
+    regManager.releaseReg(RegisterManager::RegType::IntReg, addiReg);
+    if (lhs->isConstant() && rhs->isConstant()) {
+      if (dynamic_cast<sysy::ConstantValue*>(lhs)->getInt() >= dynamic_cast<sysy::ConstantValue*>(rhs)->getInt()) {
+        this->curBBlock->CoInst.push_back(sysy::RVInst("li", regManager.intRegs[resReg].second, "1"));
+      }
+      else {
+        this->curBBlock->CoInst.push_back(sysy::RVInst("li", regManager.intRegs[resReg].second, "0"));
+      }
+      return;
+    }
+    else if (lhs->isConstant() && (!rhs->isConstant())) {
+      assert(regManager.varIRegMap.find(rhs->getName())->second.first == RegisterManager::VarPos::InIReg);
+      auto lhsInt = std::to_string(dynamic_cast<sysy::ConstantValue*>(lhs)->getInt());
+      auto rhsReg = regManager.varIRegMap[rhs->getName()].second;
+      this->curBBlock->CoInst.push_back(sysy::RVInst("li", regManager.intRegs[resReg].second, lhsInt));
+      this->curBBlock->CoInst.push_back(sysy::RVInst("sub", regManager.intRegs[resReg].second, regManager.intRegs[resReg].second, regManager.intRegs[rhsReg].second));
+      this->curBBlock->CoInst.push_back(sysy::RVInst("seqz", regManager.intRegs[addiReg].second, regManager.intRegs[resReg].second));
+      this->curBBlock->CoInst.push_back(sysy::RVInst("sgtz", regManager.intRegs[resReg].second, regManager.intRegs[resReg].second));
+      this->curBBlock->CoInst.push_back(sysy::RVInst("or", regManager.intRegs[resReg].second, regManager.intRegs[resReg].second, regManager.intRegs[addiReg].second));
+      return;
+    }
+    else if ((!lhs->isConstant()) && rhs->isConstant()) {
+      assert(regManager.varIRegMap.find(rhs->getName())->second.first == RegisterManager::VarPos::InIReg);
+      auto rhsInt = std::to_string(dynamic_cast<sysy::ConstantValue*>(rhs)->getInt());
+      auto lhsReg = regManager.varIRegMap[lhs->getName()].second;
+      this->curBBlock->CoInst.push_back(sysy::RVInst("li", regManager.intRegs[resReg].second, rhsInt));
+      this->curBBlock->CoInst.push_back(sysy::RVInst("sub", regManager.intRegs[resReg].second, regManager.intRegs[lhsReg].second, regManager.intRegs[resReg].second));
+      this->curBBlock->CoInst.push_back(sysy::RVInst("seqz", regManager.intRegs[addiReg].second, regManager.intRegs[resReg].second));
+      this->curBBlock->CoInst.push_back(sysy::RVInst("sgtz", regManager.intRegs[resReg].second, regManager.intRegs[resReg].second));
+      this->curBBlock->CoInst.push_back(sysy::RVInst("or", regManager.intRegs[resReg].second, regManager.intRegs[resReg].second, regManager.intRegs[addiReg].second));
+      return;
+    }
+    else if ((!lhs->isConstant()) && (!rhs->isConstant())) {
+      assert(regManager.varIRegMap.find(lhs->getName())->second.first == RegisterManager::VarPos::InIReg);
+      assert(regManager.varIRegMap.find(rhs->getName())->second.first == RegisterManager::VarPos::InIReg);
+      auto lhsReg = regManager.varIRegMap[lhs->getName()].second;
+      auto rhsReg = regManager.varIRegMap[rhs->getName()].second;
+      this->curBBlock->CoInst.push_back(sysy::RVInst("sub", regManager.intRegs[resReg].second, regManager.intRegs[lhsReg].second, regManager.intRegs[rhsReg].second));
+      this->curBBlock->CoInst.push_back(sysy::RVInst("sgtz", regManager.intRegs[resReg].second, regManager.intRegs[resReg].second));
+      this->curBBlock->CoInst.push_back(sysy::RVInst("sgtz", regManager.intRegs[resReg].second, regManager.intRegs[resReg].second));
+      this->curBBlock->CoInst.push_back(sysy::RVInst("or", regManager.intRegs[resReg].second, regManager.intRegs[resReg].second, regManager.intRegs[addiReg].second));
+      return;
+    }
+    else {
+      std::cerr << "lhs or rhs error!" << std::endl;
+      assert(0);
+    }
+  }
+
+  if (op == sysy::Value::Kind::kICmpLT) {
+    if (lhs->isConstant() && rhs->isConstant()) {
+      if (dynamic_cast<sysy::ConstantValue*>(lhs)->getInt() < dynamic_cast<sysy::ConstantValue*>(rhs)->getInt()) {
+        this->curBBlock->CoInst.push_back(sysy::RVInst("li", regManager.intRegs[resReg].second, "1"));
+      }
+      else {
+        this->curBBlock->CoInst.push_back(sysy::RVInst("li", regManager.intRegs[resReg].second, "0"));
+      }
+      return;
+    }
+    else if (lhs->isConstant() && (!rhs->isConstant())) {
+      assert(regManager.varIRegMap.find(rhs->getName())->second.first == RegisterManager::VarPos::InIReg);
+      auto lhsInt = std::to_string(dynamic_cast<sysy::ConstantValue*>(lhs)->getInt());
+      auto rhsReg = regManager.varIRegMap[rhs->getName()].second;
+      this->curBBlock->CoInst.push_back(sysy::RVInst("li", regManager.intRegs[resReg].second, lhsInt));
+      this->curBBlock->CoInst.push_back(sysy::RVInst("sub", regManager.intRegs[resReg].second, regManager.intRegs[rhsReg].second, regManager.intRegs[resReg].second));
+      this->curBBlock->CoInst.push_back(sysy::RVInst("sgtz", regManager.intRegs[resReg].second, regManager.intRegs[resReg].second));
+      return;
+    }
+    else if ((!lhs->isConstant()) && rhs->isConstant()) {
+      assert(regManager.varIRegMap.find(rhs->getName())->second.first == RegisterManager::VarPos::InIReg);
+      auto rhsInt = std::to_string(dynamic_cast<sysy::ConstantValue*>(rhs)->getInt());
+      auto lhsReg = regManager.varIRegMap[lhs->getName()].second;
+      this->curBBlock->CoInst.push_back(sysy::RVInst("li", regManager.intRegs[resReg].second, rhsInt));
+      this->curBBlock->CoInst.push_back(sysy::RVInst("sub", regManager.intRegs[resReg].second, regManager.intRegs[resReg].second, regManager.intRegs[lhsReg].second));
+      this->curBBlock->CoInst.push_back(sysy::RVInst("sgtz", regManager.intRegs[resReg].second, regManager.intRegs[resReg].second));
+      return;
+    }
+    else if ((!lhs->isConstant()) && (!rhs->isConstant())) {
+      assert(regManager.varIRegMap.find(lhs->getName())->second.first == RegisterManager::VarPos::InIReg);
+      assert(regManager.varIRegMap.find(rhs->getName())->second.first == RegisterManager::VarPos::InIReg);
+      auto lhsReg = regManager.varIRegMap[lhs->getName()].second;
+      auto rhsReg = regManager.varIRegMap[rhs->getName()].second;
+      this->curBBlock->CoInst.push_back(sysy::RVInst("sub", regManager.intRegs[resReg].second, regManager.intRegs[rhsReg].second, regManager.intRegs[lhsReg].second));
+      this->curBBlock->CoInst.push_back(sysy::RVInst("sgtz", regManager.intRegs[resReg].second, regManager.intRegs[resReg].second));
+      return;
+    }
+    else {
+      std::cerr << "lhs or rhs error!" << std::endl;
+      assert(0);
+    }
+  }
+
+  if (op == sysy::Value::Kind::kICmpLE) {
+    auto addiReg = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::temp, -1);
+    regManager.releaseReg(RegisterManager::RegType::IntReg, addiReg);
+    if (lhs->isConstant() && rhs->isConstant()) {
+      if (dynamic_cast<sysy::ConstantValue*>(lhs)->getInt() <= dynamic_cast<sysy::ConstantValue*>(rhs)->getInt()) {
+        this->curBBlock->CoInst.push_back(sysy::RVInst("li", regManager.intRegs[resReg].second, "1"));
+      }
+      else {
+        this->curBBlock->CoInst.push_back(sysy::RVInst("li", regManager.intRegs[resReg].second, "0"));
+      }
+      return;
+    }
+    else if (lhs->isConstant() && (!rhs->isConstant())) {
+      assert(regManager.varIRegMap.find(rhs->getName())->second.first == RegisterManager::VarPos::InIReg);
+      auto lhsInt = std::to_string(dynamic_cast<sysy::ConstantValue*>(lhs)->getInt());
+      auto rhsReg = regManager.varIRegMap[rhs->getName()].second;
+      this->curBBlock->CoInst.push_back(sysy::RVInst("li", regManager.intRegs[resReg].second, lhsInt));
+      this->curBBlock->CoInst.push_back(sysy::RVInst("sub", regManager.intRegs[resReg].second, regManager.intRegs[rhsReg].second, regManager.intRegs[resReg].second));
+      this->curBBlock->CoInst.push_back(sysy::RVInst("seqz", regManager.intRegs[addiReg].second, regManager.intRegs[resReg].second));
+      this->curBBlock->CoInst.push_back(sysy::RVInst("sgtz", regManager.intRegs[resReg].second, regManager.intRegs[resReg].second));
+      this->curBBlock->CoInst.push_back(sysy::RVInst("or", regManager.intRegs[resReg].second, regManager.intRegs[resReg].second, regManager.intRegs[addiReg].second));
+      return;
+    }
+    else if ((!lhs->isConstant()) && rhs->isConstant()) {
+      assert(regManager.varIRegMap.find(rhs->getName())->second.first == RegisterManager::VarPos::InIReg);
+      auto rhsInt = std::to_string(dynamic_cast<sysy::ConstantValue*>(rhs)->getInt());
+      auto lhsReg = regManager.varIRegMap[lhs->getName()].second;
+      this->curBBlock->CoInst.push_back(sysy::RVInst("li", regManager.intRegs[resReg].second, rhsInt));
+      this->curBBlock->CoInst.push_back(sysy::RVInst("sub", regManager.intRegs[resReg].second, regManager.intRegs[resReg].second, regManager.intRegs[lhsReg].second));
+      this->curBBlock->CoInst.push_back(sysy::RVInst("seqz", regManager.intRegs[addiReg].second, regManager.intRegs[resReg].second));
+      this->curBBlock->CoInst.push_back(sysy::RVInst("sgtz", regManager.intRegs[resReg].second, regManager.intRegs[resReg].second));
+      this->curBBlock->CoInst.push_back(sysy::RVInst("or", regManager.intRegs[resReg].second, regManager.intRegs[resReg].second, regManager.intRegs[addiReg].second));
+      return;
+    }
+    else if ((!lhs->isConstant()) && (!rhs->isConstant())) {
+      assert(regManager.varIRegMap.find(lhs->getName())->second.first == RegisterManager::VarPos::InIReg);
+      assert(regManager.varIRegMap.find(rhs->getName())->second.first == RegisterManager::VarPos::InIReg);
+      auto lhsReg = regManager.varIRegMap[lhs->getName()].second;
+      auto rhsReg = regManager.varIRegMap[rhs->getName()].second;
+      this->curBBlock->CoInst.push_back(sysy::RVInst("sub", regManager.intRegs[resReg].second, regManager.intRegs[rhsReg].second, regManager.intRegs[lhsReg].second));
+      this->curBBlock->CoInst.push_back(sysy::RVInst("sgtz", regManager.intRegs[resReg].second, regManager.intRegs[resReg].second));
+      this->curBBlock->CoInst.push_back(sysy::RVInst("sgtz", regManager.intRegs[resReg].second, regManager.intRegs[resReg].second));
+      this->curBBlock->CoInst.push_back(sysy::RVInst("or", regManager.intRegs[resReg].second, regManager.intRegs[resReg].second, regManager.intRegs[addiReg].second));
+      return;
+    }
+    else {
+      std::cerr << "lhs or rhs error!" << std::endl;
+      assert(0);
+    }
+  }
+
+  if (op == sysy::Value::Kind::kAnd) {
+    if (lhs->isConstant() && rhs->isConstant()) {
+      if (dynamic_cast<sysy::ConstantValue*>(lhs)->getInt() && dynamic_cast<sysy::ConstantValue*>(rhs)->getInt()) {
+        this->curBBlock->CoInst.push_back(sysy::RVInst("li", regManager.intRegs[resReg].second, "1"));
+      }
+      else {
+        this->curBBlock->CoInst.push_back(sysy::RVInst("li", regManager.intRegs[resReg].second, "0"));
+      }
+      return;
+    }
+    else if (lhs->isConstant() && (!rhs->isConstant())) {
+      assert(regManager.varIRegMap.find(rhs->getName())->second.first == RegisterManager::VarPos::InIReg);
+      auto lhsInt = dynamic_cast<sysy::ConstantValue*>(lhs)->getInt();
+      auto rhsReg = regManager.varIRegMap[rhs->getName()].second;
+      if (lhsInt == 0) {
+        this->curBBlock->CoInst.push_back(sysy::RVInst("li", regManager.intRegs[resReg].second, "0"));
+      }
+      else {
+        this->curBBlock->CoInst.push_back(sysy::RVInst("snez", regManager.intRegs[resReg].second, regManager.intRegs[rhsReg].second));
+      }
+      return;
+    }
+    else if ((!lhs->isConstant()) && rhs->isConstant()) {
+      assert(regManager.varIRegMap.find(rhs->getName())->second.first == RegisterManager::VarPos::InIReg);
+      auto rhsInt = dynamic_cast<sysy::ConstantValue*>(rhs)->getInt();
+      auto lhsReg = regManager.varIRegMap[lhs->getName()].second;
+      if (rhsInt == 0) {
+        this->curBBlock->CoInst.push_back(sysy::RVInst("li", regManager.intRegs[resReg].second, "0"));
+      }
+      else {
+        this->curBBlock->CoInst.push_back(sysy::RVInst("snez", regManager.intRegs[resReg].second, regManager.intRegs[lhsReg].second));
+      }
+      return;
+    }
+    else if ((!lhs->isConstant()) && (!rhs->isConstant())) {
+      assert(regManager.varIRegMap.find(lhs->getName())->second.first == RegisterManager::VarPos::InIReg);
+      assert(regManager.varIRegMap.find(rhs->getName())->second.first == RegisterManager::VarPos::InIReg);
+      auto lhsReg = regManager.varIRegMap[lhs->getName()].second;
+      auto rhsReg = regManager.varIRegMap[rhs->getName()].second;
+      this->curBBlock->CoInst.push_back(sysy::RVInst("snez", regManager.intRegs[lhsReg].second, regManager.intRegs[lhsReg].second));
+      this->curBBlock->CoInst.push_back(sysy::RVInst("snez", regManager.intRegs[rhsReg].second, regManager.intRegs[rhsReg].second));
+      this->curBBlock->CoInst.push_back(sysy::RVInst("and", regManager.intRegs[resReg].second, regManager.intRegs[lhsReg].second, regManager.intRegs[rhsReg].second));
+      return;
+    }
+    else {
+      std::cerr << "lhs or rhs error!" << std::endl;
+      assert(0);
+    }
+  }
+
+  if (op == sysy::Value::Kind::kOr) {
+    if (lhs->isConstant() && rhs->isConstant()) {
+      if (dynamic_cast<sysy::ConstantValue*>(lhs)->getInt() || dynamic_cast<sysy::ConstantValue*>(rhs)->getInt()) {
+        this->curBBlock->CoInst.push_back(sysy::RVInst("li", regManager.intRegs[resReg].second, "1"));
+      }
+      else {
+        this->curBBlock->CoInst.push_back(sysy::RVInst("li", regManager.intRegs[resReg].second, "0"));
+      }
+      return;
+    }
+    else if (lhs->isConstant() && (!rhs->isConstant())) {
+      assert(regManager.varIRegMap.find(rhs->getName())->second.first == RegisterManager::VarPos::InIReg);
+      auto lhsInt = dynamic_cast<sysy::ConstantValue*>(lhs)->getInt();
+      auto rhsReg = regManager.varIRegMap[rhs->getName()].second;
+      if (lhsInt != 0) {
+        this->curBBlock->CoInst.push_back(sysy::RVInst("li", regManager.intRegs[resReg].second, "1"));
+      }
+      else {
+        this->curBBlock->CoInst.push_back(sysy::RVInst("snez", regManager.intRegs[resReg].second, regManager.intRegs[rhsReg].second));
+      }
+      return;
+    }
+    else if ((!lhs->isConstant()) && rhs->isConstant()) {
+      assert(regManager.varIRegMap.find(rhs->getName())->second.first == RegisterManager::VarPos::InIReg);
+      auto rhsInt = dynamic_cast<sysy::ConstantValue*>(rhs)->getInt();
+      auto lhsReg = regManager.varIRegMap[lhs->getName()].second;
+      if (rhsInt != 0) {
+        this->curBBlock->CoInst.push_back(sysy::RVInst("li", regManager.intRegs[resReg].second, "1"));
+      }
+      else {
+        this->curBBlock->CoInst.push_back(sysy::RVInst("snez", regManager.intRegs[resReg].second, regManager.intRegs[lhsReg].second));
+      }
+      return;
+    }
+    else if ((!lhs->isConstant()) && (!rhs->isConstant())) {
+      assert(regManager.varIRegMap.find(lhs->getName())->second.first == RegisterManager::VarPos::InIReg);
+      assert(regManager.varIRegMap.find(rhs->getName())->second.first == RegisterManager::VarPos::InIReg);
+      auto lhsReg = regManager.varIRegMap[lhs->getName()].second;
+      auto rhsReg = regManager.varIRegMap[rhs->getName()].second;
+      this->curBBlock->CoInst.push_back(sysy::RVInst("snez", regManager.intRegs[lhsReg].second, regManager.intRegs[lhsReg].second));
+      this->curBBlock->CoInst.push_back(sysy::RVInst("snez", regManager.intRegs[rhsReg].second, regManager.intRegs[rhsReg].second));
+      this->curBBlock->CoInst.push_back(sysy::RVInst("or", regManager.intRegs[resReg].second, regManager.intRegs[lhsReg].second, regManager.intRegs[rhsReg].second));
+      return;
+    }
+    else {
+      std::cerr << "lhs or rhs error!" << std::endl;
+      assert(0);
+    }
+  }
 }
 
 void CodeGen::GenBinaryInst(sysy::BinaryInst *inst) {
@@ -720,23 +985,6 @@ void CodeGen::GenLoadInst(sysy::LoadInst *inst) {
           this->curBBlock->CoInst.push_back(sysy::RVInst("lw", field1, field2));
           return;
         }
-        // // pass
-        // auto destName = inst->getPointer()->getName();
-        // auto offsetValue = inst->getIndex(0);
-        // auto addrReg = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::arg, -1);
-        // field1 = regManager.intRegs[addrReg].second;
-        // field2 = "%hi(" + destName + ")";
-        // this->curBBlock->CoInst.push_back(sysy::RVInst("lui", field1, field2));
-        // field1 = regManager.intRegs[addrReg].second;
-        // field2 = regManager.intRegs[addrReg].second;
-        // field3 = "%lo(" + destName + ")";
-        // this->curBBlock->CoInst.push_back(sysy::RVInst("addi", field1, field2, field3));
-        // //TODO: find reg
-        // auto destReg = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::arg, -1);
-        // field1 = regManager.intRegs[destReg].second;
-        // field2 = std::to_string(dynamic_cast<sysy::ConstantValue*>(offsetValue)->getInt()) + "(" + regManager.intRegs[addrReg].second + ")";
-        // this->curBBlock->CoInst.push_back(sysy::RVInst("lw", field1, field2));
-        // regManager.releaseReg(RegisterManager::RegType::IntReg, addrReg);
       }
       else { assert(0); }
     }
