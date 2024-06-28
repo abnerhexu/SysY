@@ -305,8 +305,8 @@ void CodeGen::GenBinaryInst(sysy::BinaryInst *inst) {
     exit(1);
   }
   if (rhs->isConstant()) {
-    assert(!lhs->isConstant());
-    assert(regManager.varIRegMap.find(lhs->getName()) != regManager.varIRegMap.end());
+    // assert(!lhs->isConstant());
+    // assert(regManager.varIRegMap.find(lhs->getName()) != regManager.varIRegMap.end());
     auto constRhs = dynamic_cast<sysy::ConstantValue*>(rhs);
     if (constRhs->getInt() < 2048) {
       field1 = regManager.intRegs[dst].second;

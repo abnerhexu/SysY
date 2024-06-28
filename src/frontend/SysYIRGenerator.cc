@@ -35,8 +35,18 @@ std::any SysYIRGenerator::visitGlobalDecl(SysYParser::DeclContext *ctx) {
     sysy::GlobalValue* GlobalValue;
     auto name = varDef->lValue()->ID()->getText();
     std::vector<Value *> dims;
-    for (auto exp : varDef->lValue()->exp())
-      dims.push_back(std::any_cast<Value *>(exp->accept(this)));
+    for (auto exp : varDef->lValue()->exp()){
+      auto target = symbols.lookup(exp->getText());
+      // if (target != nullptr)
+      //   std::cout << target->getName() << ' ' << (target->getKind() == Value::Kind::kGlobal) << std::endl;
+      // else
+      //   std::cout << "null" << std::endl;
+      if (target != nullptr){
+        auto initVal = dynamic_cast<sysy::GlobalValue *>(target)->getInitVals(0);
+        dims.push_back(initVal);
+      }else
+        dims.push_back(std::any_cast<Value *>(exp->accept(this)));
+    }
     if (varDef->ASSIGN()) {
       if (varDef->lValue()->exp(0) == 0) {
         auto p = dynamic_cast<SysYParser::ScalarInitValueContext *>(varDef->initValue());
