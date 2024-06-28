@@ -379,7 +379,7 @@ void CodeGen::GenBinaryInst(sysy::BinaryInst *inst) {
   if ((lhs->isConstant()) && (!rhs->isConstant())) {
     assert(regManager.varIRegMap.find(rhs->getName())->second.first == RegisterManager::VarPos::InIReg);
     field1 = regManager.intRegs[dst].second;
-    field2 = regManager.intRegs[regManager.varIRegMap.find(lhs->getName())->second.second].second;
+    field2 = regManager.intRegs[regManager.varIRegMap.find(rhs->getName())->second.second].second;
     int imm = dynamic_cast<sysy::ConstantValue*>(lhs)->getInt();
     if (imm < 2048 && imm > -2048 && op == sysy::Value::kAdd) {
       this->curBBlock->CoInst.push_back(sysy::RVInst("addi", field1, field2, std::to_string(imm)));
