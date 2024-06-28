@@ -307,7 +307,7 @@ void CodeGen::GenBinaryInst(sysy::BinaryInst *inst) {
     std::cerr << "Error: unsupported binary op" << std::endl;
     exit(1);
   }
-  if (rhs->isConstant()) {
+  if (rhs->isConstant() && !lhs->isConstant()) {
     // assert(!lhs->isConstant());
     // assert(regManager.varIRegMap.find(lhs->getName()) != regManager.varIRegMap.end());
     auto constRhs = dynamic_cast<sysy::ConstantValue*>(rhs);
@@ -325,7 +325,7 @@ void CodeGen::GenBinaryInst(sysy::BinaryInst *inst) {
     }
     return ;
   }
-  else if (lhs->isConstant()) {
+  else if (lhs->isConstant() && !rhs->isConstant()) {
     assert(!rhs->isConstant());
     auto constLhs = dynamic_cast<sysy::ConstantValue*>(lhs);
     if (constLhs->getInt() < 2048) {
@@ -335,6 +335,12 @@ void CodeGen::GenBinaryInst(sysy::BinaryInst *inst) {
       if (optype == "sub") {
         this->curBBlock->CoInst.push_back(sysy::RVInst("addi", field1, field2, std::to_string(-1*constLhs->getInt())));
         this->curBBlock->CoInst.push_back(sysy::RVInst("neg", field1, field1));
+        return;
+      }
+      else if (optype == "mul") {
+        this->curBBlock->CoInst.push_back(sysy::RVInst("li", field1, std::to_string(constLhs->getInt())));
+        this->curBBlock->CoInst.push_back(sysy::RVInst(optype, field1, field1, field2));
+        return;
       }
       else {
         this->curBBlock->CoInst.push_back(sysy::RVInst(optypei, field1, field2, field3));
@@ -344,6 +350,31 @@ void CodeGen::GenBinaryInst(sysy::BinaryInst *inst) {
     else {
       assert(0);
     }
+  }
+  else if (lhs->isConstant() && rhs->isConstant()) {
+    auto constInt1 = dynamic_cast<sysy::ConstantValue*>(lhs)->getInt();
+    auto constInt2 = dynamic_cast<sysy::ConstantValue*>(rhs)->getInt();
+    int res = 0;
+    switch (op) {
+    case sysy::Value::Kind::kAdd:
+      res = constInt1 + constInt2;
+      break;
+    case sysy::Value::Kind::kSub:
+      res = constInt1 - constInt2;
+      break;
+    case sysy::Value::Kind::kMul:
+      res = constInt1 * constInt2;
+      break;
+    case sysy::Value::Kind::kDiv:
+      res = constInt1 / constInt2;
+      break;
+    case sysy::Value::Kind::kRem:
+      res = constInt1 % constInt2;
+    default:
+      break;
+    }
+    this->curBBlock->CoInst.push_back(sysy::RVInst("li", regManager.intRegs[dst].second, std::to_string(res)));
+    return;
   }
   else {
     // both are var
@@ -582,23 +613,44 @@ void CodeGen::GenLoadInst(sysy::LoadInst *inst) {
         }
       }
       else if (srcPos->second.first == RegisterManager::VarPos::Globals) {
-        // pass
-        auto destName = inst->getPointer()->getName();
-        auto offsetValue = inst->getIndex(0);
-        auto addrReg = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::arg, -1);
-        field1 = regManager.intRegs[addrReg].second;
-        field2 = "%hi(" + destName + ")";
-        this->curBBlock->CoInst.push_back(sysy::RVInst("lui", field1, field2));
-        field1 = regManager.intRegs[addrReg].second;
-        field2 = regManager.intRegs[addrReg].second;
-        field3 = "%lo(" + destName + ")";
-        this->curBBlock->CoInst.push_back(sysy::RVInst("addi", field1, field2, field3));
-        //TODO: find reg
-        auto destReg = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::arg, -1);
-        field1 = regManager.intRegs[destReg].second;
-        field2 = std::to_string(dynamic_cast<sysy::ConstantValue*>(offsetValue)->getInt()) + "(" + regManager.intRegs[addrReg].second + ")";
-        this->curBBlock->CoInst.push_back(sysy::RVInst("lw", field1, field2));
-        regManager.releaseReg(RegisterManager::RegType::IntReg, addrReg);
+        if (offset->isConstant()) {
+          this->curBBlock->CoInst.push_back(sysy::RVInst("lui", regManager.intRegs[destRegID].second, "%hi("+src->getName() + ")"));
+          this->curBBlock->CoInst.push_back(sysy::RVInst("addi", regManager.intRegs[destRegID].second, "%lo("+src->getName() + ")"));
+          auto constOff = dynamic_cast<sysy::ConstantValue*>(offset)->getInt();
+          field1 = regManager.intRegs[destRegID].second;
+          field2 = std::to_string(constOff) + "(" + field1 + ")";
+          this->curBBlock->CoInst.push_back(sysy::RVInst("lw", field1, field2));
+        }
+        else {
+          this->curBBlock->CoInst.push_back(sysy::RVInst("lui", regManager.intRegs[destRegID].second, "%hi("+src->getName() + ")"));
+          this->curBBlock->CoInst.push_back(sysy::RVInst("addi", regManager.intRegs[destRegID].second, "%lo("+src->getName() + ")"));
+          assert(regManager.varIRegMap.find(offset->getName())->second.first == RegisterManager::VarPos::InIReg);
+          field1 = regManager.intRegs[destRegID].second;
+          field2 = regManager.intRegs[destRegID].second;
+          field3 = regManager.intRegs[regManager.varIRegMap.find(offset->getName())->second.second].second;
+          this->curBBlock->CoInst.push_back(sysy::RVInst("add", field1, field2, field3));
+          field1 = regManager.intRegs[destRegID].second;
+          field2 = regManager.intRegs[destRegID].second;
+          this->curBBlock->CoInst.push_back(sysy::RVInst("lw", field1, field2));
+          return;
+        }
+        // // pass
+        // auto destName = inst->getPointer()->getName();
+        // auto offsetValue = inst->getIndex(0);
+        // auto addrReg = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::arg, -1);
+        // field1 = regManager.intRegs[addrReg].second;
+        // field2 = "%hi(" + destName + ")";
+        // this->curBBlock->CoInst.push_back(sysy::RVInst("lui", field1, field2));
+        // field1 = regManager.intRegs[addrReg].second;
+        // field2 = regManager.intRegs[addrReg].second;
+        // field3 = "%lo(" + destName + ")";
+        // this->curBBlock->CoInst.push_back(sysy::RVInst("addi", field1, field2, field3));
+        // //TODO: find reg
+        // auto destReg = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::arg, -1);
+        // field1 = regManager.intRegs[destReg].second;
+        // field2 = std::to_string(dynamic_cast<sysy::ConstantValue*>(offsetValue)->getInt()) + "(" + regManager.intRegs[addrReg].second + ")";
+        // this->curBBlock->CoInst.push_back(sysy::RVInst("lw", field1, field2));
+        // regManager.releaseReg(RegisterManager::RegType::IntReg, addrReg);
       }
       else { assert(0); }
     }
