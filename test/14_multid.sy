@@ -1,0 +1,7 @@
+const int M = 100;
+const int N = 100;
+int arr[M][N];
+int main() {
+    int ans = arr[0][1];
+    return ans;
+}
