@@ -7,6 +7,4 @@ int main() {
     c = (a + b);
   else
     c = a * b;
-  
-  return c;
 }

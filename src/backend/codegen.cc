@@ -59,7 +59,7 @@ void CodeGen::module_gen(sysy::Module *module) {
   clearModuleLabels(module);
   module->descriptionText += space + ".file" + this->fname + endl;
   module->descriptionText += space + ".attribute risc-v rv64gc little-endian" + endl;
-  module->descriptionText += space + ".palign 4" + endl;
+  // module->descriptionText += space + ".palign 4" + endl;
   module->descriptionText += space + ".text" + endl;
   // descriptionCode += space + ".globl main" + endl;
   std::map<std::string, sysy::Function*> *funcs = module->getFunctions();
@@ -659,7 +659,7 @@ void CodeGen::GenLoadInst(sysy::LoadInst *inst) {
       regManager.varIRegMap[inst->getName()] = {RegisterManager::VarPos::InIReg, destRegID};
       if (srcPos->second.first == RegisterManager::VarPos::OnStack) {
         field1 = regManager.intRegs[destRegID].second;
-        field2 = std::to_string(srcPos->second.second) + "(sp)";
+        field2 = std::to_string(-1*srcPos->second.second) + "(sp)";
         this->curBBlock->CoInst.push_back(sysy::RVInst("lw", field1, field2));
       }
       else {
@@ -829,7 +829,7 @@ void CodeGen::GenCondBrInst(sysy::CondBrInst* inst) {
     field1 = regManager.intRegs[regManager.varIRegMap.find(condName)->second.second].second;
     field2 = thenBlockName;
     // instruction += space + "beqz " + field1 + ", " + field2 + endl;
-    this->curBBlock->CoInst.push_back(sysy::RVInst("beqz", field1, field2));
+    this->curBBlock->CoInst.push_back(sysy::RVInst("bnez", field1, field2));
     field1 = elseBlockName;
     // instruction += space + "j " + field1 + endl;
     this->curBBlock->CoInst.push_back(sysy::RVInst("j", field1));

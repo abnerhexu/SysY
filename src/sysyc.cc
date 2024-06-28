@@ -66,6 +66,9 @@ public:
       codegen::AssemblyCode assemblyCode(this->module);
       assemblyCode.emitModule(std::cout);
     }
+    if (this->flags["--output-binary"]) {
+      
+    }
   }
 }; // class TransformFlags
 
