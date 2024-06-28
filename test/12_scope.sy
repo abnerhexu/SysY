@@ -1,0 +1,12 @@
+int main() {
+    int a[2] = {0, 1};
+    int sum = 0;
+    {
+        int a = 2;
+        sum = a;
+    }
+    {
+        sum = a[1];
+    }
+    return sum;
+}

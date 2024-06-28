@@ -40,6 +40,9 @@ public:
 
 private:
   std::forward_list<std::pair<Kind, std::map<std::string, Value* >>> symbols;
+public:
+  std::map<Value*, std::string> vNameMap; // alias
+  std::map<std::string, int> dualVarNames;
 
 public:
   SymbolTable() = default;
@@ -60,10 +63,31 @@ public:
     return nullptr;
   }
 
-public:
-  auto insert(const std::string &name, Value *value) {
+  auto insert(const std::string &name, Value *value, const std::string alias = "") {
     assert(not symbols.empty());
+    if (alias != "") {
+      this->vNameMap.insert({value, alias});
+    }
+    else {
+      this->vNameMap.insert({value, name});
+    }
     return symbols.front().second.emplace(name, value);
+  }
+
+  std::string emitDualVarName(const std::string &hint = "") {
+    if (dualVarNames.find(hint) == dualVarNames.end()) {
+      dualVarNames[hint] = 0;
+    }
+    else {
+      dualVarNames[hint]++;
+    }
+    return hint + std::to_string(dualVarNames[hint]);
+  }
+
+  std::string getAlias(Value* value) {
+    auto alias = this->vNameMap[value];
+    // std::cout << alias << std::endl;
+    return alias;
   }
 
 private:

@@ -5,7 +5,6 @@
 #include "SysYLexer.h"
 #include "SysYParser.h"
 #include "frontend/SysYIRGenerator.h"
-#include "debug.h"
 #include "backend/codegen.h"
 #include "backend/llir.h"
 #include "backend/assembly.h"

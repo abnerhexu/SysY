@@ -83,12 +83,18 @@ std::any SysYIRGenerator::visitLocalDecl(SysYParser::DeclContext *ctx) {
   auto type = Type::getPointerType(std::any_cast<Type *>(visitBtype(ctx->btype())));
   for (auto varDef : ctx->varDef()) {
     auto name = varDef->lValue()->ID()->getText();
+    auto alias = symbols.emitDualVarName(name);
+    // std::cout << name << " 0" << std::endl;
+    // auto foundV = symbols.lookup(name);
+    // auto name2 = symbols.getAlias(foundV);
+    // std::cout << name << " " << name2 << std::endl;
     std::vector<Value *> dims;
     for (auto exp : varDef->lValue()->exp())
       dims.push_back(std::any_cast<Value *>(exp->accept(this)));
-    alloca = builder.createAllocaInst(type, dims, name);
-    symbols.insert(name, alloca);
-    if (varDef->lValue()->exp(0) == 0){
+    alloca = builder.createAllocaInst(type, dims, alias);
+    symbols.insert(name, alloca, alias);
+    name = alias;
+    if (varDef->lValue()->exp(0) == 0) {
       // scalar
       if (varDef->ASSIGN()) {
         auto p = dynamic_cast<SysYParser::ScalarInitValueContext *>(varDef->initValue());
@@ -155,20 +161,6 @@ std::any SysYIRGenerator::visitFuncType(SysYParser::FuncTypeContext *ctx) {
              : (ctx->FLOAT() ? Type::getFloatType() : Type::getVoidType());
 }
 
-// std::any SysYIRGenerator::visitBlockStmt(SysYParser::BlockStmtContext *ctx, bool parallelized = false) {
-//   for (auto item : ctx->blockItem()) {
-//     // if (1) {
-//     //   std::cout << (item->decl()? "decl": "no decl") << (item->stmt()? "stmt": "no stmt") << std::endl;
-//     // }
-//     visitBlockItem(item);
-//   }
-//   if(parallelized) {
-//     auto *curBb = builder.getBasicBlock();
-//     curBb->setInPragma(true);
-//   }
-//   return builder.getBasicBlock();
-// }
-
 std::any SysYIRGenerator::visitScalarInitValue(SysYParser::ScalarInitValueContext *ctx) {
   // Value *value =  std::any_cast<Value *>(ctx->exp()->accept(this));
   // std::cout << (dynamicCast<ConstantValue>(value))->getInt() << std::endl;
@@ -192,6 +184,7 @@ std::any SysYIRGenerator::visitAssignStmt(SysYParser::AssignStmtContext *ctx) {
   auto lValue = ctx->lValue();
   auto name = lValue->ID()->getText();
   auto pointer = symbols.lookup(name);
+  name = symbols.getAlias(pointer);
   auto shape = usedarrays.find(name);
   std::vector<Value *> irs;
   std::vector<Value *> add_results;
@@ -256,7 +249,13 @@ std::any SysYIRGenerator::visitNumberExp(SysYParser::NumberExpContext *ctx) {
 
 std::any SysYIRGenerator::visitLValueExp(SysYParser::LValueExpContext *ctx) {
   auto name = ctx->lValue()->ID()->getText();
+  // std::cout << name << std::endl;
   Value *value = symbols.lookup(name);
+  // std::cout << name << std::endl;
+  // std::cout << value->getName() << std::endl;
+  assert(value != nullptr);
+  name = symbols.getAlias(value);
+  // std::cout << name << std::endl;
   auto shape = usedarrays.find(name);
 
   //scalar

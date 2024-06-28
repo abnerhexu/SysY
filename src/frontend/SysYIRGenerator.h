@@ -58,6 +58,7 @@ public:
   }
 
   virtual std::any visitBlockStmt(SysYParser::BlockStmtContext *ctx) override {
+    SymbolTable::BlockScope scope(symbols);
     for (auto item : ctx->blockItem()) {
       // if (1) {
       //   std::cout << (item->decl()? "decl": "no decl") << (item->stmt()? "stmt": "no stmt") << std::endl;
@@ -169,6 +170,8 @@ private:
 private:
   std::map<std::string, size_t> globalBlockSegs = {{"block", 0}, {"br", 0}};
 public:
+  std::map<std::string, size_t> dualVarNames;
+public:
   std::string emitBlockName(const std::string &hint = "", const int allocatedBlockID = -1) {
     if (hint == "") {
       globalBlockSegs["block"]++;
@@ -188,6 +191,15 @@ public:
     }
     else return ++globalBlockSegs["br"];
   }
+  // std::string emitDualVarName(const std::string &hint = "") {
+  //   if (dualVarNames.find(hint) == dualVarNames.end()) {
+  //     dualVarNames[hint] = 0;
+  //   }
+  //   else {
+  //     dualVarNames[hint]++;
+  //   }
+  //   return hint + std::to_string(dualVarNames[hint]);
+  // }
 }; // class SysYIRGenerator
 
 } // namespace sysy
