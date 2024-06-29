@@ -243,7 +243,7 @@ public:
     std::string label;
     if (t == this->bblockLabels.end()) {
       // label = ".block_" + std::to_string(this->bblabelId++); // + "_" + bb->getName();
-      label = "BB_" + std::to_string(this->bblabelId++); // bb->getName().;
+      label = "BB_" + bb->getName(); // std::to_string(this->bblabelId++); //
       bblockLabels[bb] = label;
     }
     else {

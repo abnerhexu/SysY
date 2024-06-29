@@ -370,8 +370,8 @@ class Function;
 
 class RVInst {
 public:
-  const std::string space = "  ";
-  const std::string endl = "\n";
+  std::string space = "  ";
+  std::string endl = "\n";
   std::string op;
   std::vector<std::string> fields;
   bool valid;
@@ -401,7 +401,7 @@ public:
       this->fields.push_back(field4);
     };
   void print(std::ostream &os) {
-    if (!this->valid) { return; }
+    // if (!this->valid) { return; }
     os << this->space << this->op << " ";
     // for (auto &it: this->fields) {
     //   os << it;

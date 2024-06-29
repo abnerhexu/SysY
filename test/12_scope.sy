@@ -1,12 +1,18 @@
 int main() {
-    int a[2] = {0, 1};
-    int sum = 0;
+    int a = 0, sum = 100;
+    a = a + -2;
+    sum = sum + a;
     {
         int a = 2;
-        sum = a;
-    }
-    {
-        sum = a[1];
+        a = a + 1;
+        sum = sum + a;
+        {
+            int a = 3;
+            a = a + 2;
+            sum = sum + a;
+        }
+        a = a + -5;
+        sum = sum + a;
     }
     return sum;
 }

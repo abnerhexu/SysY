@@ -1,12 +1,34 @@
-#include <pthread.h>
-
-void* thread_foo1(void* tid) { int a = 0; a++; }
-void* thread_foo2(void* tid) { int b = 1; b--;}
 int main() {
-    pthread_t thread1, thread2;
-    pthread_create(&thread1, NULL, thread_foo1, NULL);
-    pthread_create(&thread2, NULL, thread_foo2, NULL);
-    pthread_join(thread1, NULL);
-    pthread_join(thread2, NULL);
-    return 0;
+  const int a = 1;
+  const int b = 2;
+  const int c = 3;
+  const int d = 4;
+  const int e = 5;
+  const int f = 6;
+  if (a * b + c < 6 && d != 0) {
+    if (e || !a + 0) {
+      if (c == 2 && d + e > 2) return 3;
+      else {
+        if (f % c && e) return 4;
+        else {
+          if (d / b + a >= 2) {
+            if (e - f >= 0 || d > 4) return 6;
+            else {
+              if (c != f) {
+                if (b + e * d > 10) {
+                  if (!f) return 9;
+                  else return 10;
+                }
+                else return 8;
+              }
+              else return 7;
+            }
+          }
+          else return 5;
+        }
+      }
+    }
+    else return 2;
+  }
+  else return 1;
 }

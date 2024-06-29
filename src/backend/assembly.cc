@@ -2,7 +2,7 @@
 
 namespace codegen {
 void AssemblyCode::emitModule(std::ostream &os) {
-    os << module->descriptionText;
+    // os << module->descriptionText;
     os << module->globalDataText;
     auto *funcs = module->getFunctions();
     for (auto it = funcs->begin(); it != funcs->end(); it++) {
