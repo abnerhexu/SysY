@@ -63,14 +63,14 @@ std::any SysYIRGenerator::visitGlobalDecl(SysYParser::DeclContext *ctx) {
         auto initVals = std::any_cast<std::vector<Value*>>(visitArrayInitValue(p));
         GlobalValue = module->createGlobalValue(name, type->getPointerType(type), dims, initVals);
         values.push_back(GlobalValue);
-        usedarrays.insert({name, dims});
+        usedarrays.insert({alias, dims});
       } // array
     }
     else {
       GlobalValue = module->createGlobalValue(name, type->getPointerType(type), dims, init);
       values.push_back(GlobalValue);
       if (dims.size() > 0) {
-        usedarrays.insert({name, dims});
+        usedarrays.insert({alias, dims});
       }
     }
     symbols.insert(name, GlobalValue, alias);
@@ -105,7 +105,7 @@ std::any SysYIRGenerator::visitLocalDecl(SysYParser::DeclContext *ctx) {
     }
     else{
       // array
-      usedarrays.insert({name, dims});
+      usedarrays.insert({alias, dims});
       if (varDef->ASSIGN()) {
         std::vector<Value *>indices;
         Value *arrayindex = new ConstantValue(0); // caution: memory leak risk!!!

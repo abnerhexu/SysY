@@ -1,4 +1,6 @@
 int f = 1;
 int main() {
-    return f;
+    int e = 0;
+    e = e + f;
+    return e;
 }
