@@ -1,0 +1,13 @@
+int main(){
+    int j = 7;
+    while (j > 4) {
+        j = j - 1;
+        if (j == 5) {
+            break;
+        }
+        else {
+            continue;
+        }
+    }
+    return j;
+}

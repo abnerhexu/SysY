@@ -63,8 +63,12 @@ public:
       this->module->print(std::cout);
     }
     if (this->flags["--emit-as"]) {
+      auto foutName = this->srcfile.erase(this->srcfile.find_last_of("."), this->srcfile.size()).append(".s");
+      std::cout << "assembly code output: " << foutName << std::endl;
+      std::ofstream fout(foutName);
       codegen::AssemblyCode assemblyCode(this->module);
-      assemblyCode.emitModule(std::cout);
+      assemblyCode.emitModule(fout);
+      fout.close();
     }
     if (this->flags["--output-binary"]) {
       
@@ -81,6 +85,7 @@ int main(int argc, char *argv[]) {
     return EXIT_FAILURE;
   }
   antlr4::ANTLRInputStream input(fin);
+  fin.close();
   SysYLexer lexer(&input);
   antlr4::CommonTokenStream tokens(&lexer);
   SysYParser parser(&tokens);
@@ -91,7 +96,7 @@ int main(int argc, char *argv[]) {
 
   auto moduleIR = generator.get();
   tff.module = moduleIR;
-  moduleIR->print(std::cout);
+  // moduleIR->print(std::cout);
   codegen::LLIRGen llirgenerator(moduleIR);
   llirgenerator.llir_gen();
 

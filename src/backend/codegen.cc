@@ -1184,7 +1184,7 @@ void CodeGen::GenCallInst(sysy::CallInst* inst, int dstRegID) {
   else {
     for (auto &it: inst->getArguments()) {
       // std::cout << it.getValue()->getName() << std::endl;
-      auto requestReg = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::arg, -1);
+      auto requestReg = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::arg, inst->last_used);
       auto srcArgReg = regManager.varIRegMap.find(it.getValue()->getName())->second.second;
       field1 = regManager.intRegs[requestReg].second;
       field2 = regManager.intRegs[srcArgReg].second;
