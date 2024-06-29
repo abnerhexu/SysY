@@ -23,8 +23,8 @@ void ConstProp::constantPropagation(sysy::BasicBlock *bb) {
 
     // First pass: collect and record constant assignments.
     for (auto &inst : bb->CoInst) {
-        if (inst.op == "li" && inst.fields.size() == 3) { // Assuming 'li' is the instruction to load immediate constants.
-            valueMap[inst.fields[1]] = inst.fields[2]; // Store constant value with its register.
+        if (inst.op == "li" && inst.fields.size() == 1) { // Assuming 'li' is the instruction to load immediate constants.
+            valueMap[inst.fields[1]] = inst.fields[0]; // Store constant value with its register.
         }
     }
 
