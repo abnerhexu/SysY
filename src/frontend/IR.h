@@ -969,6 +969,7 @@ public:
   std::string descriptionText;
   std::string globalDataText;
   std::string srcFile;
+  int staticSize;
 
 public:
   Function *createFunction(const std::string &name, Type *type) {

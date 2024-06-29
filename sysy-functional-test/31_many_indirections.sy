@@ -1,6 +1,7 @@
-const int N = 100;
-const int M = 20;
-int array[M][N];
+int M = 20;
+int N = 100;
+int array[20][100];
+
 
 int main() {
   int i = 0, sum = 0;

@@ -34,6 +34,7 @@ std::any SysYIRGenerator::visitGlobalDecl(SysYParser::DeclContext *ctx) {
   for (auto varDef : ctx->varDef()) {
     sysy::GlobalValue* GlobalValue;
     auto name = varDef->lValue()->ID()->getText();
+    auto alias = symbols.emitDualVarName(name);
     std::vector<Value *> dims;
     for (auto exp : varDef->lValue()->exp()){
       auto target = symbols.lookup(exp->getText());
@@ -72,7 +73,7 @@ std::any SysYIRGenerator::visitGlobalDecl(SysYParser::DeclContext *ctx) {
         usedarrays.insert({name, dims});
       }
     }
-    symbols.insert(name, GlobalValue);
+    symbols.insert(name, GlobalValue, alias);
   }
   return values;
 }
@@ -240,7 +241,10 @@ std::any SysYIRGenerator::visitNumberExp(SysYParser::NumberExpContext *ctx) {
   Value *result = nullptr;
   assert(ctx->number()->ILITERAL() or ctx->number()->FLITERAL());
   if (auto iLiteral = ctx->number()->ILITERAL())
-    result = ConstantValue::get(std::stoi(iLiteral->getText()));
+    if (ctx->number()->getText().substr(0, 2) == "0x" || ctx->number()->getText().substr(0, 2) == "0X")
+      result = ConstantValue::get(std::stoi(iLiteral->getText(), nullptr, 16));
+    else
+      result = ConstantValue::get(std::stoi(iLiteral->getText()));
   else
     result =
         ConstantValue::get(std::stof(ctx->number()->FLITERAL()->getText()));

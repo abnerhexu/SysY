@@ -1,5 +1,4 @@
+int f = 1;
 int main() {
-    int e = 0;
-    int f = 1;
-    int h = e - f;
+    return f;
 }
