@@ -154,6 +154,7 @@ void CodeGen::function_gen(sysy::Function *func) {
     auto t = sysy::RVInst("addi", "sp", "sp", "-"+std::to_string(spOff));
     t.valid = true;
     func->MetaInst.push_back(t);
+    func->PostInst.push_back(sysy::RVInst("addi", "sp", "sp", std::to_string(spOff)));
     // handleSpCode = space + "addi sp, sp, -" + std::to_string(spOff) + endl;
   }
 
@@ -791,14 +792,13 @@ void CodeGen::GenStoreInst(sysy::StoreInst *inst) {
     auto offsetValue = inst->getIndex(0);
     if (src->isConstant()) {
       auto srcImmReg = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::arg, -1);
-      regManager.releaseReg(RegisterManager::RegType::IntReg, srcImmReg);
       auto srcImm = std::to_string(dynamic_cast<sysy::ConstantValue*>(src)->getInt());
       this->curBBlock->CoInst.push_back(sysy::RVInst("li", regManager.intRegs[srcImmReg].second, srcImm));
       if (destPos->second.first == RegisterManager::VarPos::OnStack) {
         if (offsetValue->isConstant()){
           auto offRegID = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::arg, -1);
           regManager.releaseReg(RegisterManager::RegType::IntReg, offRegID);
-          if (dynamic_cast<sysy::ConstantValue*>(offsetValue)->getInt() > -2048 && dynamic_cast<sysy::ConstantValue*>(offsetValue)->getInt() < 2048) {
+          if (dynamic_cast<sysy::ConstantValue*>(offsetValue)->getInt() > -512 && dynamic_cast<sysy::ConstantValue*>(offsetValue)->getInt() < 512) {
             field1 = regManager.intRegs[srcImmReg].second;
             field2 = std::to_string(-1*destPos->second.second + 4*dynamic_cast<sysy::ConstantValue*>(offsetValue)->getInt()) + "(sp)";
             this->curBBlock->CoInst.push_back(sysy::RVInst("sw", field1, field2));
@@ -838,27 +838,43 @@ void CodeGen::GenStoreInst(sysy::StoreInst *inst) {
           this->curBBlock->CoInst.push_back(sysy::RVInst("la", field1, field2));
           field1 = regManager.intRegs[srcImmReg].second;
           int constInt = dynamic_cast<sysy::ConstantValue*>(offsetValue)->getInt();
-          if (constInt < 2048 && constInt > -2048) {
-            field2 = std::to_string(dynamic_cast<sysy::ConstantValue*>(offsetValue)->getInt()) + "(" + regManager.intRegs[addrReg].second + ")";
+          if (constInt < 512 && constInt > -512) {
+            field2 = std::to_string(4*dynamic_cast<sysy::ConstantValue*>(offsetValue)->getInt()) + "(" + regManager.intRegs[addrReg].second + ")";
             this->curBBlock->CoInst.push_back(sysy::RVInst("sw", field1, field2));
           }
           else {
             auto addrOffReg = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::arg, -1);
             regManager.releaseReg(RegisterManager::RegType::IntReg, addrOffReg);
-            this->curBBlock->CoInst.push_back(sysy::RVInst("li", regManager.intRegs[addrOffReg].second, std::to_string(constInt)));
+            this->curBBlock->CoInst.push_back(sysy::RVInst("li", regManager.intRegs[addrOffReg].second, std::to_string(4*constInt)));
             field1 = regManager.intRegs[addrReg].second;
             field2 = regManager.intRegs[addrOffReg].second;
             this->curBBlock->CoInst.push_back(sysy::RVInst("add", field1, field1, field2));
             field1 = regManager.intRegs[srcImmReg].second;
             field2 = "0(" + regManager.intRegs[addrReg].second + ")";
             this->curBBlock->CoInst.push_back(sysy::RVInst("sw", field1, field2));
-            return;
           }
         }
         else {
           // offsetValue is not const
+          auto addrReg = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::arg, -1);
+          regManager.releaseReg(RegisterManager::RegType::IntReg, addrReg);
+          field1 = regManager.intRegs[addrReg].second;
+          field2 = destName;
+          this->curBBlock->CoInst.push_back(sysy::RVInst("la", field1, field2));
+          auto offRegID = regManager.varIRegMap.find(offsetValue->getName())->second.second;
+          field1 = regManager.intRegs[offRegID].second;
+          field2 = regManager.intRegs[offRegID].second;
+          field3 = "2";
+          this->curBBlock->CoInst.push_back(sysy::RVInst("slli", field1, field2, field3));
+          field1 = regManager.intRegs[addrReg].second;
+          field2 = regManager.intRegs[addrReg].second;
+          field3 = regManager.intRegs[offRegID].second;
+          this->curBBlock->CoInst.push_back(sysy::RVInst("add", field1, field2, field3));
+          field1 = regManager.intRegs[srcImmReg].second;
+          field2 = "0(" + regManager.intRegs[addrReg].second + ")";
+          this->curBBlock->CoInst.push_back(sysy::RVInst("sw", field1, field2));
         }
-        
+        regManager.releaseReg(RegisterManager::RegType::IntReg, srcImmReg);
       }
       return;
     }
@@ -876,15 +892,24 @@ void CodeGen::GenStoreInst(sysy::StoreInst *inst) {
         else if (destPos->second.first == RegisterManager::VarPos::Globals) {
           auto addrReg = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::arg, -1);
           field1 = regManager.intRegs[addrReg].second;
-          field2 = "%hi(" + destName + ")";
-          this->curBBlock->CoInst.push_back(sysy::RVInst("lui", field1, field2));
-          field1 = regManager.intRegs[addrReg].second;
-          field2 = regManager.intRegs[addrReg].second;
-          field3 = "%lo(" + destName + ")";
-          this->curBBlock->CoInst.push_back(sysy::RVInst("addi", field1, field2, field3));
-          field1 = regManager.intRegs[srcPos.second].second;
-          field2 = std::to_string(dynamic_cast<sysy::ConstantValue*>(offsetValue)->getInt()) + "(" + regManager.intRegs[addrReg].second + ")";
-          this->curBBlock->CoInst.push_back(sysy::RVInst("sw", field1, field2));
+          field2 = destName;
+          this->curBBlock->CoInst.push_back(sysy::RVInst("la", field1, field2));
+          auto immNum = dynamic_cast<sysy::ConstantValue*>(offsetValue)->getInt();
+          if (immNum < 512 && immNum > -512) {
+            field1 = regManager.intRegs[srcPos.second].second;
+            field2 = std::to_string(4*dynamic_cast<sysy::ConstantValue*>(offsetValue)->getInt()) + "(" + regManager.intRegs[addrReg].second + ")";
+            this->curBBlock->CoInst.push_back(sysy::RVInst("sw", field1, field2));
+          }
+          else {
+            auto immTempReg = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::temp, -1);
+            regManager.releaseReg(RegisterManager::RegType::IntReg, immTempReg);
+            field1 = regManager.intRegs[immTempReg].second;
+            field2 = std::to_string(4*immNum);
+            this->curBBlock->CoInst.push_back(sysy::RVInst("li", field1, field2));
+            field1 = regManager.intRegs[immTempReg].second;
+            field2 = "0(" + regManager.intRegs[addrReg].second + ")";
+            this->curBBlock->CoInst.push_back(sysy::RVInst("sw", field1, field2));
+          }
           regManager.releaseReg(RegisterManager::RegType::IntReg, addrReg);
         }
         return;
@@ -908,15 +933,12 @@ void CodeGen::GenStoreInst(sysy::StoreInst *inst) {
         }
         else if (destPos->second.first == RegisterManager::VarPos::Globals) {
           field1 = regManager.intRegs[addrReg].second;
-          field2 = "%hi(" + destName + ")";
-          this->curBBlock->CoInst.push_back(sysy::RVInst("lui", field1, field2));
-          field1 = regManager.intRegs[addrReg].second;
-          field2 = regManager.intRegs[addrReg].second;
-          field3 = "%lo(" + destName + ")";
-          this->curBBlock->CoInst.push_back(sysy::RVInst("addi", field1, field2, field3));
+          field2 = destName;
+          this->curBBlock->CoInst.push_back(sysy::RVInst("la", field1, field2));
           field1 = regManager.intRegs[addrReg].second;
           field2 = regManager.intRegs[addrReg].second;
           field3 = regManager.intRegs[regManager.varIRegMap.find(offsetValue->getName())->second.second].second;
+          this->curBBlock->CoInst.push_back(sysy::RVInst("slli", field3, field3, "2"));
           this->curBBlock->CoInst.push_back(sysy::RVInst("add", field1, field2, field3));
           field1 = regManager.intRegs[srcPos.second].second;
           field2 = "0(" + regManager.intRegs[addrReg].second + ")";
@@ -987,9 +1009,9 @@ void CodeGen::GenLoadInst(sysy::LoadInst *inst) {
         if (offset->isConstant()) {
           this->curBBlock->CoInst.push_back(sysy::RVInst("la", regManager.intRegs[tempAddrReg].second, src->getName()));
           auto constOff = dynamic_cast<sysy::ConstantValue*>(offset)->getInt();
-          if (constOff < 2048 && constOff > -2048) {
+          if (constOff < 512 && constOff > -512) {
             field1 = regManager.intRegs[destRegID].second;
-            field2 = std::to_string(constOff) + "(" + regManager.intRegs[tempAddrReg].second + ")";
+            field2 = std::to_string(4*constOff) + "(" + regManager.intRegs[tempAddrReg].second + ")";
             this->curBBlock->CoInst.push_back(sysy::RVInst("lw", field1, field2));
           }
           else {
@@ -997,7 +1019,7 @@ void CodeGen::GenLoadInst(sysy::LoadInst *inst) {
             auto reqOffsetImmReg = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::temp, inst->last_used);
             regManager.releaseReg(RegisterManager::RegType::IntReg, reqOffsetImmReg);
             field1 = regManager.intRegs[reqOffsetImmReg].second;
-            field2 = std::to_string(constOff);
+            field2 = std::to_string(4*constOff);
             this->curBBlock->CoInst.push_back(sysy::RVInst("li", field1, field2));
             field1 = regManager.intRegs[tempAddrReg].second;
             field2 = regManager.intRegs[tempAddrReg].second;
@@ -1015,6 +1037,7 @@ void CodeGen::GenLoadInst(sysy::LoadInst *inst) {
           field1 = regManager.intRegs[tempAddrReg].second;
           field2 = regManager.intRegs[tempAddrReg].second;
           field3 = regManager.intRegs[regManager.varIRegMap.find(offset->getName())->second.second].second;
+          this->curBBlock->CoInst.push_back(sysy::RVInst("slli", field3, field3, "2"));
           this->curBBlock->CoInst.push_back(sysy::RVInst("add", field1, field2, field3));
           field1 = regManager.intRegs[destRegID].second;
           field2 = "0(" + regManager.intRegs[tempAddrReg].second + ")";

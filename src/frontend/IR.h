@@ -886,6 +886,7 @@ public:
     return value->getKind() == kFunction;
   }
   std::vector<RVInst> MetaInst;
+  std::vector<RVInst> PostInst;
 
 public:
   using block_list = std::list<std::unique_ptr<BasicBlock>>;
