@@ -34,6 +34,7 @@ std::any SysYIRGenerator::visitGlobalDecl(SysYParser::DeclContext *ctx) {
   for (auto varDef : ctx->varDef()) {
     sysy::GlobalValue* GlobalValue;
     auto name = varDef->lValue()->ID()->getText();
+    auto alias = symbols.emitDualVarName(name);
     std::vector<Value *> dims;
     for (auto exp : varDef->lValue()->exp()){
       auto target = symbols.lookup(exp->getText());
@@ -72,7 +73,7 @@ std::any SysYIRGenerator::visitGlobalDecl(SysYParser::DeclContext *ctx) {
         usedarrays.insert({name, dims});
       }
     }
-    symbols.insert(name, GlobalValue);
+    symbols.insert(name, GlobalValue, alias);
   }
   return values;
 }
