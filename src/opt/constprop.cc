@@ -20,34 +20,53 @@ void ConstProp::moduleTransform() {
 
 void ConstProp::constantPropagation(sysy::BasicBlock *bb) {
     std::unordered_map<std::string, std::string> valueMap;
-    std::unordered_map<std::string, std::string> valuelabel;
+    // std::unordered_map<std::string, std::string> valuelabel;
     // First pass: collect and record constant assignments.
+    // auto curInst = bb->CoInst.begin();
+    // auto nextInst = std::next(curInst);
+    // while (curInst != bb->CoInst.end() && nextInst != bb->CoInst.end()) {
+    //     if (curInst->op == "li" && curInst->fields.size() == 2) { // Assuming 'li' is the instruction to load immediate constants.
+    //         if (valueMap.find(curInst->fields[0]) == valueMap.end()){
+    //             valueMap[curInst->fields[0]] = curInst->fields[1]; // Store constant value with its register.
+    //             valuelabel[curInst->fields[0]] = "1";
+    //         }
+    //     curInst = nextInst;
+    //     nextInst = std::next(nextInst);
+    // }
     for (auto &inst : bb->CoInst) {
         if (inst.op == "li" && inst.fields.size() == 2) { // Assuming 'li' is the instruction to load immediate constants.
-            if (valueMap.find(inst.fields[0]) == valueMap.end()){
-                valueMap[inst.fields[0]] = inst.fields[1]; // Store constant value with its register.
-                valuelabel[inst.fields[0]] = "1";
-            }
-            else {
-                valuelabel[inst.fields[0]] = "2";
+            // if (valueMap.find(inst.fields[0]) == valueMap.end()){
+            valueMap[inst.fields[0]] = inst.fields[1]; // Store constant value with its register.
+            //     //valuelabel[inst.fields[0]] = "1";
+            // }
+            // else {
+            //     //valuelabel[inst.fields[0]] = "2";
+            // }
+        }
+        else{
+            if (inst.valid && !inst.fields.empty() && valueMap.find(inst.fields[0]) != valueMap.end()) {
+                // Replace uses of constants.
+                if (inst.op != "li" ) {
+                    inst.fields[0] = valueMap[inst.fields[0]];
+                }
             }
         }  
     }
 
-    // Second pass: substitute known constants.
-    bool changed = true;
-    while (changed) {
-        changed = false;
-        for (auto &inst : bb->CoInst) {
-            if (inst.valid && !inst.fields.empty() && valueMap.find(inst.fields[0]) != valueMap.end() && valuelabel[inst.fields[0]] == "1") {
-                // Replace uses of constants.
-                if (inst.op != "li" ) {
-                    inst.fields[0] = valueMap[inst.fields[0]];
-                    changed = true;
-                }
-            }
-        }
-    }
+    // // Second pass: substitute known constants.
+    // bool changed = true;
+    // while (changed) {
+    //     changed = false;
+    //     for (auto &inst : bb->CoInst) {
+    //         if (inst.valid && !inst.fields.empty() && valueMap.find(inst.fields[0]) != valueMap.end() && valuelabel[inst.fields[0]] == "1") {
+    //             // Replace uses of constants.
+    //             if (inst.op != "li" ) {
+    //                 inst.fields[0] = valueMap[inst.fields[0]];
+    //                 changed = true;
+    //             }
+    //         }
+    //     }
+    // }
 }
 
 
