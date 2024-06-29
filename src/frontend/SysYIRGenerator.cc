@@ -240,7 +240,10 @@ std::any SysYIRGenerator::visitNumberExp(SysYParser::NumberExpContext *ctx) {
   Value *result = nullptr;
   assert(ctx->number()->ILITERAL() or ctx->number()->FLITERAL());
   if (auto iLiteral = ctx->number()->ILITERAL())
-    result = ConstantValue::get(std::stoi(iLiteral->getText()));
+    if (ctx->number()->getText().substr(0, 2) == "0x" || ctx->number()->getText().substr(0, 2) == "0X")
+      result = ConstantValue::get(std::stoi(iLiteral->getText(), nullptr, 16));
+    else
+      result = ConstantValue::get(std::stoi(iLiteral->getText()));
   else
     result =
         ConstantValue::get(std::stof(ctx->number()->FLITERAL()->getText()));
