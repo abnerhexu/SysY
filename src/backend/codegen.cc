@@ -97,12 +97,26 @@ void CodeGen::function_gen(sysy::Function *func) {
   this->curFunc = func;
   clearFuncInfo(func);
   auto paramTypes = func->getParamTypes();
-  auto bbs = func->getBasicBlocks();
-  for (auto it = bbs.begin(); it != bbs.end(); it++){
-    auto bb = it->get();
-    basicBlock_gen(bb);
-    for (auto &inst: bb->CoInst) {
+  // auto bbs = func->getBasicBlocks();
+  // for (auto it = bbs.begin(); it != bbs.end(); it++){
+  //   auto bb = it->get();
+  //   basicBlock_gen(bb);
+  //   for (auto &inst: bb->CoInst) {
+  //     inst.valid = true;
+  //   }
+  // }
+  auto bb = func->getBasicBlocks().begin()->get();
+  std::vector<sysy::BasicBlock *> bbs;
+  bbs.push_back(bb);
+  while(!bbs.empty()){
+    auto bbtop = bbs[bbs.size()-1];
+    bbs.pop_back();
+    basicBlock_gen(bbtop);
+    for (auto &inst: bbtop->CoInst){
       inst.valid = true;
+    }
+    for (int i = bbtop->getNumSuccessors()-1; i >= 0; i--){
+      bbs.push_back(bbtop->getSuccessors()[i]);
     }
   }
   functionHeader_gen(func);

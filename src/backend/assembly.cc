@@ -15,9 +15,20 @@ void AssemblyCode::emitFunction(std::ostream &os, sysy::Function *func) {
     for (auto &inst: func->MetaInst) {
         inst.print(os);
     }
-    auto bbs = func->getBasicBlocks();
-    for (auto &it: bbs) {
-        this->emitBasicBlock(os, it.get());
+    // auto bbs = func->getBasicBlocks();
+    // for (auto &it: bbs) {
+    //     this->emitBasicBlock(os, it.get());
+    // }
+    auto bb = func->getBasicBlocks().begin()->get();
+    std::vector<sysy::BasicBlock *> bbs;
+    bbs.push_back(bb);
+    while(!bbs.empty()){
+        auto bbtop = bbs[bbs.size()-1];
+        bbs.pop_back();
+        this->emitBasicBlock(os, bbtop);
+        for (int i = bbtop->getNumSuccessors()-1; i >= 0; i--){
+        bbs.push_back(bbtop->getSuccessors()[i]);
+        }
     }
 }
 
