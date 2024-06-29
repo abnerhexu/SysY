@@ -454,9 +454,12 @@ std::any SysYIRGenerator::visitContinueStmt(SysYParser::ContinueStmtContext *ctx
   auto* curBlock = builder.getBasicBlock();
   auto* dest = curBlock;
   std::string name = dest->getName();
-  while (name.compare(0, 10, "while.cond") != 0){
+  int cnt = 1;
+  while (cnt > 0){
+    if (name.compare(0, 9, "while.end") == 0) cnt++;
     dest = dest->getPredecessors()[0];
     name = dest->getName();
+    if (name.compare(0, 10, "while.cond") == 0) cnt--;
   }
   // std::cout << name << std::endl;
   Value* result = builder.createUncondBrInst(dest, {});
@@ -465,23 +468,38 @@ std::any SysYIRGenerator::visitContinueStmt(SysYParser::ContinueStmtContext *ctx
 
 std::any SysYIRGenerator::visitBreakStmt(SysYParser::BreakStmtContext *ctx) {
   auto* curBlock = builder.getBasicBlock();
+  auto* func = curBlock->getParent();
   auto* dest = curBlock;
   std::string name = dest->getName();
-  while (name.compare(0, 10, "while.cond") != 0){
+  // std::cout << "cur:" << name << std::endl;
+  int cnt = 1;
+  while (cnt > 0){
+    if (name.compare(0, 9, "while.end") == 0) cnt++;
     dest = dest->getPredecessors()[0];
     name = dest->getName();
+    if (name.compare(0, 10, "while.cond") == 0) cnt--;
   }
-  //std::cout << name << std::endl;
-  auto* dest_body = dest->getSuccessors()[0];
-  //std::cout << dest_body->getNumSuccessors() << std::endl;
+  // std::cout << "dest:" << name << std::endl;
+  // auto* dest_body = dest->getSuccessors()[dest->getNumSuccessors()-1];
+  // std::cout << dest_body->getNumSuccessors() << std::endl;
   name = dest->getName();
-  for (int i = 0; i < dest_body->getNumSuccessors(); i++){
-    dest = dest_body->getSuccessors()[i];
-    name = dest->getName();
-    //std::cout << name << ' ' << dest->getNumSuccessors() << std::endl;
-    if (name.compare(0, 9, "while.end") == 0)
+  auto dest_num = name.substr(10);
+  // std::cout << dest_num << std::endl;
+  for (auto &bb: func->getBasicBlocks()){
+    auto dest_name = bb->getName();
+    if (dest_name.compare(0, 9, "while.end") == 0 && dest_name.substr(9) == dest_num){
+      dest = bb.get();
       break;
+    }
   }
+  // for (int i = 0; i < dest_body->getNumSuccessors(); i++){
+  //   dest = dest_body->getSuccessors()[i];
+  //   name = dest->getName();
+  //   // std::cout << name << std::endl;
+  //   //std::cout << name << ' ' << dest->getNumSuccessors() << std::endl;
+  //   if (name.compare(0, 9, "while.end") == 0)
+  //     break;
+  // }
   //std::cout << name << std::endl;
   Value* result = builder.createUncondBrInst(dest, {});
   return result;
@@ -525,18 +543,18 @@ std::any SysYIRGenerator::visitIfStmt(SysYParser::IfStmtContext *ctx) {
   builder.setPosition(thenBlock, thenBlock->end());
   visitStmt(ctx->stmt(0));
   builder.createUncondBrInst(exitBlock, {});
-  auto* thenExitBlock = builder.getBasicBlock();
+  // auto* thenExitBlock = builder.getBasicBlock();
 
-  curBlock->getSuccessors().push_back(elseBlock);
-  elseBlock->getPredecessors().push_back(curBlock);
+  thenBlock->getSuccessors().push_back(elseBlock);
+  elseBlock->getPredecessors().push_back(thenBlock);
   builder.setPosition(elseBlock, elseBlock->end());
   if (ctx->ELSE()) {
     visitStmt(ctx->stmt(1));
   }
   builder.createUncondBrInst(exitBlock, {});
   auto* elseExitBlock = builder.getBasicBlock();
-  thenExitBlock->getSuccessors().push_back(exitBlock);
-  exitBlock->getPredecessors().push_back(thenExitBlock);
+  // thenExitBlock->getSuccessors().push_back(exitBlock);
+  // exitBlock->getPredecessors().push_back(thenExitBlock);
   elseExitBlock->getSuccessors().push_back(exitBlock);
   exitBlock->getPredecessors().push_back(elseExitBlock);
   builder.setPosition(exitBlock, exitBlock->end());
@@ -560,18 +578,21 @@ std::any SysYIRGenerator::visitWhileStmt(SysYParser::WhileStmtContext *ctx) {
   builder.createCondBrInst(cond, thenBlock, exitBlock, {}, {});
   headerBlock->getSuccessors().push_back(thenBlock);
   thenBlock->getPredecessors().push_back(headerBlock);
-  thenBlock->getSuccessors().push_back(exitBlock);
-  exitBlock->getPredecessors().push_back(thenBlock);
+
   builder.setPosition(thenBlock, thenBlock->end());
   auto *bb1 = builder.getBasicBlock();
   visitStmt(ctx->stmt());
   builder.createUncondBrInst(headerBlock, {});
+  thenBlock->getSuccessors().push_back(exitBlock);
+  exitBlock->getPredecessors().push_back(thenBlock);
   auto *bb2 = builder.getBasicBlock();
   builder.setPosition(thenBlock, thenBlock->end());
-  if (bb1 != bb2) {
-    // std::cout << bb2->getNumPredecessors() << std::endl;
-    builder.createUncondBrInst(bb2->getPredecessors()[0]->getPredecessors()[0], {});
-  }
+  // std::cout << thenBlock->getName() << ' ' << thenBlock->getSuccessors()[0]->getName() << std::endl;
+  // if (bb1 != bb2) {
+  //   // std::cout << thenBlock->getName() << ' ' << bb1->getNumSuccessors() << ' ' << bb1->getSuccessors()[1]->getName() << std::endl;
+  //   // builder.createUncondBrInst(bb2->getPredecessors()[0]->getPredecessors()[0], {});
+  //   builder.createUncondBrInst(bb1->getSuccessors()[0], {});
+  // }
   
   // builder.setPosition(thenBlock, thenBlock->end());
   // builder.createUncondBrInst(thenBlock->getSuccessors()[thenBlock->getSuccessors().size() - 1], {});

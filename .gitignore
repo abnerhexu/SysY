@@ -7,3 +7,5 @@ build/
 out.log
 autotest.sh
 functional/
+
+*.s
