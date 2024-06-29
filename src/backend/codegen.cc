@@ -14,6 +14,7 @@ std::string CodeGen::globalData_gen(sysy::Module* module){
   std::string des;
   std::string dd;
   std::string bss = ".bss";
+  std::string dsize;
   auto GlobalValues = module->getGlobalValues();
   for (auto &it: *GlobalValues) {
     auto name = it.first;
@@ -27,7 +28,7 @@ std::string CodeGen::globalData_gen(sysy::Module* module){
         for (int k = 0; k < it.second->getNumDims(); k++) {
           totSize *= dynamic_cast<sysy::ConstantValue*>(it.second->getDim(k))->getInt();
         }
-        des += std::to_string(totSize) + "\n";
+        dsize = std::to_string(totSize) + "\n";
         if (it.second->getNumInitVals() > 0) {
           bss = ".data";
           for (int k = 0; k < it.second->getNumInitVals(); k++) {
@@ -45,7 +46,7 @@ std::string CodeGen::globalData_gen(sysy::Module* module){
       else {
         regManager.varIRegMap.insert({name, {RegisterManager::VarPos::Globals, 0}});
         dd += name + ":" + endl;
-        des += "4\n";
+        dsize += "4\n";
         if (it.second->getNumInitVals() > 0) {
           bss = ".data";
           dd += space + ".word  " + std::to_string(dynamic_cast<sysy::ConstantValue*>(it.second->init())->getInt()) + endl;
@@ -58,7 +59,7 @@ std::string CodeGen::globalData_gen(sysy::Module* module){
     else {
       std::cout << it.first << " " << it.second->getType()->getPointerType(it.second->getType())->isInt() << std::endl;
     }
-    des = "  .globl " + name + "\n  " + bss +"\n  .align	3\n  .type " + name + ", @object\n  .size	" + name + ", ";
+    des = "  .globl " + name + "\n  " + bss +"\n  .align	3\n  .type " + name + ", @object\n  .size	" + name + ", " + dsize;
     data += des + dd;
   }
   return data;
