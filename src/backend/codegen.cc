@@ -1110,8 +1110,8 @@ void CodeGen::GenUnaryInst(sysy::UnaryInst* inst) {
       this->curBBlock->CoInst.push_back(sysy::RVInst("li", regManager.intRegs[dstRegID].second, std::to_string(dynamic_cast<sysy::ConstantValue *>(inst->getOperand())->getInt()*-1)));
     }
     else {
-      field1 = regManager.intRegs[regManager.varIRegMap.find(inst->getOperand()->getName())->second.second].second;
-      field2 = field1;
+      field1 = regManager.intRegs[dstRegID].second;
+      field2 = regManager.intRegs[regManager.varIRegMap.find(inst->getOperand()->getName())->second.second].second;
       // instruction += space + "neg " + field1 + ", " + field2 + endl;
       this->curBBlock->CoInst.push_back(sysy::RVInst("neg", field1, field2));
     }
@@ -1127,49 +1127,11 @@ void CodeGen::GenUnaryInst(sysy::UnaryInst* inst) {
       }
     }
     else {
-      field1 = regManager.intRegs[regManager.varIRegMap.find(inst->getOperand()->getName())->second.second].second;
-      field2 = field1;
+      field1 = regManager.intRegs[dstRegID].second;
+      field2 = regManager.intRegs[regManager.varIRegMap.find(inst->getOperand()->getName())->second.second].second;;
       this->curBBlock->CoInst.push_back(sysy::RVInst("not", field1, field2));
     }
     return ;
-  }
-  if (op == sysy::Value::Kind::kNeg) {
-    if (inst->getOperand()->isConstant()) {
-      regManager.varIRegMap[inst->getName()] = {RegisterManager::VarPos::Imm, dynamic_cast<sysy::ConstantValue *>(inst->getOperand())->getInt()*-1};
-      return;
-    }
-    auto srcName = inst->getOperand()->getName();
-    assert(regManager.varIRegMap.find(srcName) != regManager.varIRegMap.end());
-    auto src = regManager.varIRegMap.find(srcName);
-    if (src->second.first == RegisterManager::VarPos::OnStack) {
-      auto tempReg = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::RegHint::dontCare, 0);
-      field1 = regManager.intRegs[tempReg].second;
-      field2 = std::to_string(src->second.second) + "(sp)";
-      // instruction += space + "lw " + field1 + ", " + field2 + endl;
-      this->curBBlock->CoInst.push_back(sysy::RVInst("lw", field1, field2));
-      field1 = regManager.intRegs[tempReg].second;
-      field2 = regManager.intRegs[tempReg].second;
-      // instruction += space + "neg " + field1 + ", " + field2 + endl;
-      this->curBBlock->CoInst.push_back(sysy::RVInst("neg", field1, field2));
-      field1 = regManager.intRegs[tempReg].second;
-      field2 = std::to_string(src->second.second) + "(sp)";
-      // instruction += space + "sw " + field1 + ", " + field2 + endl;
-      this->curBBlock->CoInst.push_back(sysy::RVInst("sw", field1, field2));
-      regManager.releaseReg(RegisterManager::RegType::IntReg, tempReg);
-      return;
-    }
-    else if (src->second.first == RegisterManager::VarPos::InIReg){
-      field1 = regManager.intRegs[src->second.second].second;
-      field2 = regManager.intRegs[src->second.second].second;
-      // instruction += space + "neg " + field1 + ", " + field2 + endl;
-      this->curBBlock->CoInst.push_back(sysy::RVInst("neg", field1, field2));
-      return;
-    }
-    else {
-      // on global
-      std::cerr << " do not support global" << std::endl;
-      assert(0);
-    }
   }
   else {
     assert(0);

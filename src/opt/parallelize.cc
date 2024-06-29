@@ -2,15 +2,8 @@
 
 namespace transform {
 
-bool Parallelize::pLoopDetect() {
-    sysy::BasicBlock* targetBB = nullptr;
+bool Parallelize::pLoopDetect(sysy::BasicBlock* targetBB) {
     bool parallelizable = false;
-    for (auto&bb: this->func->getBasicBlocks()) {
-        if (bb->getKind() == sysy::BasicBlock::BBKind::kWhileBody) {
-            targetBB = bb.get();
-            break;
-        }
-    }
     if (targetBB == nullptr) {
         // detect no while loop
         return false;
@@ -51,4 +44,18 @@ void Parallelize::pLoopTransform() {
 
 }
 
+void Parallelize::LoopScan() {
+    auto *funcs = this->module->getFunctions();
+    sysy::BasicBlock *curBB;
+    for (auto it = funcs->begin(); it != funcs->end(); it++) {
+        for (auto &bb: it->second->getBasicBlocks()) {
+            curBB = bb.get();
+            if (curBB->getName().find("while.body") != std::string::npos) {
+                if (this->pLoopDetect(curBB)) {
+                    
+                }
+            }
+        }
+    }
+}
 }

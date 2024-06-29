@@ -7,12 +7,15 @@ class Parallelize {
 
 public:
     // ...
+    sysy::Module *module;
     sysy::Function *func;
     sysy::BasicBlock *curBB;
-    Parallelize(sysy::Function* func): func(func) {};
+    std::vector<sysy::BasicBlock*> parWBBs;
+    Parallelize(sysy::Module *module): module(module) {};
     
-    bool pLoopDetect();
-    void pLoopTransform();
+    bool pLoopDetect(sysy::BasicBlock* targetBB);
+    void pLoopTransform(sysy::BasicBlock* targetBB);
+    void LoopScan();
 }
 
 }
