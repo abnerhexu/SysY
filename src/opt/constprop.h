@@ -14,8 +14,8 @@ public:
     void moduleTransform();
     void functionTransform(sysy::Function *func);
     void constantPropagation(sysy::BasicBlock *bb);
-    bool isConstantValue(sysy::RVInst *inst);
-    void replaceConstantUses(sysy::RVInst *defInst, int constantValue);
+    //bool isConstantValue(sysy::RVInst *inst);
+    //void replaceConstantUses(sysy::RVInst *defInst, int constantValue);
 }; // class ConstProp
 
 } // namespace transform

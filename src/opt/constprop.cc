@@ -19,34 +19,30 @@ void ConstProp::moduleTransform() {
 }
 
 void ConstProp::constantPropagation(sysy::BasicBlock *bb) {
-    std::unordered_map<std::string, int> constantMap;
-    for (sysy::RVInst &inst : bb->CoInst) {
-        if (inst.op == "li" && inst.fields.size() >= 2) { // Assuming "li" is used to load immediate constants.
-            constantMap[inst.fields[1]] = std::stoi(inst.fields[0]);
-        } else if (isConstantValue(&inst)) {
-            continue; // Skip instructions already known to be constants.
-        } else {
-            // Attempt to replace uses of constants.
-            for (size_t i = 1; i < inst.fields.size(); ++i) {
-                if (constantMap.find(inst.fields[i]) != constantMap.end()) {
-                    replaceConstantUses(&inst, constantMap[inst.fields[i]]);
-                    break; // Assume single replacement per instruction for simplicity.
+    std::unordered_map<std::string, std::string> valueMap;
+
+    // First pass: collect and record constant assignments.
+    for (auto &inst : bb->CoInst) {
+        if (inst.op == "li" && inst.fields.size() == 3) { // Assuming 'li' is the instruction to load immediate constants.
+            valueMap[inst.fields[1]] = inst.fields[2]; // Store constant value with its register.
+        }
+    }
+
+    // Second pass: substitute known constants.
+    bool changed = true;
+    while (changed) {
+        changed = false;
+        for (auto &inst : bb->CoInst) {
+            if (inst.valid && !inst.fields.empty() && valueMap.find(inst.fields[0]) != valueMap.end()) {
+                // Replace uses of constants.
+                if (inst.op != "li") {
+                    inst.fields[0] = valueMap[inst.fields[0]];
+                    changed = true;
                 }
             }
         }
     }
 }
 
-bool ConstProp::isConstantValue(sysy::RVInst *inst) {
-    // Implement logic to determine if an instruction's output is a known constant.
-    // This is a placeholder and should be tailored to your IR structure.
-    return false; // Replace with actual implementation.
-}
-
-void ConstProp::replaceConstantUses(sysy::RVInst *defInst, int constantValue) {
-    // Replace uses of the defined instruction with the constant value.
-    // This is a high-level description and requires detailed implementation.
-    // Ensure to update uses in subsequent instructions and potentially remove defInst.
-}
 
 } // namespace transform
