@@ -11,45 +11,52 @@ void CodeGen::code_gen() {
 
 std::string CodeGen::globalData_gen(sysy::Module* module){
   std::string data;
+  std::string des;
+  std::string dd;
   auto GlobalValues = module->getGlobalValues();
   for (auto &it: *GlobalValues) {
     auto name = it.first;
+    des = "  .globl " + name + "\n  .bss\n  .align	3\n  .type " + name + ", @object\n  .size	" + name + ", ";
+    dd = "";
     if (dynamic_cast<sysy::PointerType*>(it.second->getType())->getBaseType()->isInt()) {
       // int
       if (it.second->getNumDims() > 0) {
         regManager.varIRegMap.insert({name, {RegisterManager::VarPos::Globals, 0}});
-        data += name + ":" + endl;
+        dd += name + ":" + endl;
         int totSize = 1;
         for (int k = 0; k < it.second->getNumDims(); k++) {
           totSize *= dynamic_cast<sysy::ConstantValue*>(it.second->getDim(k))->getInt();
         }
+        des += std::to_string(totSize) + "\n";
         if (it.second->getNumInitVals() > 0) {
           for (int k = 0; k < it.second->getNumInitVals(); k++) {
-            data += space + ".word  " + std::to_string(dynamic_cast<sysy::ConstantValue*>(it.second->getInitVals(k))->getInt()) + endl;
+            dd += space + ".word  " + std::to_string(dynamic_cast<sysy::ConstantValue*>(it.second->getInitVals(k))->getInt()) + endl;
           }
           totSize -= it.second->getNumInitVals();
           if (totSize > 0) {
-            data += space + ".zero  " + std::to_string(totSize*4) + endl;
+            dd += space + ".zero  " + std::to_string(totSize*4) + endl;
           }
         }
         else {
-            data += space + ".zero " + std::to_string(totSize*4) + endl; 
+            dd += space + ".zero " + std::to_string(totSize*4) + endl; 
         }
       } // array
       else {
         regManager.varIRegMap.insert({name, {RegisterManager::VarPos::Globals, 0}});
-        data += name + ":" + endl;
+        dd += name + ":" + endl;
+        des += "4\n";
         if (it.second->getNumInitVals() > 0) {
-          data += space + ".word  " + std::to_string(dynamic_cast<sysy::ConstantValue*>(it.second->init())->getInt()) + endl;
+          dd += space + ".word  " + std::to_string(dynamic_cast<sysy::ConstantValue*>(it.second->init())->getInt()) + endl;
         } // with init
         else {
-          data += space + ".zero  4" + endl;
+          dd += space + ".zero  4" + endl;
         } // without init
       } // scalar
     }
     else {
       std::cout << it.first << " " << it.second->getType()->getPointerType(it.second->getType())->isInt() << std::endl;
     }
+    data += des + dd;
   }
   return data;
 }
@@ -57,11 +64,8 @@ std::string CodeGen::globalData_gen(sysy::Module* module){
 void CodeGen::module_gen(sysy::Module *module) {
   std::string compilerIdentifier = "SysY compiler";
   clearModuleLabels(module);
-  // module->descriptionText += space + ".file" + this->fname + endl;
-  // module->descriptionText += space + ".attribute risc-v rv64gc little-endian" + endl;
-  // module->descriptionText += space + ".palign 4" + endl;
-  // module->descriptionText += space + ".text" + endl;
-  // descriptionCode += space + ".globl main" + endl;
+  module->descriptionText += "  .file \"" + module->srcFile + "\"\n" + "  .option pic\n" + "	.attribute arch, \"rv64i2p1_m2p0_a2p1_f2p2_d2p2_c2p0_zicsr2p0_zifencei2p0\"\n";
+  module->descriptionText += "	.attribute unaligned_access, 0\n  .attribute stack_align, 16";
   std::map<std::string, sysy::Function*> *funcs = module->getFunctions();
   module->globalDataText += globalData_gen(module); 
   for (auto it = funcs->begin(); it != funcs->end(); it++) {
@@ -1252,6 +1256,7 @@ int RegisterManager::requestReg(RegType rtype, RegHint hint, int last_used) {
           return i;
         }
       }
+      return this->requestReg(RegType::IntReg, RegHint::saved, last_used);
       return 0;
     case saved:
       for (auto i: this->IsavedRegList) {
@@ -1261,6 +1266,7 @@ int RegisterManager::requestReg(RegType rtype, RegHint hint, int last_used) {
           return i;
         }
       }
+      return this->requestReg(RegType::IntReg, RegHint::arg, last_used);
       return 0;
     case dontCare:
       for (auto i: this->IdontCareRegList) {

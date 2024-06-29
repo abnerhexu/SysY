@@ -968,6 +968,7 @@ public:
   Module() = default;
   std::string descriptionText;
   std::string globalDataText;
+  std::string srcFile;
 
 public:
   Function *createFunction(const std::string &name, Type *type) {

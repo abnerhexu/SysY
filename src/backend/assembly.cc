@@ -2,15 +2,18 @@
 
 namespace codegen {
 void AssemblyCode::emitModule(std::ostream &os) {
-    // os << module->descriptionText;
+    os << module->descriptionText;
     os << module->globalDataText;
     auto *funcs = module->getFunctions();
     for (auto it = funcs->begin(); it != funcs->end(); it++) {
         this->emitFunction(os, it->second);
     }
+    os << "  .ident	\"SHCC: (Debian 12.2.0-10) 0.0.1\"  .section	.note.GNU-stack,\"\",@progbits\n";
 }
 
 void AssemblyCode::emitFunction(std::ostream &os, sysy::Function *func) {
+    os << "  .text\n  .align 1\n  .globl " << func->getName() << "\n";
+	os << "  .type " << func->getName() << ", @function\n";
     os << func->getName() << ":\n";
     for (auto &inst: func->MetaInst) {
         inst.print(os);
@@ -30,6 +33,8 @@ void AssemblyCode::emitFunction(std::ostream &os, sysy::Function *func) {
         bbs.push_back(bbtop->getSuccessors()[i]);
         }
     }
+    os << ".size " << func->getName() << ", .-" << func->getName() << std::endl;
+
 }
 
 void AssemblyCode::emitBasicBlock(std::ostream &os, sysy::BasicBlock *bb) {
