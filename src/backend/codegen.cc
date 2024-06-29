@@ -57,10 +57,10 @@ std::string CodeGen::globalData_gen(sysy::Module* module){
 void CodeGen::module_gen(sysy::Module *module) {
   std::string compilerIdentifier = "SysY compiler";
   clearModuleLabels(module);
-  module->descriptionText += space + ".file" + this->fname + endl;
-  module->descriptionText += space + ".attribute risc-v rv64gc little-endian" + endl;
+  // module->descriptionText += space + ".file" + this->fname + endl;
+  // module->descriptionText += space + ".attribute risc-v rv64gc little-endian" + endl;
   // module->descriptionText += space + ".palign 4" + endl;
-  module->descriptionText += space + ".text" + endl;
+  // module->descriptionText += space + ".text" + endl;
   // descriptionCode += space + ".globl main" + endl;
   std::map<std::string, sysy::Function*> *funcs = module->getFunctions();
   module->globalDataText += globalData_gen(module); 
@@ -1129,7 +1129,7 @@ void CodeGen::GenUnaryInst(sysy::UnaryInst* inst) {
     else {
       field1 = regManager.intRegs[dstRegID].second;
       field2 = regManager.intRegs[regManager.varIRegMap.find(inst->getOperand()->getName())->second.second].second;;
-      this->curBBlock->CoInst.push_back(sysy::RVInst("not", field1, field2));
+      this->curBBlock->CoInst.push_back(sysy::RVInst("seqz", field1, field2));
     }
     return ;
   }
