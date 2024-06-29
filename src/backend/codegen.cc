@@ -183,7 +183,7 @@ void CodeGen::GenBinaryCmpInst(sysy::BinaryInst *inst) {
       return;
     }
     else if ((!lhs->isConstant()) && rhs->isConstant()) {
-      assert(regManager.varIRegMap.find(rhs->getName())->second.first == RegisterManager::VarPos::InIReg);
+      assert(regManager.varIRegMap.find(lhs->getName())->second.first == RegisterManager::VarPos::InIReg);
       auto rhsInt = std::to_string(dynamic_cast<sysy::ConstantValue*>(rhs)->getInt());
       auto lhsReg = regManager.varIRegMap[lhs->getName()].second;
       this->curBBlock->CoInst.push_back(sysy::RVInst("li", regManager.intRegs[resReg].second, rhsInt));
@@ -226,7 +226,7 @@ void CodeGen::GenBinaryCmpInst(sysy::BinaryInst *inst) {
       return;
     }
     else if ((!lhs->isConstant()) && rhs->isConstant()) {
-      assert(regManager.varIRegMap.find(rhs->getName())->second.first == RegisterManager::VarPos::InIReg);
+      assert(regManager.varIRegMap.find(lhs->getName())->second.first == RegisterManager::VarPos::InIReg);
       auto rhsInt = std::to_string(dynamic_cast<sysy::ConstantValue*>(rhs)->getInt());
       auto lhsReg = regManager.varIRegMap[lhs->getName()].second;
       this->curBBlock->CoInst.push_back(sysy::RVInst("li", regManager.intRegs[resReg].second, rhsInt));
@@ -269,7 +269,7 @@ void CodeGen::GenBinaryCmpInst(sysy::BinaryInst *inst) {
       return;
     }
     else if ((!lhs->isConstant()) && rhs->isConstant()) {
-      assert(regManager.varIRegMap.find(rhs->getName())->second.first == RegisterManager::VarPos::InIReg);
+      assert(regManager.varIRegMap.find(lhs->getName())->second.first == RegisterManager::VarPos::InIReg);
       auto rhsInt = std::to_string(dynamic_cast<sysy::ConstantValue*>(rhs)->getInt());
       auto lhsReg = regManager.varIRegMap[lhs->getName()].second;
       this->curBBlock->CoInst.push_back(sysy::RVInst("li", regManager.intRegs[resReg].second, rhsInt));
@@ -316,7 +316,7 @@ void CodeGen::GenBinaryCmpInst(sysy::BinaryInst *inst) {
       return;
     }
     else if ((!lhs->isConstant()) && rhs->isConstant()) {
-      assert(regManager.varIRegMap.find(rhs->getName())->second.first == RegisterManager::VarPos::InIReg);
+      assert(regManager.varIRegMap.find(lhs->getName())->second.first == RegisterManager::VarPos::InIReg);
       auto rhsInt = std::to_string(dynamic_cast<sysy::ConstantValue*>(rhs)->getInt());
       auto lhsReg = regManager.varIRegMap[lhs->getName()].second;
       this->curBBlock->CoInst.push_back(sysy::RVInst("li", regManager.intRegs[resReg].second, rhsInt));
@@ -363,7 +363,7 @@ void CodeGen::GenBinaryCmpInst(sysy::BinaryInst *inst) {
       return;
     }
     else if ((!lhs->isConstant()) && rhs->isConstant()) {
-      assert(regManager.varIRegMap.find(rhs->getName())->second.first == RegisterManager::VarPos::InIReg);
+      assert(regManager.varIRegMap.find(lhs->getName())->second.first == RegisterManager::VarPos::InIReg);
       auto rhsInt = std::to_string(dynamic_cast<sysy::ConstantValue*>(rhs)->getInt());
       auto lhsReg = regManager.varIRegMap[lhs->getName()].second;
       this->curBBlock->CoInst.push_back(sysy::RVInst("li", regManager.intRegs[resReg].second, rhsInt));
@@ -410,7 +410,7 @@ void CodeGen::GenBinaryCmpInst(sysy::BinaryInst *inst) {
       return;
     }
     else if ((!lhs->isConstant()) && rhs->isConstant()) {
-      assert(regManager.varIRegMap.find(rhs->getName())->second.first == RegisterManager::VarPos::InIReg);
+      assert(regManager.varIRegMap.find(lhs->getName())->second.first == RegisterManager::VarPos::InIReg);
       auto rhsInt = std::to_string(dynamic_cast<sysy::ConstantValue*>(rhs)->getInt());
       auto lhsReg = regManager.varIRegMap[lhs->getName()].second;
       this->curBBlock->CoInst.push_back(sysy::RVInst("li", regManager.intRegs[resReg].second, rhsInt));
@@ -460,7 +460,7 @@ void CodeGen::GenBinaryCmpInst(sysy::BinaryInst *inst) {
       return;
     }
     else if ((!lhs->isConstant()) && rhs->isConstant()) {
-      assert(regManager.varIRegMap.find(rhs->getName())->second.first == RegisterManager::VarPos::InIReg);
+      assert(regManager.varIRegMap.find(lhs->getName())->second.first == RegisterManager::VarPos::InIReg);
       auto rhsInt = dynamic_cast<sysy::ConstantValue*>(rhs)->getInt();
       auto lhsReg = regManager.varIRegMap[lhs->getName()].second;
       if (rhsInt == 0) {
@@ -1238,6 +1238,7 @@ void CodeGen::instruction_gen(sysy::Instruction *inst) {
     case sysy::Value::Kind::kICmpNE:
     case sysy::Value::Kind::kOr:
     case sysy::Value::Kind::kICmpGE:
+    case sysy::Value::Kind::kICmpLE:
       GenBinaryCmpInst(dynamic_cast<sysy::BinaryInst *>(inst));
       break;
     case sysy::Value::Kind::kNeg:
@@ -1248,6 +1249,8 @@ void CodeGen::instruction_gen(sysy::Instruction *inst) {
       GenCallInst(dynamic_cast<sysy::CallInst *>(inst), 10);
       break;
     default:
+      std::cerr << "Error: invalid instruction" << std::endl;
+      assert(0);
       break;
   }
   return;
