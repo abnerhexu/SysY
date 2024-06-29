@@ -434,9 +434,24 @@ void Function::print(std::ostream &os) const {
   }
   os << ") {" << std::endl;
 
-  for (auto &bb: this->getBasicBlocks()) {
-    bb->print(os);
+  // for (auto &bb: this->getBasicBlocks()) {
+  //   bb->print(os);
+  //   os << std::endl;
+  // }
+  auto bb = this->getBasicBlocks().begin()->get();
+  std::vector<sysy::BasicBlock *> bbs;
+  bbs.push_back(bb);
+  while(!bbs.empty()){
+    auto bbtop = bbs[bbs.size()-1];
+    bbs.pop_back();
+    bbtop->print(os);
     os << std::endl;
+    for (auto &inst: bbtop->CoInst){
+      inst.valid = true;
+    }
+    for (int i = bbtop->getNumSuccessors()-1; i >= 0; i--){
+      bbs.push_back(bbtop->getSuccessors()[i]);
+    }
   }
   os << "}";
 }

@@ -101,6 +101,7 @@ int main(int argc, char *argv[]) {
   generator.visitModule(module);
 
   auto moduleIR = generator.get();
+  moduleIR->srcFile = tff.srcfile.substr(tff.srcfile.find_last_of("/") + 1);
   tff.module = moduleIR;
   // moduleIR->print(std::cout);
   codegen::LLIRGen llirgenerator(moduleIR);
