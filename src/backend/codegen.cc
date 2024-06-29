@@ -65,7 +65,7 @@ void CodeGen::module_gen(sysy::Module *module) {
   std::string compilerIdentifier = "SysY compiler";
   clearModuleLabels(module);
   module->descriptionText += "  .file \"" + module->srcFile + "\"\n" + "  .option pic\n" + "	.attribute arch, \"rv64i2p1_m2p0_a2p1_f2p2_d2p2_c2p0_zicsr2p0_zifencei2p0\"\n";
-  module->descriptionText += "	.attribute unaligned_access, 0\n  .attribute stack_align, 16";
+  module->descriptionText += "	.attribute unaligned_access, 0\n  .attribute stack_align, 16\n";
   std::map<std::string, sysy::Function*> *funcs = module->getFunctions();
   module->globalDataText += globalData_gen(module); 
   for (auto it = funcs->begin(); it != funcs->end(); it++) {

@@ -8,7 +8,7 @@ void AssemblyCode::emitModule(std::ostream &os) {
     for (auto it = funcs->begin(); it != funcs->end(); it++) {
         this->emitFunction(os, it->second);
     }
-    os << "  .ident	\"SHCC: (Debian 12.2.0-10) 0.0.1\"  .section	.note.GNU-stack,\"\",@progbits\n";
+    os << "  .ident	\"SHCC: (Debian 12.2.0-10) 0.0.1\"\n  .section	.note.GNU-stack,\"\",@progbits\n";
 }
 
 void AssemblyCode::emitFunction(std::ostream &os, sysy::Function *func) {
@@ -33,7 +33,7 @@ void AssemblyCode::emitFunction(std::ostream &os, sysy::Function *func) {
         bbs.push_back(bbtop->getSuccessors()[i]);
         }
     }
-    os << ".size " << func->getName() << ", .-" << func->getName() << std::endl;
+    os << "  .size " << func->getName() << ", .-" << func->getName() << std::endl;
 
 }
 
