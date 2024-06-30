@@ -117,6 +117,12 @@ void ConstProp::constantPropagation(sysy::BasicBlock *bb) {
                     inst.fields[0] = valueMap[inst.fields[0]];
             }
         }
+        else if (inst.op == "addi" && inst.op == "ori" && inst.op == "subi"  && inst.op == "slli" && inst.op == "sll" ){
+            if (inst.valid && !inst.fields.empty() && valueMap.find(inst.fields[0]) != valueMap.end() && valuechange[inst.fields[0]] == "0") {
+                // Replace uses of constants.
+                    valuechange[inst.fields[0]] = "1";
+            }
+        }
         else{
            continue;
         }  
