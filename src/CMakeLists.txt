@@ -20,6 +20,7 @@ add_executable(sysyc
   backend/assembly.cc
   opt/peephole.cc
   opt/unroll.cc
+  opt/parallelize.cc
 )
 target_include_directories(sysyc PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(sysyc PRIVATE SysYParser)

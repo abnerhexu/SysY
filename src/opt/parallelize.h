@@ -1,4 +1,5 @@
 #include "../frontend/IR.h"
+#include "../frontend/SysYIRGenerator.h"
 #include <vector>
 
 namespace transform {

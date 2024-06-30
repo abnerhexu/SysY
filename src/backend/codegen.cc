@@ -1205,14 +1205,24 @@ void CodeGen::GenCallInst(sysy::CallInst* inst, int dstRegID) {
   if (inst->getArguments().size() > 8) { assert(0); } // do not support over 8 args
   else {
     for (auto &it: inst->getArguments()) {
-      // std::cout << it.getValue()->getName() << std::endl;
-      auto requestReg = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::arg, inst->last_used);
-      auto srcArgReg = regManager.varIRegMap.find(it.getValue()->getName())->second.second;
-      field1 = regManager.intRegs[requestReg].second;
-      field2 = regManager.intRegs[srcArgReg].second;
-      // instruction += space + "mv " + field1 + ", " + field2 + endl;
-      this->curBBlock->CoInst.push_back(sysy::RVInst("mv", field1, field2));
-      regManager.varIRegMap[it.getValue()->getName()] = {RegisterManager::VarPos::InIReg, requestReg};
+      std::cout << it.getValue()->getName() << std::endl;
+      if (it.getValue()->isConstant()) {
+        auto requestReg = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::arg, inst->last_used);
+        this->curBBlock->CoInst.push_back(sysy::RVInst("li", regManager.intRegs[requestReg].second, std::to_string(dynamic_cast<sysy::ConstantValue*>(it.getValue())->getInt())));
+      }
+      else if (it.getValue()->getKind() == sysy::Value::Kind::kBasicBlock) {
+        auto requestReg = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::arg, inst->last_used);
+        this->curBBlock->CoInst.push_back(sysy::RVInst("la", regManager.intRegs[requestReg].second, dynamic_cast<sysy::BasicBlock*>(it.getValue())->getName()));
+      }
+      else {
+        auto requestReg = regManager.requestReg(RegisterManager::RegType::IntReg, RegisterManager::arg, inst->last_used);
+        auto srcArgReg = regManager.varIRegMap.find(it.getValue()->getName())->second.second;
+        field1 = regManager.intRegs[requestReg].second;
+        field2 = regManager.intRegs[srcArgReg].second;
+        // instruction += space + "mv " + field1 + ", " + field2 + endl;
+        this->curBBlock->CoInst.push_back(sysy::RVInst("mv", field1, field2));
+        regManager.varIRegMap[it.getValue()->getName()] = {RegisterManager::VarPos::InIReg, requestReg};
+        }
     }
   }
   // actually, just a simple call

@@ -440,7 +440,7 @@ public:
   using iterator = inst_list::iterator;
   using arg_list = std::vector<std::unique_ptr<Argument>>;
   using block_list = std::vector<BasicBlock *>;
-  bool masked_by_parallel = false;
+  bool upleveled = false;
 
 public:
   enum BBKind {

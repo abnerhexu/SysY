@@ -38,6 +38,25 @@ void AssemblyCode::emitFunction(std::ostream &os, sysy::Function *func) {
 }
 
 void AssemblyCode::emitBasicBlock(std::ostream &os, sysy::BasicBlock *bb) {
+    if (bb->upleveled) {
+        os << "  .text\n  .align 1\n  .globl " << bb->getName() << "\n";
+	    os << "  .type " << bb->getName() << ", @function\n";
+        os << bb->getName() << ":\n";
+        os << bb->bbLabel << ":\n";
+        for (auto &inst: bb->CoInst) {
+            if (inst.op == "ret") {
+                for (auto &pinst: bb->getParent()->PostInst) {
+                    pinst.print(os);
+                }
+            }
+            inst.print(os);
+        }
+        if (bb->CoInst.empty()) {
+            os << "  nop\n";
+        }
+        os << "  .size " << bb->getName() << ", .-" << bb->getName() << std::endl;
+        return;
+    }
     os << bb->bbLabel << ":\n";
     for (auto &inst: bb->CoInst) {
         if (inst.op == "ret") {

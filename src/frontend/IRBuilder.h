@@ -7,7 +7,7 @@
 namespace sysy {
 
 class IRBuilder {
-private:
+public:
   BasicBlock *block;
   BasicBlock::iterator position;
 

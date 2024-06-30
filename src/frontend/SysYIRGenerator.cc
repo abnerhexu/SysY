@@ -13,6 +13,7 @@ std::map<std::string, std::vector<Value *>> usedarrays;
 std::any SysYIRGenerator::visitModule(SysYParser::ModuleContext *ctx) {
   SymbolTable::ModuleScope scope(symbols);
   symbols.insert("vfork", new Function((this->module.get()), Type::getVoidType(), "vfork"));
+  symbols.insert("exit", new Function((this->module.get()), Type::getVoidType(), "exit"));
   auto pModule = new Module();
   assert(pModule);
   module.reset(pModule);

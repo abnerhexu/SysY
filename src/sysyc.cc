@@ -10,6 +10,7 @@
 #include "backend/assembly.h"
 #include "opt/peephole.h"
 #include "opt/unroll.h"
+#include "opt/parallelize.h"
 
 struct ArgsOptions {
   std::string srcfile;
@@ -55,6 +56,14 @@ public:
       this->flags["--funroll"] = true;
     }
   }
+
+  void transformParallel(sysy::SysYIRGenerator *generator) {
+    if (this->flags["--fparallel"]) {
+      transform::Parallelize parallel(this->module, generator);
+      parallel.LoopScan();
+    }
+  }
+
   void transformationPending() {
     if (this->flags["--fpeephole"]) {
       transform::Hole hole(this->module);
@@ -105,6 +114,10 @@ int main(int argc, char *argv[]) {
   auto moduleIR = generator.get();
   moduleIR->srcFile = tff.srcfile.substr(tff.srcfile.find_last_of("/") + 1);
   tff.module = moduleIR;
+
+  if (tff.flags["--fparallel"]) {
+    tff.transformParallel(&generator);
+  }
   // moduleIR->print(std::cout);
   codegen::LLIRGen llirgenerator(moduleIR);
   llirgenerator.llir_gen();
@@ -114,5 +127,8 @@ int main(int argc, char *argv[]) {
 
   tff.transformationPending();
   tff.emit();
+  if (tff.flags["--fparallel"]) {
+    exit(0);
+  }
   return EXIT_SUCCESS;
 }
