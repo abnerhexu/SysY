@@ -1,0 +1,11 @@
+int arr[1024] = {3, 1, 2, 3, 4, 5};
+int brr[1024] = {4, 2, 5, 6, 1, 5};
+int c = 5;
+int main(){
+    int i = 0;
+    while (i < 1024) {
+        brr[i] = arr[i] * c + brr[i];
+        i = i + 1;
+    }
+    return brr[0];
+}

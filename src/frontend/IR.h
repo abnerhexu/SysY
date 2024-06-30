@@ -440,6 +440,7 @@ public:
   using iterator = inst_list::iterator;
   using arg_list = std::vector<std::unique_ptr<Argument>>;
   using block_list = std::vector<BasicBlock *>;
+  bool masked_by_parallel = false;
 
 public:
   enum BBKind {
@@ -880,7 +881,7 @@ class Module;
 class Function : public Value {
   friend class Module;
 
-protected:
+public:
   Function(Module *parent, Type *type, const std::string &name)
       : Value(kFunction, type, name), parent(parent), blocks() {
     blocks.emplace_back(new BasicBlock(this, "entry"));

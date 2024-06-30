@@ -25,6 +25,9 @@ public:
     this->position = position;
   }
   void setPosition(BasicBlock::iterator position) { this->position = position; }
+  void insertCopy(Instruction* inst) {
+    block->getInstructions().emplace(position, inst);
+  }
 
 public:
   CallInst *createCallInst(Function *callee,

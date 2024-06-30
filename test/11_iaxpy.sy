@@ -1,0 +1,22 @@
+int arr[1024];
+int brr[1024];
+
+int main(){
+    if (vfork()) {
+        int j = 512;
+        while (j < 1024) {
+            brr[j] = arr[j];
+            j = j + 1;
+        }
+        exit(0);
+    }
+    else {
+        int i = 0;
+        while (i < 512) {
+            brr[i] = arr[i];
+            i = i + 1;
+        }
+        exit(0);
+    }
+    return 0;
+}
