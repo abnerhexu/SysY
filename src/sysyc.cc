@@ -9,6 +9,7 @@
 #include "backend/llir.h"
 #include "backend/assembly.h"
 #include "opt/peephole.h"
+#include "opt/unroll.h"
 
 struct ArgsOptions {
   std::string srcfile;
@@ -29,6 +30,7 @@ public:
                                        {"--fpeephole", false},
                                        {"--verbose", false},
                                        {"--fparallel", false},
+                                       {"--funroll", false},
                                        {"--opt", false}};
   std::string srcfile;
   void parseFlags(int argc, char** argv) {
@@ -50,6 +52,7 @@ public:
       this->flags["--const-propagation"] = true;
       this->flags["--fpeephole"] = true;
       this->flags["--fparallel"] = true;
+      this->flags["--funroll"] = true;
     }
   }
   void transformationPending() {
@@ -57,6 +60,10 @@ public:
       transform::Hole hole(this->module);
       hole.moduleTransform();
       hole.moduleTransform();
+    }
+    if (this->flags["--funroll"]) {
+      transform::Unroll unroll(this->module);
+      unroll.uLoopScan();
     }
   }
   void emit() {

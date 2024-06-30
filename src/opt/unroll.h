@@ -16,6 +16,6 @@ public:
     bool uLoopDetect(sysy::BasicBlock* targetBB);
     void uLoopTransform(sysy::BasicBlock* targetBB);
     void uLoopScan();
-}
+};
 
 }
