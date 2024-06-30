@@ -323,6 +323,12 @@ public:
     assert(isFloat());
     return fScalar;
   }
+  void setInt(int v) {
+    iScalar = v;
+  }
+  void setFloat(float v) {
+    fScalar = v;
+  }
 
 public:
   void print(std::ostream &os) const;

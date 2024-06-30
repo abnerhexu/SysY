@@ -47,6 +47,13 @@ void Hole::basicblockTransform(sysy::BasicBlock *bb) {
             nextInst = std::next(curInst);
             continue;
         }
+        else if (curInst->op == "li" && nextInst->op == "mv" && curInst->fields[0] == nextInst->fields[1]) {
+            bb->CoInst.insert(curInst, sysy::RVInst("li", nextInst->fields[0], curInst->fields[1]));
+            bb->CoInst.erase(nextInst);
+            bb->CoInst.erase(nextInst);
+            nextInst = std::next(curInst);
+            continue;
+        }
         curInst = nextInst;
         nextInst = std::next(nextInst);
     }
@@ -77,15 +84,31 @@ void Hole::basicblockTransform3(sysy::BasicBlock *bb) {
             inst3 = std::next(inst2);
             continue;
         }
-        // else if (inst1->op == "sw" && inst2->op == "lw" && inst3->op == "lw" && inst1->fields[0] != inst2->fields[0] && inst1->fields[0] == inst3->fields[0] && inst1->fields[1] != inst2->fields[1]) {
-        //     bb->CoInst.erase(inst3);
-        //     bb->CoInst.erase(inst1);
-        //     inst3 = std::next(inst2);
-        //     continue;
-        // }
+        else if (inst1->op == "sw" && inst2->op == "lw" && inst3->op == "lw" && inst1->fields[0] != inst2->fields[0] && inst1->fields[0] == inst3->fields[0] && inst1->fields[1] != inst2->fields[1]) {
+            bb->CoInst.erase(inst3);
+            bb->CoInst.erase(inst1);
+            inst3 = std::next(inst2);
+            continue;
+        }
+        else if (inst1->op == "sub" && inst2->op == "sgtz" && inst3->op == "bnez" && inst1->fields[0] == inst2->fields[0] && inst2->fields[0] == inst2->fields[1] && inst3->fields[0] == inst2->fields[0]) {
+            bb->CoInst.insert(inst1, sysy::RVInst("bgt", inst1->fields[1], inst1->fields[2], inst3->fields[1]));
+            bb->CoInst.erase(inst2);
+            bb->CoInst.erase(inst2);
+            bb->CoInst.erase(inst2);
+            inst2 = std::next(inst1);
+            inst3 = std::next(inst2);
+            continue;
+        }
         inst1 = inst2;
         inst2 = inst3;
         inst3 = std::next(inst3);
     }
 }
+
+/*
+  sw t1, 776(sp)
+  lw a0, 796(sp)
+  lw a1, 776(sp)
+  add t1, a0, a1
+*/
 }

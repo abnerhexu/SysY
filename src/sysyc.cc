@@ -56,6 +56,7 @@ public:
     if (this->flags["--fpeephole"]) {
       transform::Hole hole(this->module);
       hole.moduleTransform();
+      hole.moduleTransform();
     }
   }
   void emit() {

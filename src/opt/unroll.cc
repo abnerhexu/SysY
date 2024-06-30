@@ -1,8 +1,8 @@
-#include "parallelize.h"
+#include "unroll.h"
 
 namespace transform {
 
-bool Parallelize::pLoopDetect(sysy::BasicBlock* targetBB) {
+bool Unroll::uLoopDetect(sysy::BasicBlock* targetBB) {
     bool parallelizable = false;
     if (targetBB == nullptr) {
         // detect no while loop
@@ -40,22 +40,8 @@ bool Parallelize::pLoopDetect(sysy::BasicBlock* targetBB) {
     
 }
 
-void Parallelize::pLoopTransform(sysy::BasicBlock *wbb) {
-    sysy::Value *cond;
-    std::vector<sysy::Value*> conds;
-    for (auto &inst: wbb->getInstructions()) {
-        if (inst->getType()->getKind() == sysy::Value::kCondBr) {
-            cond = dynamic_cast<sysy::CondBrInst*>(inst.get())->getCondition();
-        }
-    }
-    if (cond->getKind() == sysy::Value::Kind::kICmpLT) {
-        auto cmp = dynamic_cast<sysy::BinaryInst*>(cond);
-        if (cmp->getRhs()->isConstant()) {
-            auto upper = dynamic_cast<sysy::ConstantValue*>(cmp->getRhs())->getInt();
-            auto half_upper = upper / 2;
-            
-        }
-    }
+void Unroll::uLoopTransform(sysy::BasicBlock *wbb) {
+    
 }
 
 // void Parallelize::LoopScan() {
@@ -89,7 +75,7 @@ void Parallelize::pLoopTransform(sysy::BasicBlock *wbb) {
 //     }
 // }
 
-void Parallelize::LoopScan() {
+void Unroll::LoopScan() {
     
 }
 }
