@@ -101,30 +101,32 @@ void ConstProp::constantPropagation(sysy::BasicBlock *bb) {
             }
         }
         else if (inst.op == "sw" ){ 
+            std::string temp;
             auto nextInst = std::next(&inst);
             if (inst.valid && !inst.fields.empty() && valueMap.find(inst.fields[0]) != valueMap.end() && valuechange[inst.fields[0]] == "0") {
                 // Replace uses of constants.
-                    inst.fields[0] = valueMap[inst.fields[0]];
+                    //inst.fields[0] = valueMap[inst.fields[0]];
+                    temp = valueMap[inst.fields[0]];
             }
             if (nextInst->op == "lw"){
-                valueMap[nextInst->fields[0]] = inst.fields[0];// Store constant value with its register.
+                valueMap[nextInst->fields[0]] = temp;// Store constant value with its register.
                 valuechange[nextInst->fields[0]] = "0";
             }
         }
         else if (inst.op == "lw" ){ 
-            if (inst.valid && !inst.fields.empty() && valueMap.find(inst.fields[0]) != valueMap.end() && valuechange[inst.fields[0]] == "0") {
-                // Replace uses of constants.
-                    inst.fields[0] = valueMap[inst.fields[0]];
-            }
+            continue;
         }
-        else if (inst.op == "addi" && inst.op == "ori" && inst.op == "subi"  && inst.op == "slli" && inst.op == "sll" ){
-            if (inst.valid && !inst.fields.empty() && valueMap.find(inst.fields[0]) != valueMap.end() && valuechange[inst.fields[0]] == "0") {
+        // else if (inst.op == "addi" && inst.op == "ori" && inst.op == "subi"  && inst.op == "slli" && inst.op == "sll" ){
+        //     if (inst.valid && !inst.fields.empty() && valueMap.find(inst.fields[0]) != valueMap.end() && valuechange[inst.fields[0]] == "0") {
+        //         // Replace uses of constants.
+        //             valuechange[inst.fields[0]] = "1";
+        //     }
+        // }
+        else{
+           if (inst.valid && !inst.fields.empty() && valueMap.find(inst.fields[0]) != valueMap.end() && valuechange[inst.fields[0]] == "0") {
                 // Replace uses of constants.
                     valuechange[inst.fields[0]] = "1";
             }
-        }
-        else{
-           continue;
         }  
     }
 
