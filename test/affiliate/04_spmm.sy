@@ -1,0 +1,39 @@
+int A_values[3] = {3, 5, 7}; 
+int A_row_ptr[4] = {0, 1, 2, 3}; 
+int A_col_ind[3] = {2, 1, 0}; 
+
+int B[3][2] = {1, 2, 3, 4, 5, 6};
+
+int result[100][100]; 
+int A_m = 3; 
+int A_n = 3; 
+int A_non_zeros = 3; 
+int B_n = 2; 
+
+int main() {
+    int i = 0;
+    while (i < A_m) {
+        int j = 0;
+        while (j < B_n) {
+            result[i][j] = 0;
+            j = j + 1;
+        }
+        i = i + 1;
+    }
+    i = 0;
+    while (i < A_m) {
+        int j = A_row_ptr[i];
+        while (j < A_row_ptr[i + 1]) {
+            int a_col = A_col_ind[j]; 
+            int a_val = A_values[j]; 
+            int k = 0;
+            while (k < B_n) {
+                result[i][k] = result[i][k] + a_val * B[a_col][k];
+                k = k + 1;
+            }
+            j = j + 1;
+        }
+        i = i + 1;
+    }
+    return result[2][0];
+}

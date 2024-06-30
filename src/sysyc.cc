@@ -52,7 +52,7 @@ public:
       this->flags["--emit-as"] = true;
       this->flags["--const-propagation"] = true;
       this->flags["--fpeephole"] = true;
-      this->flags["--fparallel"] = true;
+      this->flags["--fparallel"] = false;
       this->flags["--funroll"] = true;
     }
   }

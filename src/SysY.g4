@@ -70,9 +70,9 @@ fragment HexFloat:
 	| HexDigit+ BinExponent;
 
 ILITERAL:
-	NonZeroDecDigit DecDigit*
-	| OctPrefix OctDigit*
-	| HexPrefix HexDigit+;
+	Sign? NonZeroDecDigit DecDigit*
+	| Sign? OctPrefix OctDigit*
+	| Sign? HexPrefix HexDigit+;
 
 FLITERAL: DecFloat | HexFloat;
 

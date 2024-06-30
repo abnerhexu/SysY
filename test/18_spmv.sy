@@ -1,0 +1,22 @@
+int values[] = {3, 5, 7}; 
+int row_ptr[] = {0, 1, 2, 3}; 
+int col_ind[] = {2, 1, 0}; 
+int vector[] = {1, 2, 3};
+int result[100];
+
+int m = 3; 
+int n = 3; 
+int non_zeros = 3;
+
+void sparse_matrix_vector_multiply() {
+    for (int i = 0; i < m; i++) {
+        result[i] = 0;
+    }
+    for (int i = 0; i < m; i++) {
+        for (int j = row_ptr[i]; j < row_ptr[i + 1]; j++) {
+            int col = col_ind[j];
+            result[i] += values[j] * vector[col];
+        }
+    }
+}
+

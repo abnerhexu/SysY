@@ -3,7 +3,7 @@ int b[128][128];
 int c[128][128];
 
 int main() {
-    int i;
+    int i = 0;
     while (i < 128) {
         int j = 0;
         while (j < 128) {
