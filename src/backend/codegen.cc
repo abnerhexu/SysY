@@ -922,7 +922,7 @@ void CodeGen::GenStoreInst(sysy::StoreInst *inst) {
           field1 = regManager.intRegs[addrReg].second;
           field2 = std::to_string(-1*destPos->second.second);
           field3 = "sp";
-          this->curBBlock->CoInst.push_back(sysy::RVInst("add", field1, field2, field3));
+          this->curBBlock->CoInst.push_back(sysy::RVInst("addi", field1, field3, field2));
           field1 = regManager.intRegs[addrReg].second;
           field2 = regManager.intRegs[addrReg].second;
           field3 = regManager.intRegs[regManager.varIRegMap.find(offsetValue->getName())->second.second].second;
