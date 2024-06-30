@@ -9,6 +9,7 @@
 #include "backend/llir.h"
 #include "backend/assembly.h"
 #include "opt/peephole.h"
+#include "opt/constprop.h"
 
 struct ArgsOptions {
   std::string srcfile;
@@ -29,6 +30,7 @@ public:
                                        {"--fpeephole", false},
                                        {"--verbose", false},
                                        {"--fparallel", false},
+                                       {"--fconstprop",false},
                                        {"--opt", false}};
   std::string srcfile;
   void parseFlags(int argc, char** argv) {
@@ -57,6 +59,10 @@ public:
       transform::Hole hole(this->module);
       hole.moduleTransform();
       hole.moduleTransform();
+    }
+    if (this->flags["--fconstprop"]) {
+      transform::ConstProp constProp(this->module);
+      constProp.moduleTransform();
     }
   }
   void emit() {
