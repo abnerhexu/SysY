@@ -921,7 +921,7 @@ void CodeGen::GenStoreInst(sysy::StoreInst *inst) {
         if (destPos->second.first == RegisterManager::VarPos::OnStack) {
           field1 = regManager.intRegs[addrReg].second;
           field2 = std::to_string(-1*destPos->second.second);
-          field3 = "(sp)";
+          field3 = "sp";
           this->curBBlock->CoInst.push_back(sysy::RVInst("add", field1, field2, field3));
           field1 = regManager.intRegs[addrReg].second;
           field2 = regManager.intRegs[addrReg].second;
