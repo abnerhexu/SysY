@@ -63,6 +63,43 @@ void Hole::basicblockTransform(sysy::BasicBlock *bb) {
             nextInst = std::next(curInst);
             continue;
         }
+        else if (curInst->op == "li" && nextInst->op == "add" && nextInst->fields[1] == curInst->fields[0]) {
+            auto imm = std::to_string(std::stoi(curInst->fields[1]));
+            bb->CoInst.insert(curInst, sysy::RVInst("addi", nextInst->fields[0], nextInst->fields[2], imm));
+            bb->CoInst.erase(nextInst);
+            bb->CoInst.erase(nextInst);
+            nextInst = std::next(curInst);
+            continue;
+        }
+        else if (curInst->op == "li" && nextInst->op == "add" && nextInst->fields[2] == curInst->fields[0]) {
+            auto imm = std::to_string(std::stoi(curInst->fields[1]));
+            bb->CoInst.insert(curInst, sysy::RVInst("addi", nextInst->fields[0], nextInst->fields[1], imm));
+            bb->CoInst.erase(nextInst);
+            bb->CoInst.erase(nextInst);
+            nextInst = std::next(curInst);
+            continue;
+        }
+        else if (curInst->op == "mv" && nextInst->op == "add" && nextInst->fields[1] == curInst->fields[0]) {
+            auto imm = std::to_string(std::stoi(curInst->fields[1]));
+            bb->CoInst.insert(curInst, sysy::RVInst("add", nextInst->fields[0], nextInst->fields[2], curInst->fields[1]));
+            bb->CoInst.erase(nextInst);
+            bb->CoInst.erase(nextInst);
+            nextInst = std::next(curInst);
+            continue;
+        }
+        else if (curInst->op == "mv" && nextInst->op == "add" && nextInst->fields[2] == curInst->fields[0]) {
+            auto imm = std::to_string(std::stoi(curInst->fields[1]));
+            bb->CoInst.insert(curInst, sysy::RVInst("add", nextInst->fields[0], nextInst->fields[1], curInst->fields[1]));
+            bb->CoInst.erase(nextInst);
+            bb->CoInst.erase(nextInst);
+            nextInst = std::next(curInst);
+            continue;
+        }
+        else if (curInst->op == "beq" && nextInst->op == "j" && nextInst->fields[0] == curInst->fields[3]) {
+            bb->CoInst.erase(curInst);
+            nextInst = std::next(curInst);
+            continue;
+        }
         curInst = nextInst;
         nextInst = std::next(nextInst);
     }
