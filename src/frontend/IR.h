@@ -407,6 +407,10 @@ public:
       this->fields.push_back(field4);
     };
   void print(std::ostream &os) {
+    if (this->op == "sw" || this->op == "lw") {
+      os << this->space << this->op << " " << this->fields[0] << ", " << this->fields[1] << "(" << this->fields[2] << ")" << endl;
+      return;
+    }
     // if (!this->valid) { return; }
     os << this->space << this->op << " ";
     // for (auto &it: this->fields) {

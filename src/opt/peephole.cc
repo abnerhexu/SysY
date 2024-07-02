@@ -22,19 +22,27 @@ void Hole::basicblockTransform(sysy::BasicBlock *bb) {
     auto nextInst = std::next(curInst);
     while (curInst != bb->CoInst.end() && nextInst != bb->CoInst.end()) {
         // UB warning
-        if (curInst->op == "lw" && nextInst->op == "sw" && curInst->fields[0] == nextInst->fields[0] && curInst->fields[1] == nextInst->fields[1]) {
+        if (curInst->op == "lw" && nextInst->op == "sw" && 
+        curInst->fields[0] == nextInst->fields[0] && 
+        curInst->fields[1] == nextInst->fields[1] && 
+        curInst->fields[2] == nextInst->fields[2]) {
             bb->CoInst.erase(curInst);
             bb->CoInst.erase(curInst);
             nextInst = std::next(curInst);
             continue;
         }
-        else if (curInst->op == "sw" && nextInst->op == "lw" && curInst->fields[0] == nextInst->fields[0] && curInst->fields[1] == nextInst->fields[1]) {
+        else if (curInst->op == "sw" && nextInst->op == "lw" && 
+        curInst->fields[0] == nextInst->fields[0] && 
+        curInst->fields[1] == nextInst->fields[1] &&
+        curInst->fields[2] == nextInst->fields[2]) {
             bb->CoInst.erase(curInst);
             bb->CoInst.erase(curInst);
             nextInst = std::next(curInst);
             continue;
         }
-        else if (curInst->op == "sw" && nextInst->op == "lw" && curInst->fields[1] == nextInst->fields[1]) {
+        else if (curInst->op == "sw" && nextInst->op == "lw" && 
+        curInst->fields[1] == nextInst->fields[1] &&
+        curInst->fields[2] == nextInst->fields[2]) {
             bb->CoInst.insert(curInst, sysy::RVInst("mv", nextInst->fields[0], curInst->fields[0]));
             bb->CoInst.erase(nextInst);
             bb->CoInst.erase(nextInst);
@@ -56,7 +64,9 @@ void Hole::basicblockTransform(sysy::BasicBlock *bb) {
             continue;
         }
         else if (curInst->op == "li" && nextInst->op == "addi" && nextInst->fields[1] == curInst->fields[0]) {
-            auto imm = std::to_string(std::stoi(curInst->fields[1]) + std::stoi(nextInst->fields[2]));
+            int imm1 = std::stoi(curInst->fields[1]);
+            int imm2 = std::stoi(nextInst->fields[2]);
+            auto imm = std::to_string(imm1 + imm2);
             bb->CoInst.insert(curInst, sysy::RVInst("li", nextInst->fields[0], imm));
             bb->CoInst.erase(nextInst);
             bb->CoInst.erase(nextInst);
@@ -64,7 +74,7 @@ void Hole::basicblockTransform(sysy::BasicBlock *bb) {
             continue;
         }
         curInst = nextInst;
-        nextInst = std::next(nextInst);
+        nextInst = std::next(curInst);
     }
 }
 
@@ -94,12 +104,12 @@ void Hole::basicblockTransform3(sysy::BasicBlock *bb) {
             continue;
         }
         // else if (inst1->op == "sw" && inst2->op == "lw" && inst3->op == "lw" && inst1->fields[0] != inst2->fields[0] && inst1->fields[0] != inst3->fields[0] && inst1->fields[1] != inst2->fields[1] && inst1->fields[1] == inst3->fields[1]) {
-        //     // bb->CoInst.insert(inst1, sysy::RVInst("mv", inst3->fields[0], inst1->fields[0]));
-        //     // bb->CoInst.erase(inst2);
-        //     // bb->CoInst.erase(inst3);
-        //     // inst2 = std::next(inst1);
-        //     // inst3 = std::next(inst2);
-        //     std::swap(inst2, inst3);
+        //     bb->CoInst.insert(inst1, sysy::RVInst("mv", inst3->fields[0], inst1->fields[0]));
+        //     bb->CoInst.erase(inst2);
+        //     bb->CoInst.erase(inst3);
+        //     inst2 = std::next(inst1);
+        //     inst3 = std::next(inst2);
+        //     // std::swap(inst2, inst3);
         //     continue;
         // }
         else if (inst1->op == "sub" && inst2->op == "sgtz" && inst3->op == "bnez" && inst1->fields[0] == inst2->fields[0] && inst2->fields[0] == inst2->fields[1] && inst3->fields[0] == inst2->fields[0]) {
@@ -111,14 +121,14 @@ void Hole::basicblockTransform3(sysy::BasicBlock *bb) {
             inst3 = std::next(inst2);
             continue;
         }
-        if (inst1->op == "sw" && inst2->op == "li" && inst3->op == "sw" && inst1->fields[0] == inst2->fields[0] && inst3->fields[0] == inst2->fields[0]) {
-            inst2->fields[0] = "s1";
-            inst3->fields[0] = "s1";
-            inst1 = inst2;
-            inst2 = inst3;
-            inst3 = std::next(inst3);
-            continue;
-        }
+        // if (inst1->op == "sw" && inst2->op == "li" && inst3->op == "sw" && inst1->fields[0] == inst2->fields[0] && inst3->fields[0] == inst2->fields[0]) {
+        //     inst2->fields[0] = "s1";
+        //     inst3->fields[0] = "s1";
+        //     inst1 = inst2;
+        //     inst2 = inst3;
+        //     inst3 = std::next(inst3);
+        //     continue;
+        // }
         inst1 = inst2;
         inst2 = inst3;
         inst3 = std::next(inst3);

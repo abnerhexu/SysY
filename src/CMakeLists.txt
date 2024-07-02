@@ -21,6 +21,7 @@ add_executable(sysyc
   opt/peephole.cc
   opt/unroll.cc
   opt/parallelize.cc
+  opt/arch/vf2.cc
 )
 target_include_directories(sysyc PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(sysyc PRIVATE SysYParser)

@@ -11,6 +11,7 @@
 #include "opt/peephole.h"
 #include "opt/unroll.h"
 #include "opt/parallelize.h"
+#include "opt/arch/architecture.h"
 
 struct ArgsOptions {
   std::string srcfile;
@@ -32,7 +33,8 @@ public:
                                        {"--verbose", false},
                                        {"--fparallel", false},
                                        {"--funroll", false},
-                                       {"--opt", false}};
+                                       {"--opt", false},
+                                       {"--march-vf2", false}};
   std::string srcfile;
   void parseFlags(int argc, char** argv) {
     this->srcfile = argv[1];
@@ -73,6 +75,10 @@ public:
     if (this->flags["--funroll"]) {
       transform::Unroll unroll(this->module);
       unroll.uLoopScan();
+    }
+    if (this->flags["--march-vf2"]) {
+      arch::ArchitectureSchedule scheduler(this->module);
+      scheduler.ModuleScheduler();
     }
   }
   void emit() {
