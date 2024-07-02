@@ -64,6 +64,11 @@ void Hole::basicblockTransform(sysy::BasicBlock *bb) {
             continue;
         }
         else if (curInst->op == "li" && nextInst->op == "addi" && nextInst->fields[1] == curInst->fields[0]) {
+            if (curInst == bb->CoInst.begin()) {
+                curInst = nextInst;
+                nextInst = std::next(curInst);
+                continue;
+            }
             int imm1 = std::stoi(curInst->fields[1]);
             int imm2 = std::stoi(nextInst->fields[2]);
             auto imm = std::to_string(imm1 + imm2);
