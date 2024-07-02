@@ -2,7 +2,7 @@ int arr[1024] = {3, 1, 2, 3, 4, 5};
 int brr[1024] = {4, 2, 5, 6, 1, 5};
 int c = 5;
 int main(){
-    int i = 2147483647;
+    int i = 2048;
     while (i >= 0) {
         brr[i % 1024] = (arr[i % 1024] * c) / (c * c);
         i = i - 1;

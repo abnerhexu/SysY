@@ -1247,6 +1247,11 @@ void CodeGen::GenCallInst(sysy::CallInst* inst, int dstRegID) {
         regManager.varIRegMap[it.getValue()->getName()] = {RegisterManager::VarPos::InIReg, requestReg};
         }
     }
+    if (inst->getCallee()->getName() == "clone") {
+      this->curBBlock->CoInst.push_back(sysy::RVInst("addi", "a1", "sp", "-1024"));
+      this->curBBlock->CoInst.push_back(sysy::RVInst("addi", "sp", "sp", "-1024"));
+      this->curBBlock->CoInst.push_back(sysy::RVInst("li","a2", "65792"));
+    }
   }
   // actually, just a simple call
   field1 = inst->getCallee()->getName();
